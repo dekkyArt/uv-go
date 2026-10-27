@@ -1,6 +1,11 @@
 import type { Place } from './types';
 
 export const GEOLOCATION_TIMEOUT_MS = 10000;
+/**
+ * The browser's own timeout only starts once permission is granted. An ignored prompt would leave
+ * the promise pending forever, so an outer guard rejects shortly after the same limit.
+ */
+export const GEOLOCATION_GUARD_MARGIN_MS = 1000;
 export const YOUR_LOCATION_ID = -1;
 
 export type GeoErrorCode = 'denied' | 'timeout' | 'unavailable';
@@ -29,13 +34,24 @@ export function requestPosition(): Promise<{ lat: number; lon: number }> {
       reject(new GeoError('unavailable'));
       return;
     }
+    const guard = setTimeout(
+      () => reject(new GeoError('timeout')),
+      GEOLOCATION_TIMEOUT_MS + GEOLOCATION_GUARD_MARGIN_MS,
+    );
     try {
       geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        (err) => reject(new GeoError(codeFor(err.code))),
+        (pos) => {
+          clearTimeout(guard);
+          resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        },
+        (err) => {
+          clearTimeout(guard);
+          reject(new GeoError(codeFor(err.code)));
+        },
         { timeout: GEOLOCATION_TIMEOUT_MS },
       );
     } catch (err) {
+      clearTimeout(guard);
       reject(new GeoError('unavailable', { cause: err }));
     }
   });

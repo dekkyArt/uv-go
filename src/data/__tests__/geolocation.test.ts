@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  GEOLOCATION_GUARD_MARGIN_MS,
   GEOLOCATION_TIMEOUT_MS,
   GeoError,
   requestPosition,
@@ -61,6 +62,40 @@ describe('requestPosition', () => {
     });
     const err = await requestPosition().catch((e: unknown) => e);
     expect((err as GeoError).code).toBe('unavailable');
+  });
+});
+
+describe('requestPosition guard', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('rejects with timeout when an ignored permission prompt never calls back', async () => {
+    vi.useFakeTimers();
+    stubGeolocation(() => {
+      // The prompt stays open: neither callback fires and the browser timeout never starts.
+    });
+    const pending = requestPosition().catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(GEOLOCATION_TIMEOUT_MS + GEOLOCATION_GUARD_MARGIN_MS);
+    const err = await pending;
+    expect(err).toBeInstanceOf(GeoError);
+    expect((err as GeoError).code).toBe('timeout');
+  });
+
+  it('does not reject early and ignores the guard once a position arrived', async () => {
+    vi.useFakeTimers();
+    let succeed: PositionCallback = () => undefined;
+    stubGeolocation((ok) => {
+      succeed = ok;
+    });
+    const settled = vi.fn();
+    const pending = requestPosition().then(settled, settled);
+    await vi.advanceTimersByTimeAsync(GEOLOCATION_TIMEOUT_MS);
+    expect(settled).not.toHaveBeenCalled();
+    succeed({ coords: { latitude: 1, longitude: 2 } } as GeolocationPosition);
+    await expect(pending).resolves.toBeUndefined();
+    expect(settled).toHaveBeenCalledWith({ lat: 1, lon: 2 });
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
 

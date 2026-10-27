@@ -158,7 +158,12 @@ function App() {
     [activeDay, inputs, now],
   );
 
-  const closeDetails = useCallback(() => dispatch({ type: 'selectHour', hour: null }), []);
+  const timelineRef = useRef<HTMLElement>(null);
+  const closeDetails = useCallback((restoreFocus: boolean) => {
+    dispatch({ type: 'selectHour', hour: null });
+    // The close button unmounts with the details; hand focus to the hour strip (ТЗ 12.2).
+    if (restoreFocus) timelineRef.current?.querySelector<HTMLElement>('[role="slider"]')?.focus();
+  }, []);
 
   function choosePlace(p: Place) {
     savePlace(p);
@@ -306,6 +311,7 @@ function App() {
       </div>
 
       <section
+        ref={timelineRef}
         aria-label="Day timeline"
         className={`${PANEL_CLASS} flex flex-col gap-4 ${TIMELINE_PLACEMENT}`}
       >

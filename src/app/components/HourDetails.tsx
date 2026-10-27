@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ScoredHour } from '../../domain/types';
 import { KEEP_DETAILS_ATTR } from './HourStrip';
 import { FACTORS, FACTOR_LABELS, formatHour, verdictLabel } from '../ui';
 
 interface Props {
   hour: ScoredHour;
-  onClose(): void;
+  /** `restoreFocus`: the user closed it with the × button or Esc, so focus should go back to the strip. */
+  onClose(restoreFocus: boolean): void;
 }
 
 const NO_DATA = 'no data';
@@ -15,20 +16,33 @@ function value(v: number | null, format: (n: number) => string): string {
 }
 
 export function HourDetails({ hour, onClose }: Props) {
+  const pressStartedInside = useRef(false);
+
   useEffect(() => {
+    const insideKept = (target: EventTarget | null) =>
+      target instanceof Element && target.closest(`[${KEEP_DETAILS_ATTR}]`) !== null;
+
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onClose(true);
     }
-    // Tap outside closes, except on the hour strip (selecting another hour) or the details itself.
+    // Only a completed tap outside closes (FR-4): `click` does not fire after a touch scroll, and
+    // a press that started on the strip or the details (a scrub) never counts as an outside tap.
     function onPointerDown(e: PointerEvent) {
-      if (e.target instanceof Element && e.target.closest(`[${KEEP_DETAILS_ATTR}]`)) return;
-      onClose();
+      pressStartedInside.current = insideKept(e.target);
+    }
+    function onClick(e: MouseEvent) {
+      const startedInside = pressStartedInside.current;
+      pressStartedInside.current = false;
+      if (startedInside || insideKept(e.target)) return;
+      onClose(false);
     }
     document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('click', onClick);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('click', onClick);
     };
   }, [onClose]);
 
@@ -55,7 +69,7 @@ export function HourDetails({ hour, onClose }: Props) {
         </div>
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => onClose(true)}
           aria-label="Close hour details"
           className="inline-flex size-11 items-center justify-center rounded-lg text-xl text-text hover:bg-surface-strong"
         >

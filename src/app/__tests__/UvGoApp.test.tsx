@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearForecastCache } from '../../data/openMeteo';
@@ -243,6 +243,73 @@ describe('UvGoApp', () => {
     // Anywhere else: closes.
     await user.click(screen.getByRole('heading', { name: 'Adjust your plan' }));
     expect(screen.queryByRole('region', { name: /Details for/ })).not.toBeInTheDocument();
+  });
+
+  it('keeps the hour details open through a touch-scroll sequence outside them', async () => {
+    storePlace();
+    const user = userEvent.setup();
+    render(<UvGoApp />);
+    await screen.findByText('18:00–19:00');
+    const slider = screen.getByRole('slider', { name: 'Hour of the day' });
+    act(() => slider.focus());
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('region', { name: 'Details for 19:00' })).toBeInTheDocument();
+
+    // A swipe starts with pointerdown, moves, and ends with pointerup: no click, so no tap.
+    const outside = screen.getByRole('heading', { name: 'Adjust your plan' });
+    fireEvent.pointerDown(outside, { clientX: 100, clientY: 400 });
+    fireEvent.pointerMove(outside, { clientX: 100, clientY: 300 });
+    fireEvent.pointerUp(outside, { clientX: 100, clientY: 250 });
+    expect(screen.getByRole('region', { name: 'Details for 19:00' })).toBeInTheDocument();
+  });
+
+  it('keeps the details open when a press starts on the strip and a click lands outside', async () => {
+    storePlace();
+    const user = userEvent.setup();
+    render(<UvGoApp />);
+    await screen.findByText('18:00–19:00');
+    const slider = screen.getByRole('slider', { name: 'Hour of the day' });
+    act(() => slider.focus());
+    await user.keyboard('{ArrowRight}');
+
+    fireEvent.pointerDown(slider);
+    fireEvent.click(screen.getByRole('heading', { name: 'Adjust your plan' }));
+    expect(screen.getByRole('region', { name: 'Details for 19:00' })).toBeInTheDocument();
+  });
+
+  it('returns focus to the hour strip when the details close with the button or Escape', async () => {
+    storePlace();
+    const user = userEvent.setup();
+    render(<UvGoApp />);
+    await screen.findByText('18:00–19:00');
+    const slider = screen.getByRole('slider', { name: 'Hour of the day' });
+    act(() => slider.focus());
+    await user.keyboard('{ArrowRight}');
+
+    await user.click(screen.getByRole('button', { name: 'Close hour details' }));
+    expect(screen.queryByRole('region', { name: /Details for/ })).not.toBeInTheDocument();
+    expect(slider).toHaveFocus();
+
+    await user.keyboard('{ArrowRight}');
+    const close = screen.getByRole('button', { name: 'Close hour details' });
+    act(() => close.focus());
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('region', { name: /Details for/ })).not.toBeInTheDocument();
+    expect(slider).toHaveFocus();
+  });
+
+  it('leaves focus alone when the details close on an outside tap', async () => {
+    storePlace();
+    const user = userEvent.setup();
+    render(<UvGoApp />);
+    await screen.findByText('18:00–19:00');
+    const slider = screen.getByRole('slider', { name: 'Hour of the day' });
+    act(() => slider.focus());
+    await user.keyboard('{ArrowRight}');
+
+    await user.click(screen.getByRole('heading', { name: 'Adjust your plan' }));
+    expect(screen.queryByRole('region', { name: /Details for/ })).not.toBeInTheDocument();
+    expect(slider).not.toHaveFocus();
   });
 
   it('refetches the forecast once the location passes midnight', async () => {

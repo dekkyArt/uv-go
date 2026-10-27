@@ -12,12 +12,13 @@
 }
 
 /*
- * Design tokens. `@theme static` makes Tailwind emit every variable (so
- * `bg-surface`, `text-verdict-green`, ... exist and unused tokens survive).
- * The values below are the LIGHT set and double as the no-JS fallback; the
- * `[data-theme='light']` / `[data-theme='dark']` blocks after it are what the
- * ThemeScript switches between. Utilities read var(--color-*), so the
- * attribute override re-themes everything without extra classes.
+ * Design tokens. Each theme's values are declared ONCE, as raw `--uv-*`
+ * variables: the light set on `:root, [data-theme='light']` (so it is also the
+ * no-JS fallback) and the dark set on `[data-theme='dark']` (ThemeScript
+ * switches the attribute). `@theme static inline` then maps them to the
+ * `--color-*` tokens: `static` emits every token even if unused, `inline`
+ * makes utilities (`bg-surface`, `text-verdict-green`, ...) reference the
+ * `--uv-*` variable directly, so they re-theme with the attribute.
  *
  * Contrast (WCAG 2.x relative luminance; computed with a throwaway script).
  * bg / surface / surface-strong are the three surfaces content can sit on.
@@ -52,68 +53,70 @@
  *     red    #ff8f8b   7.57 /  8.52 / 6.51
  *   night #7886c4       4.76 on surface, 5.35 on bg
  */
-@theme static {
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  --uv-bg: #f4f7fb;
+  --uv-surface: #ffffff;
+  --uv-surface-strong: #e6edf6;
+  --uv-text: #101a2e;
+  --uv-text-muted: #475569;
+  --uv-border: #8493a8;
+  --uv-focus: #1d4ed8;
+  --uv-verdict-green: #15803d;
+  --uv-verdict-yellow: #b07400;
+  --uv-verdict-red: #dc2626;
+  --uv-verdict-green-text: #166534;
+  --uv-verdict-yellow-text: #854d0e;
+  --uv-verdict-red-text: #b91c1c;
+  --uv-night: #4c5a8a;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --uv-bg: #0b1220;
+  --uv-surface: #151e31;
+  --uv-surface-strong: #1f2a42;
+  --uv-text: #eef3fb;
+  --uv-text-muted: #a3b1c7;
+  --uv-border: #6b7c97;
+  --uv-focus: #8ab4ff;
+  --uv-verdict-green: #34c26b;
+  --uv-verdict-yellow: #e0a82e;
+  --uv-verdict-red: #f2605c;
+  --uv-verdict-green-text: #6fdc97;
+  --uv-verdict-yellow-text: #f2c75c;
+  --uv-verdict-red-text: #ff8f8b;
+  --uv-night: #7886c4;
+}
+
+@theme static inline {
   --font-sans:
     'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
     Arial, sans-serif;
 
-  --color-bg: #f4f7fb;
-  --color-surface: #ffffff;
-  --color-surface-strong: #e6edf6;
-  --color-text: #101a2e;
-  --color-text-muted: #475569;
-  --color-border: #8493a8;
-  --color-focus: #1d4ed8;
+  --color-bg: var(--uv-bg);
+  --color-surface: var(--uv-surface);
+  --color-surface-strong: var(--uv-surface-strong);
+  --color-text: var(--uv-text);
+  --color-text-muted: var(--uv-text-muted);
+  --color-border: var(--uv-border);
+  --color-focus: var(--uv-focus);
 
-  --color-verdict-green: #15803d;
-  --color-verdict-yellow: #b07400;
-  --color-verdict-red: #dc2626;
-  --color-verdict-green-text: #166534;
-  --color-verdict-yellow-text: #854d0e;
-  --color-verdict-red-text: #b91c1c;
+  --color-verdict-green: var(--uv-verdict-green);
+  --color-verdict-yellow: var(--uv-verdict-yellow);
+  --color-verdict-red: var(--uv-verdict-red);
+  --color-verdict-green-text: var(--uv-verdict-green-text);
+  --color-verdict-yellow-text: var(--uv-verdict-yellow-text);
+  --color-verdict-red-text: var(--uv-verdict-red-text);
 
-  --color-night: #4c5a8a;
+  --color-night: var(--uv-night);
 }
 
 /* Not a colour, so it lives outside @theme (no bogus `bg-past-opacity`). */
 :root {
   --color-past-opacity: 0.45;
-}
-
-[data-theme='light'] {
-  color-scheme: light;
-  --color-bg: #f4f7fb;
-  --color-surface: #ffffff;
-  --color-surface-strong: #e6edf6;
-  --color-text: #101a2e;
-  --color-text-muted: #475569;
-  --color-border: #8493a8;
-  --color-focus: #1d4ed8;
-  --color-verdict-green: #15803d;
-  --color-verdict-yellow: #b07400;
-  --color-verdict-red: #dc2626;
-  --color-verdict-green-text: #166534;
-  --color-verdict-yellow-text: #854d0e;
-  --color-verdict-red-text: #b91c1c;
-  --color-night: #4c5a8a;
-}
-
-[data-theme='dark'] {
-  color-scheme: dark;
-  --color-bg: #0b1220;
-  --color-surface: #151e31;
-  --color-surface-strong: #1f2a42;
-  --color-text: #eef3fb;
-  --color-text-muted: #a3b1c7;
-  --color-border: #6b7c97;
-  --color-focus: #8ab4ff;
-  --color-verdict-green: #34c26b;
-  --color-verdict-yellow: #e0a82e;
-  --color-verdict-red: #f2605c;
-  --color-verdict-green-text: #6fdc97;
-  --color-verdict-yellow-text: #f2c75c;
-  --color-verdict-red-text: #ff8f8b;
-  --color-night: #7886c4;
 }
 
 @layer base {

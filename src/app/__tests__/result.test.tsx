@@ -43,6 +43,23 @@ describe('ResultCard', () => {
     expect(screen.getByText('Good')).toBeInTheDocument();
   });
 
+  it('never restarts the label or the reason from opacity 0 when an input changes the answer', () => {
+    const first = makeResult();
+    const { rerender } = render(<ResultCard result={first} activity="relaxed" />);
+    const next = makeResult();
+    next.best = { ...next.best, label: '09:00–11:00' };
+    next.reason = 'Moderate UV, so keep to the shade.';
+    rerender(<ResultCard result={next} activity="relaxed" />);
+
+    // The new text is readable at once: it is in the DOM and no fade from 0 is running.
+    const label = screen.getByText('09:00–11:00');
+    const reason = screen.getByText('Moderate UV, so keep to the shade.');
+    expect(screen.queryByText(BEST_LABEL)).not.toBeInTheDocument();
+    for (const el of [label, reason]) {
+      expect(Number(el.style.opacity === '' ? 1 : el.style.opacity)).toBeGreaterThan(0.5);
+    }
+  });
+
   it('shows the peak UV of the window', () => {
     render(<ResultCard result={makeResult()} activity="relaxed" />);
     expect(screen.getByText('UV')).toHaveTextContent('UV 2');

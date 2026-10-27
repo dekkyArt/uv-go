@@ -61,12 +61,12 @@ export function ResultCard({ result, activity, intro = false, labelInFrame = fal
         <p className="text-sm text-text-muted">Best time to go out</p>
         <p className="relative min-h-10 text-4xl font-bold tracking-tight">
           {labelInFrame && <span className="sr-only">Best time {best.label}</span>}
-          {/* Values crossfade when an input changes: the new one fades in. The first render and
-              the first-result hand-off from the timeline frame (layoutId) do not fade. */}
+          {/* The node is not re-keyed by its value, so a recalculation only swaps the text and the
+              answer is readable at once (ТЗ 1: animation never hides it). Only the first-result
+              hand-off from the timeline frame (layoutId) mounts it and fades it in. */}
           <AnimatePresence initial={false}>
             {!labelInFrame && (
               <m.span
-                key={best.label}
                 layoutId="best-window-label"
                 className="inline-block"
                 initial={{ opacity: 0 }}
@@ -98,18 +98,8 @@ export function ResultCard({ result, activity, intro = false, labelInFrame = fal
           </m.p>
         )}
       </div>
-      <AnimatePresence initial={false}>
-        {reason && (
-          <m.p
-            key={reason}
-            className="text-base"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: fade }}
-          >
-            {reason}
-          </m.p>
-        )}
-      </AnimatePresence>
+      {/* Plain text: a new reason replaces the old one without a fade from 0. */}
+      {reason && <p className="text-base">{reason}</p>}
       {/* Neighbours glide to their new place when this block opens instead of jumping. */}
       <m.details layout="position" transition={springs.gentle} open={whyOpen} className="text-sm">
         <summary

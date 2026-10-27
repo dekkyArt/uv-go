@@ -142,6 +142,18 @@ for (const file of pages) {
   rows.push({ route, ...r, budget, ok });
 }
 
+// Silent-pass guard: the home page is the one with the real budget, so it must be there and it
+// must load some JavaScript (an empty list means the HTML scan found nothing to measure).
+const home = rows.find((r) => r.route === '/');
+if (!home || home.initialFiles.size === 0) {
+  console.error(
+    home
+      ? 'dist/index.html lists no initial JS files; the bundle scan found nothing to measure.'
+      : 'dist/index.html is missing; the home page budget cannot be checked.',
+  );
+  process.exit(1);
+}
+
 const w = Math.max(...rows.map((r) => r.route.length), 4);
 console.log(
   `${'page'.padEnd(w)}  ${'initial'.padStart(10)}  ${'budget'.padStart(10)}  ${'lazy*'.padStart(10)}  ${'total*'.padStart(10)}  status`,

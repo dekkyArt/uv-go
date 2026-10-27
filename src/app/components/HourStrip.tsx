@@ -1,6 +1,20 @@
-import { useRef, type KeyboardEvent, type PointerEvent } from 'react';
+import {
+  m,
+  useAnimationControls,
+  useMotionValue,
+  useReducedMotion,
+  type PanInfo,
+} from 'motion/react';
+import {
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+  type KeyboardEvent,
+  type PointerEvent,
+} from 'react';
 import { roundHalfUp } from '../../domain/scoring';
 import type { ScoredHour, TimeWindow } from '../../domain/types';
+import { springs } from '../../motion/tokens';
 import { VERDICT_FILL_CLASS, formatHour, verdictLabel } from '../ui';
 
 /** Marks UI that must not count as an "outside tap" for HourDetails. */
@@ -12,6 +26,8 @@ interface Props {
   best: TimeWindow | null;
   selectedHour: number | null;
   onSelect(h: number | null): void;
+  /** Cells grow in along the strip; ignored with reduced motion. */
+  playIntro?: boolean;
 }
 
 const LAST_HOUR = 23;
@@ -19,6 +35,29 @@ const HOURS_PER_DAY = 24;
 const LABEL_HOURS = [0, 6, 12, 18];
 /** Horizontal travel before a press turns into a scrub, so a vertical page scroll never selects. */
 const SCRUB_THRESHOLD_PX = 8;
+/** Touch layout: one hour is one 44 px tap target, so the day is wider than the screen. */
+const HOUR_PX = 44;
+const STRIP_PX = HOUR_PX * HOURS_PER_DAY;
+/** Seconds between neighbouring cells of the intro (Task 16 moves this to the choreography). */
+const CELL_STAGGER = 0.015;
+/** How far a flick carries the strip before it snaps to an hour, in seconds of release velocity. */
+const FLICK_SECONDS = 0.15;
+const TOUCH_QUERY = '(hover: none)';
+
+function subscribeTouch(notify: () => void) {
+  const query = typeof window.matchMedia === 'function' ? window.matchMedia(TOUCH_QUERY) : null;
+  query?.addEventListener?.('change', notify);
+  return () => query?.removeEventListener?.('change', notify);
+}
+
+function isTouchDevice() {
+  return typeof window.matchMedia === 'function' && window.matchMedia(TOUCH_QUERY).matches;
+}
+
+/** True on devices without hover (phones): the strip is dragged instead of shown whole. */
+function useTouchDevice() {
+  return useSyncExternalStore(subscribeTouch, isTouchDevice, () => false);
+}
 
 const LEGEND: { kind: ScoredHour['verdict']; label: string }[] = [
   { kind: 'green', label: 'Good hour' },
@@ -63,10 +102,46 @@ function describe(hour: ScoredHour): string {
   return `${time}, ${uv}, ${verdictLabel(hour.verdict)}`;
 }
 
-export function HourStrip({ hours, freeTime, best, selectedHour, onSelect }: Props) {
+export function HourStrip({
+  hours,
+  freeTime,
+  best,
+  selectedHour,
+  onSelect,
+  playIntro = false,
+}: Props) {
   // With nothing selected the slider rests on the best hour (or the start of free time).
   const current = clamp(selectedHour ?? best?.startHour ?? freeTime.start, 0, LAST_HOUR);
   const currentHour = hours[current];
+  const touch = useTouchDevice();
+  const reduced = useReducedMotion() ?? false;
+  const intro = playIntro && !reduced;
+
+  const viewport = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const controls = useAnimationControls();
+
+  /** Strip offset that puts the middle of `hour` in the middle of the viewport. */
+  function centreOffset(hour: number): number {
+    const width = viewport.current?.clientWidth ?? 0;
+    const centred = width / 2 - ((hour + 0.5) / HOURS_PER_DAY) * STRIP_PX;
+    return Math.min(0, Math.max(width - STRIP_PX, centred));
+  }
+
+  function hourAtOffset(offset: number): number {
+    const width = viewport.current?.clientWidth ?? 0;
+    return clamp(Math.round(((width / 2 - offset) / STRIP_PX) * HOURS_PER_DAY - 0.5), 0, LAST_HOUR);
+  }
+
+  // The selected hour sits in the middle of the viewport; the first placement is instant.
+  const placed = useRef(false);
+  useLayoutEffect(() => {
+    if (!touch || !viewport.current?.clientWidth) return;
+    const target = centreOffset(current);
+    if (placed.current && !reduced) void controls.start({ x: target, transition: springs.gentle });
+    else x.set(target);
+    placed.current = true;
+  }, [touch, current, reduced, x, controls]);
 
   function onKeyDown(e: KeyboardEvent) {
     let next: number;
@@ -94,8 +169,9 @@ export function HourStrip({ hours, freeTime, best, selectedHour, onSelect }: Pro
     pressX.current = null;
   }
 
+  // Desktop scrub by mouse; on touch the strip itself is dragged instead.
   function onPointerMove(e: PointerEvent<HTMLDivElement>) {
-    if (e.buttons !== 1 || pressX.current === null) return;
+    if (touch || e.buttons !== 1 || pressX.current === null) return;
     if (!scrubbing.current && Math.abs(e.clientX - pressX.current) < SCRUB_THRESHOLD_PX) return;
     scrubbing.current = true;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -108,9 +184,18 @@ export function HourStrip({ hours, freeTime, best, selectedHour, onSelect }: Pro
     if (hour !== selectedHour) onSelect(hour);
   }
 
+  // Release: carry a flick a little further, then settle the nearest hour in the middle.
+  function onDragEnd(_: unknown, info: PanInfo) {
+    const flick = reduced ? 0 : info.velocity.x * FLICK_SECONDS;
+    const hour = hourAtOffset(x.get() + flick);
+    void controls.start({ x: centreOffset(hour), transition: springs.gentle });
+    if (hour !== selectedHour) onSelect(hour);
+  }
+
   return (
     <div className="flex flex-col gap-1" {...{ [KEEP_DETAILS_ATTR]: '' }}>
       <div
+        ref={viewport}
         role="slider"
         tabIndex={0}
         aria-label="Hour of the day"
@@ -124,50 +209,73 @@ export function HourStrip({ hours, freeTime, best, selectedHour, onSelect }: Pro
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         style={{ touchAction: 'pan-y' }}
-        className="relative select-none rounded-md"
+        className={`relative select-none rounded-md ${touch ? '-my-1.5 overflow-hidden py-1.5' : ''}`}
       >
-        <div className="flex h-11 gap-px">
-          {hours.map((hour) => (
+        <m.div
+          animate={controls}
+          drag={touch ? 'x' : false}
+          dragConstraints={viewport}
+          dragElastic={0.1}
+          dragMomentum={!reduced}
+          onDragStart={() => {
+            scrubbing.current = true;
+          }}
+          onDragEnd={onDragEnd}
+          style={touch ? { x, width: STRIP_PX, touchAction: 'pan-y' } : undefined}
+          className="relative"
+        >
+          <div className="flex h-11 gap-px">
+            {hours.map((hour, i) => (
+              <m.div
+                key={hour.hour}
+                data-hour={hour.hour}
+                initial={intro ? { scaleY: 0 } : false}
+                animate={{
+                  scaleY: 1,
+                  transition: { ...springs.snappy, delay: intro ? i * CELL_STAGGER : 0 },
+                }}
+                whileHover={touch || reduced ? undefined : { y: -2 }}
+                onClick={() => {
+                  // The click that ends a scrub must not re-select the cell it was released on.
+                  if (scrubbing.current) scrubbing.current = false;
+                  else onSelect(hour.hour);
+                }}
+                className={`flex flex-1 cursor-pointer items-center justify-center rounded-sm ${VERDICT_FILL_CLASS[hour.verdict]} ${
+                  hour.hour === selectedHour ? 'ring-2 ring-text ring-offset-2 ring-offset-bg' : ''
+                }`}
+                style={{
+                  transformOrigin: 'bottom',
+                  ...(hour.isPast ? { opacity: 'var(--color-past-opacity)' } : null),
+                }}
+              >
+                <HourGlyph kind={hour.verdict} />
+              </m.div>
+            ))}
+          </div>
+          {best && (
             <div
-              key={hour.hour}
-              data-hour={hour.hour}
-              onClick={() => {
-                // The click that ends a scrub must not re-select the cell it was released on.
-                if (scrubbing.current) scrubbing.current = false;
-                else onSelect(hour.hour);
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-y-1 rounded-md border-2 border-text"
+              style={{ left: pct(best.startHour), width: pct(best.hours.length) }}
+            />
+          )}
+          <div aria-hidden="true" className="mt-2 h-1.5 rounded-full bg-surface-strong">
+            <div
+              className="h-full rounded-full bg-focus"
+              style={{
+                marginLeft: pct(freeTime.start),
+                width: pct(freeTime.end - freeTime.start),
               }}
-              className={`flex flex-1 cursor-pointer items-center justify-center rounded-sm ${VERDICT_FILL_CLASS[hour.verdict]} ${
-                hour.hour === selectedHour ? 'ring-2 ring-text ring-offset-2 ring-offset-bg' : ''
-              }`}
-              style={hour.isPast ? { opacity: 'var(--color-past-opacity)' } : undefined}
-            >
-              <HourGlyph kind={hour.verdict} />
-            </div>
-          ))}
-        </div>
-        {best && (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -inset-y-1 rounded-md border-2 border-text"
-            style={{ left: pct(best.startHour), width: pct(best.hours.length) }}
-          />
-        )}
-        <div aria-hidden="true" className="mt-2 h-1.5 rounded-full bg-surface-strong">
-          <div
-            className="h-full rounded-full bg-focus"
-            style={{
-              marginLeft: pct(freeTime.start),
-              width: pct(freeTime.end - freeTime.start),
-            }}
-          />
-        </div>
-      </div>
-      <div aria-hidden="true" className="relative h-4 text-xs text-text-muted">
-        {LABEL_HOURS.map((hour) => (
-          <span key={hour} className="absolute" style={{ left: pct(hour) }}>
-            {String(hour).padStart(2, '0')}
-          </span>
-        ))}
+            />
+          </div>
+          <div aria-hidden="true" className="relative mt-1 h-4 text-xs text-text-muted">
+            {LABEL_HOURS.map((hour) => (
+              <span key={hour} className="absolute" style={{ left: pct(hour) }}>
+                {String(hour).padStart(2, '0')}
+              </span>
+            ))}
+          </div>
+        </m.div>
       </div>
       <ul
         aria-hidden="true"

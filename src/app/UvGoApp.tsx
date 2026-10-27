@@ -8,7 +8,7 @@ import { EmptyState } from './components/EmptyState';
 import { ErrorState } from './components/ErrorState';
 import { FreeTimePicker } from './components/FreeTimePicker';
 import { HourDetails } from './components/HourDetails';
-import { HourStrip } from './components/HourStrip';
+import { DayArcTimeline } from './components/DayArcTimeline';
 import { LocationPicker } from './components/LocationPicker';
 import { ResultCard } from './components/ResultCard';
 import { SegmentedControl } from './components/SegmentedControl';
@@ -63,11 +63,12 @@ function App() {
     dispatch({ type: 'retry' });
   }, [forecast, now]);
 
-  const evaluation = useMemo(() => {
-    if (forecast === null) return null;
-    const day = forecast.days[inputs.day === 'today' ? 0 : 1];
-    return evaluate(day, inputs, inputs.day === 'today' ? now : null);
-  }, [forecast, inputs, now]);
+  const activeDay = forecast?.days[inputs.day === 'today' ? 0 : 1] ?? null;
+  const evaluation = useMemo(
+    () =>
+      activeDay === null ? null : evaluate(activeDay, inputs, inputs.day === 'today' ? now : null),
+    [activeDay, inputs, now],
+  );
 
   const closeDetails = useCallback(() => dispatch({ type: 'selectHour', hour: null }), []);
 
@@ -148,13 +149,15 @@ function App() {
         aria-label="Day timeline"
         className="flex flex-col gap-4 lg:col-start-2 lg:row-span-2 lg:row-start-2"
       >
-        {evaluation !== null ? (
-          <HourStrip
+        {evaluation !== null && activeDay !== null ? (
+          <DayArcTimeline
+            day={activeDay}
             hours={evaluation.scoredHours}
             freeTime={inputs.freeTime}
             best={best}
             selectedHour={selectedHour}
             onSelect={(hour) => dispatch({ type: 'selectHour', hour })}
+            playIntro
           />
         ) : (
           <div aria-hidden="true" className="h-[4.75rem] rounded-md bg-surface-strong" />

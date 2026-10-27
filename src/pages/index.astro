@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../components/BaseLayout.astro';
+import UvGoApp from '../app/UvGoApp';
 ---
 
 <BaseLayout
@@ -7,5 +8,6 @@ import BaseLayout from '../components/BaseLayout.astro';
   description="Find the best time to go outside based on the UV forecast for your location."
   ogImage="/og/home.png"
 >
-  <h1 class="text-3xl font-bold">UV GO</h1>
+  <h1 class="sr-only">UV GO</h1>
+  <UvGoApp client:load />
 </BaseLayout>

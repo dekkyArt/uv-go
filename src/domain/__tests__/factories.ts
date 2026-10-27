@@ -1,5 +1,5 @@
 import { hourVerdict, scoreHour } from '../scoring';
-import type { Activity, DayForecast, HourData, ScoredHour } from '../types';
+import type { Activity, DayForecast, HourData, ScoredHour, TimeWindow } from '../types';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -48,4 +48,17 @@ export function scored(day: DayForecast, activity: Activity): ScoredHour[] {
       inFreeTime: false,
     };
   });
+}
+
+// TimeWindow over the given hour overrides (keys = hour of day, consecutive hours).
+// Hours are scored for `activity`; verdict / label are placeholders (reason and
+// checklist read only `hours`).
+export function makeWindow(
+  overrides: Record<number, Partial<HourData>>,
+  activity: Activity = 'relaxed',
+): TimeWindow {
+  const startHour = Math.min(...Object.keys(overrides).map(Number));
+  const endHour = Math.max(...Object.keys(overrides).map(Number));
+  const hours = scored(makeDay(overrides), activity).slice(startHour, endHour + 1);
+  return { startHour, hours, score: 0, verdict: 'green', label: '' };
 }

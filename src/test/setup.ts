@@ -8,9 +8,12 @@ import { afterEach } from 'vitest';
 const realSetTimeout = globalThis.setTimeout;
 const realClearTimeout = globalThis.clearTimeout;
 const FRAME_MS = 16;
-window.requestAnimationFrame = (callback) =>
-  Number(realSetTimeout(() => callback(performance.now()), FRAME_MS));
-window.cancelAnimationFrame = (handle) => realClearTimeout(handle);
+// Server-side tests (`@vitest-environment node`, e.g. Astro components) have no window.
+if (typeof window !== 'undefined') {
+  window.requestAnimationFrame = (callback) =>
+    Number(realSetTimeout(() => callback(performance.now()), FRAME_MS));
+  window.cancelAnimationFrame = (handle) => realClearTimeout(handle);
+}
 
 // Vitest globals are off, so Testing Library cannot register its own cleanup.
 afterEach(cleanup);

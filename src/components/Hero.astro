@@ -1,0 +1,22 @@
+---
+// Compact on purpose (spec 4): the app must stay in the first screen on a phone, so this is a
+// heading and one line, no art. It is plain text, so it is also the LCP element. It sits on a
+// `.sky-panel` for contrast, is not revealed on scroll (it is already in view) and reserves its
+// own height, so nothing around it shifts.
+---
+
+<section
+  aria-labelledby="hero-heading"
+  class="sky-panel mb-4 rounded-2xl px-4 py-4 sm:px-6 sm:py-6"
+>
+  <h1
+    id="hero-heading"
+    class="text-balance text-2xl font-bold leading-tight tracking-tight text-text sm:text-4xl"
+  >
+    Know the best time to go outside
+  </h1>
+  <p class="mt-2 text-base text-text-muted sm:text-lg">
+    Tell UV GO where you are and when you are free. It checks the forecast and gives you one clear
+    answer.
+  </p>
+</section>

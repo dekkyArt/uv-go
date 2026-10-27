@@ -1,0 +1,301 @@
+---
+// Rule tables are generated from `rules` (spec 6, 11.4): a threshold changed in
+// rules.config.ts changes this page. No number about scoring is typed here.
+import { rules } from '../domain/rules.config';
+import type { ChecklistId } from '../domain/types';
+
+const { uv, rain, heat, cold, wind, verdict, checklist, checklistLabels, verdictLabels } = rules;
+
+/** "3–5" for a band that ends before the next one, "8+" for the last. */
+function range(bands: readonly { min: number }[], index: number, suffix = ''): string {
+  const min = bands[index]!.min;
+  const next = bands[index + 1]?.min;
+  if (next === undefined) return `${min}${suffix}+`;
+  if (next - 1 === min) return `${min}${suffix}`;
+  return `${min}–${next - 1}${suffix}`;
+}
+
+const trim = (n: number) => String(Number(n.toFixed(2)));
+const longSun = uv.multiplier['long-sun'];
+
+const uvRows = uv.bands.map((band, i) => ({
+  range: range(uv.bands, i),
+  points: band.points,
+  longSun: trim(band.points * longSun),
+}));
+
+const rainRows = [
+  { range: `Under ${rain.bands[0]!.min}%`, points: 0 },
+  ...rain.bands.map((band, i) => ({ range: range(rain.bands, i, '%'), points: band.points })),
+];
+
+const otherRows = [
+  {
+    factor: 'Heat',
+    condition: `Feels like ${heat.min}°C or more`,
+    points: `+${heat.points}`,
+    note: `+${heat.pointsByActivity.active} for Active`,
+  },
+  {
+    factor: 'Cold',
+    condition: `Feels like below ${cold.below}°C`,
+    points: `+${cold.points}`,
+    note: '',
+  },
+  {
+    factor: 'Wind',
+    condition: `Wind ${wind.min} km/h or more`,
+    points: `+${wind.points}`,
+    note: '',
+  },
+];
+
+const verdictRows = verdict.bands.map((band, i) => ({
+  range: range(verdict.bands, i),
+  tone: band.verdict,
+  label: verdictLabels[band.verdict],
+}));
+
+const chip = {
+  green: 'bg-verdict-green',
+  yellow: 'bg-verdict-yellow',
+  red: 'bg-verdict-red',
+} as const;
+const toneText = {
+  green: 'text-verdict-green-text',
+  yellow: 'text-verdict-yellow-text',
+  red: 'text-verdict-red-text',
+} as const;
+
+const checklistWhen: Record<ChecklistId, string> = {
+  sunscreen: `The highest UV in your window is ${checklist.sunscreenUv} or more`,
+  'hat-sunglasses': `The highest UV in your window is ${checklist.hatUv} or more`,
+  'rain-jacket': `The chance of rain is ${checklist.rainJacket}% or more`,
+  water: `You picked Active, or it feels like ${checklist.waterFeelsLike}°C or more`,
+  'warm-layer': `It feels like below ${checklist.warmLayerBelow}°C`,
+};
+const checklistRows = (Object.entries(checklistLabels) as [ChecklistId, string][]).map(
+  ([id, label]) => ({ label, when: checklistWhen[id] }),
+);
+
+const steps = [
+  {
+    title: 'Pick a place',
+    text: 'Search for a city or use your current location. UV GO remembers it in your browser.',
+  },
+  {
+    title: 'Set your time',
+    text: 'Choose today or tomorrow, the hours you are free, how long you will be out and what you will be doing.',
+  },
+  {
+    title: 'Get one answer',
+    text: 'You see the best time window, a colour verdict, the reason in one line and what to take.',
+  },
+];
+
+const tableWrap = 'mt-3 overflow-x-auto rounded-xl border border-border bg-surface';
+const table = 'w-full border-collapse text-left text-base';
+const headRow = 'border-b border-border/60 text-sm text-text-muted';
+const bodyRow = 'border-b border-border/30 last:border-b-0';
+const th = 'px-4 py-2 font-semibold';
+const rowHead = 'px-4 py-3 font-semibold text-text';
+const td = 'px-4 py-3 text-text';
+const h3 = 'mt-8 text-lg font-bold text-text';
+---
+
+<section
+  id="how-it-works"
+  aria-labelledby="how-heading"
+  class="reveal sky-panel mt-8 rounded-2xl p-4 sm:p-6"
+>
+  <h2 id="how-heading" class="text-2xl font-bold tracking-tight text-text">
+    How it works
+  </h2>
+
+  <ol class="mt-4 grid gap-3 sm:grid-cols-3">
+    {steps.map((step, i) => (
+      <li class="rounded-xl border border-border bg-surface p-4">
+        <span
+          aria-hidden="true"
+          class="inline-flex size-8 items-center justify-center rounded-full bg-surface-strong text-sm font-bold text-text"
+        >
+          {i + 1}
+        </span>
+        <h3 class="mt-2 text-lg font-bold text-text">{step.title}</h3>
+        <p class="mt-1 text-text-muted">{step.text}</p>
+      </li>
+    ))}
+  </ol>
+
+  <h3 class={h3}>The rules behind the answer</h3>
+  <p class="mt-1 text-text-muted">
+    Every hour in daylight gets points for UV, rain, heat, cold and wind. Lower is better. A window
+    is scored as the average of its hours, so one bad hour counts but does not decide it alone.
+    Hours after dark are left out.
+  </p>
+
+  <h3 class={h3}>UV</h3>
+  <p class="mt-1 text-text-muted">
+    UV is rounded to a whole number first. For Long in the sun, UV points are multiplied by{' '}
+    <span class="font-semibold text-text">× {longSun}</span>.
+  </p>
+  <div class={tableWrap}>
+    <table class={table}>
+      <caption class="sr-only">Points by UV index</caption>
+      <thead>
+        <tr class={headRow}>
+          <th scope="col" class={th}>
+            UV index
+          </th>
+          <th scope="col" class={th}>
+            Points
+          </th>
+          <th scope="col" class={th}>
+            Long in the sun
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {uvRows.map((row) => (
+          <tr class={bodyRow}>
+            <th scope="row" class={rowHead}>
+              {row.range}
+            </th>
+            <td class={td}>{row.points}</td>
+            <td class={td}>{row.longSun}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class={h3}>Rain</h3>
+  <div class={tableWrap}>
+    <table class={table}>
+      <caption class="sr-only">Points by chance of rain</caption>
+      <thead>
+        <tr class={headRow}>
+          <th scope="col" class={th}>
+            Chance of rain
+          </th>
+          <th scope="col" class={th}>
+            Points
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rainRows.map((row) => (
+          <tr class={bodyRow}>
+            <th scope="row" class={rowHead}>
+              {row.range}
+            </th>
+            <td class={td}>{row.points}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class={h3}>Heat, cold and wind</h3>
+  <p class="mt-1 text-text-muted">
+    Heat and cold use the feels-like temperature, which includes wind and humidity.
+  </p>
+  <div class={tableWrap}>
+    <table class={table}>
+      <caption class="sr-only">Points for heat, cold and wind</caption>
+      <thead>
+        <tr class={headRow}>
+          <th scope="col" class={th}>
+            Factor
+          </th>
+          <th scope="col" class={th}>
+            When
+          </th>
+          <th scope="col" class={th}>
+            Points
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {otherRows.map((row) => (
+          <tr class={bodyRow}>
+            <th scope="row" class={rowHead}>
+              {row.factor}
+            </th>
+            <td class={td}>{row.condition}</td>
+            <td class={td}>
+              {row.points}
+              {row.note !== '' && <span class="block text-sm text-text-muted">{row.note}</span>}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class={h3}>Verdict</h3>
+  <p class="mt-1 text-text-muted">
+    The window score is rounded, then matched to a verdict. The label always comes with the colour.
+  </p>
+  <div class={tableWrap}>
+    <table class={table}>
+      <caption class="sr-only">Verdict by window score</caption>
+      <thead>
+        <tr class={headRow}>
+          <th scope="col" class={th}>
+            Window score
+          </th>
+          <th scope="col" class={th}>
+            Verdict
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {verdictRows.map((row) => (
+          <tr class={bodyRow}>
+            <th scope="row" class={rowHead}>
+              {row.range}
+            </th>
+            <td class={`${td} font-semibold ${toneText[row.tone]}`}>
+              <span class="inline-flex items-center gap-2">
+                <span aria-hidden="true" class={`size-4 shrink-0 rounded-full ${chip[row.tone]}`} />
+                {row.label}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class={h3}>What to take</h3>
+  <p class="mt-1 text-text-muted">
+    The checklist is built from the hours of your best window. {rules.emptyChecklistText} shows when
+    none of these apply.
+  </p>
+  <div class={tableWrap}>
+    <table class={table}>
+      <caption class="sr-only">When each item appears on the checklist</caption>
+      <thead>
+        <tr class={headRow}>
+          <th scope="col" class={th}>
+            Item
+          </th>
+          <th scope="col" class={th}>
+            Appears when
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {checklistRows.map((row) => (
+          <tr class={bodyRow}>
+            <th scope="row" class={rowHead}>
+              {row.label}
+            </th>
+            <td class={td}>{row.when}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>

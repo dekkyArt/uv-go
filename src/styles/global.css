@@ -505,3 +505,32 @@ html[data-sky-live]::before {
     font-weight: 600;
   }
 }
+
+/*
+ * Scroll reveal (spec 10.8): pure CSS, no JS. Only where `animation-timeline: view()` exists and
+ * the visitor has not asked for less motion; everywhere else the content is simply there. Animates
+ * opacity and transform only. It does not hide anything permanently: the end state is the normal
+ * state, and a block already in view at load starts past its entry range. Applied to the home
+ * sections, the article H2 sections and the H2s of the article prose.
+ */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal,
+    .article-prose h2 {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+  }
+}

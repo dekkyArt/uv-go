@@ -15,6 +15,8 @@ export interface AppState {
   selectedHour: number | null;
   autoSwitchDisabled: boolean;
   autoSwitchNotice: boolean;
+  /** An automatic switch to Tomorrow happened this session; never cleared. */
+  autoSwitched: boolean;
   retryToken: number;
 }
 
@@ -52,6 +54,7 @@ export function initialState(stored: { place: Place | null; inputs: StoredInputs
     selectedHour: null,
     autoSwitchDisabled: false,
     autoSwitchNotice: false,
+    autoSwitched: false,
     retryToken: 0,
   };
 }
@@ -81,9 +84,9 @@ export function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         inputs: { ...state.inputs, day: action.day },
-        // Choosing Today right after an automatic switch means "keep Today": stop auto-switching.
+        // Returning to Today at any point after an automatic switch means "keep Today".
         autoSwitchDisabled:
-          state.autoSwitchDisabled || (action.day === 'today' && state.autoSwitchNotice),
+          state.autoSwitchDisabled || (action.day === 'today' && state.autoSwitched),
         autoSwitchNotice: false,
       };
     case 'setFreeTime':
@@ -113,6 +116,7 @@ export function reducer(state: AppState, action: Action): AppState {
         ...next,
         inputs: { ...state.inputs, day: 'tomorrow' },
         autoSwitchNotice: true,
+        autoSwitched: true,
       };
     }
   }

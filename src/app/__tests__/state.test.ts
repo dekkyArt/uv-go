@@ -90,6 +90,36 @@ describe('auto-switch to Tomorrow', () => {
     expect(next.autoSwitchNotice).toBe(false);
     expect(next.autoSwitchDisabled).toBe(false);
   });
+
+  it('stays disabled after auto-switch, a place change and a manual return to Today', () => {
+    const late = { date: '2026-10-27', hour: 20, minute: 0 };
+    let state = reducer(fresh(), { type: 'forecastLoaded', forecast, now: late });
+    expect(state.autoSwitched).toBe(true);
+    state = reducer(state, { type: 'setPlace', place: porto });
+    expect(state.autoSwitchNotice).toBe(false);
+    expect(state.inputs.day).toBe('tomorrow');
+    state = reducer(state, { type: 'setDay', day: 'today' });
+    expect(state.autoSwitchDisabled).toBe(true);
+    state = reducer(state, { type: 'forecastLoaded', forecast, now: late });
+    expect(state.inputs.day).toBe('today');
+    expect(state.autoSwitchNotice).toBe(false);
+  });
+
+  it('is disabled by Tomorrow then Today after an auto-switch', () => {
+    const late = { date: '2026-10-27', hour: 20, minute: 0 };
+    let state = reducer(fresh(), { type: 'forecastLoaded', forecast, now: late });
+    state = reducer(state, { type: 'setDay', day: 'tomorrow' });
+    expect(state.autoSwitchDisabled).toBe(false);
+    state = reducer(state, { type: 'setDay', day: 'today' });
+    expect(state.autoSwitchDisabled).toBe(true);
+    state = reducer(state, { type: 'forecastLoaded', forecast, now: late });
+    expect(state.inputs.day).toBe('today');
+  });
+
+  it('does not disable auto-switch when Today is chosen without a prior auto-switch', () => {
+    const state = reducer(fresh(), { type: 'setDay', day: 'today' });
+    expect(state.autoSwitchDisabled).toBe(false);
+  });
 });
 
 describe('inputs', () => {

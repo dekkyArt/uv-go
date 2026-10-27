@@ -142,6 +142,13 @@ describe('FreeTimePicker drag', () => {
     return { onChange, start, end, track };
   }
 
+  it('clips the translated handle carriers so they cannot widen the page', () => {
+    // jsdom has no layout, so assert the clipping contract on the wrapper instead:
+    // carriers are track-wide and translated right, which would otherwise overflow.
+    const { track } = setup({ start: 13, end: 24 });
+    expect(track.parentElement).toHaveClass('overflow-x-clip');
+  });
+
   it('pointer drag snaps to hour', () => {
     const { onChange, start } = setup({ start: 13, end: 19 });
     fireEvent.pointerDown(start, { clientX: 130 });

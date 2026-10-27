@@ -102,7 +102,9 @@ export function FreeTimePicker({ value, onChange }: Props) {
           {formatHour(start)} – {formatHour(end)}
         </span>
       </p>
-      <div className="px-[22px]">
+      {/* Clip horizontally: the track-wide carriers are translated right and would otherwise
+          widen the page. The 22 px padding keeps the knobs at 00 and 24 fully visible. */}
+      <div className="overflow-x-clip px-[22px]">
         <div
           ref={trackRef}
           data-track=""

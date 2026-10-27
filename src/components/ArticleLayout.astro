@@ -2,6 +2,8 @@
 import { getEntry } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 import BaseLayout from './BaseLayout.astro';
+import { siteConfig } from '../site.config';
+import { articleLd, breadcrumbLd } from '../seo/jsonld';
 
 interface Props {
   slug: string;
@@ -9,7 +11,7 @@ interface Props {
 }
 
 const { slug, article } = Astro.props;
-const { title, description, updatedAt, sources, related, tldr } = article.data;
+const { title, description, publishedAt, updatedAt, sources, related, tldr } = article.data;
 
 const relatedArticles = await Promise.all(
   related.map(async (id) => {
@@ -27,10 +29,21 @@ const updatedLabel = updatedAt.toLocaleDateString('en-GB', {
 });
 const updatedIso = updatedAt.toISOString().slice(0, 10);
 
+// Same URL as the canonical (trailing slash included), so JSON-LD and canonical agree.
+const pageUrl = new URL(Astro.url.pathname, siteConfig.site).href;
+const imageUrl = new URL(`/og/${slug}.png`, siteConfig.site).href;
+const jsonLd = [
+  articleLd({ title, description, publishedAt, updatedAt }, pageUrl, siteConfig.author, imageUrl),
+  breadcrumbLd([
+    { name: 'Home', url: new URL('/', siteConfig.site).href },
+    { name: title, url: pageUrl },
+  ]),
+];
+
 const sectionHeading = 'text-xl font-bold tracking-tight text-text';
 ---
 
-<BaseLayout title={title} description={description} ogImage={`/og/${slug}.png`}>
+<BaseLayout title={title} description={description} ogImage={`/og/${slug}.png`} jsonLd={jsonLd}>
   <article class="sky-panel mx-auto max-w-3xl rounded-2xl px-5 py-6 sm:px-8 sm:py-8">
     <h1 class="text-3xl font-bold leading-tight tracking-tight text-text sm:text-4xl">{title}</h1>
 

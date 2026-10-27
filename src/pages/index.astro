@@ -5,12 +5,16 @@ import { reservePlaceLayout } from '../app/reservePlaceLayout';
 import Hero from '../components/Hero.astro';
 import HowItWorks from '../components/HowItWorks.astro';
 import Faq from '../components/Faq.astro';
+import { siteConfig } from '../site.config';
+import { faqItems } from '../content/faq';
+import { faqPageLd, webApplicationLd } from '../seo/jsonld';
 ---
 
 <BaseLayout
-  title="UV GO"
-  description="Find the best time to go outside based on the UV forecast for your location."
+  title="Best Time to Go Outside Today — UV & Weather Planner"
+  description="Pick your free time and place. UV GO reads the hourly UV and weather forecast, finds the best hour to go outside and tells you what to take with you."
   ogImage="/og/home.png"
+  jsonLd={[webApplicationLd(siteConfig.site), faqPageLd(faqItems)]}
 >
   <Hero />
   <script is:inline set:html={`(${reservePlaceLayout})()`} />

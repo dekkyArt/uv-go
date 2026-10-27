@@ -170,6 +170,36 @@ describe('useNow', () => {
     expect(result.current).toEqual({ date: '2026-10-28', hour: 0, minute: 0 });
   });
 
+  it('refreshes at once when the tab becomes visible again, without waiting for the tick', () => {
+    vi.setSystemTime(new Date('2026-10-27T23:50:00Z'));
+    const { result } = renderHook(() => useNow(0));
+    expect(result.current?.date).toBe('2026-10-27');
+
+    // The tab slept: the clock moved on but no interval fired.
+    vi.setSystemTime(new Date('2026-10-28T07:00:10Z'));
+    const visibility = vi.spyOn(document, 'visibilityState', 'get');
+    visibility.mockReturnValue('hidden');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(result.current?.date).toBe('2026-10-27');
+
+    visibility.mockReturnValue('visible');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(result.current).toEqual({ date: '2026-10-28', hour: 7, minute: 0 });
+    visibility.mockRestore();
+  });
+
+  it('stops listening for visibility changes after unmount', () => {
+    const removeSpy = vi.spyOn(document, 'removeEventListener');
+    const { unmount } = renderHook(() => useNow(0));
+    unmount();
+    expect(removeSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    removeSpy.mockRestore();
+  });
+
   it('stops ticking after unmount', () => {
     const clearSpy = vi.spyOn(globalThis, 'clearInterval');
     const { unmount } = renderHook(() => useNow(0));

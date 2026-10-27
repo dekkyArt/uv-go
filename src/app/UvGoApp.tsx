@@ -3,6 +3,7 @@ import { loadInputs, loadPlace, saveInputs, savePlace } from '../data/storage';
 import type { Place } from '../data/types';
 import { evaluate } from '../domain/evaluate';
 import type { Inputs, ScoredHour, TimeWindow } from '../domain/types';
+import { MotionProvider } from '../motion/MotionProvider';
 import { EmptyState } from './components/EmptyState';
 import { ErrorState } from './components/ErrorState';
 import { FreeTimePicker } from './components/FreeTimePicker';
@@ -33,7 +34,13 @@ function useIsClient(): boolean {
 }
 
 export default function UvGoApp() {
-  return useIsClient() ? <App /> : <section aria-busy="true" className={CARD_CLASS} />;
+  return useIsClient() ? (
+    <MotionProvider>
+      <App />
+    </MotionProvider>
+  ) : (
+    <section aria-busy="true" className={CARD_CLASS} />
+  );
 }
 
 function App() {

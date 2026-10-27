@@ -1,4 +1,6 @@
-import { useRef, type KeyboardEvent } from 'react';
+import { m } from 'motion/react';
+import { useId, useRef, type KeyboardEvent } from 'react';
+import { springs } from '../../motion/tokens';
 
 interface Props<T extends string | number> {
   label: string;
@@ -13,6 +15,7 @@ export function SegmentedControl<T extends string | number>({
   value,
   onChange,
 }: Props<T>) {
+  const indicatorId = `seg-${useId()}`;
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
 
   function onKeyDown(e: KeyboardEvent, index: number) {
@@ -35,7 +38,7 @@ export function SegmentedControl<T extends string | number>({
       {options.map((option, i) => {
         const checked = option.value === value;
         return (
-          <button
+          <m.button
             key={option.value}
             ref={(el) => {
               buttons.current[i] = el;
@@ -46,12 +49,22 @@ export function SegmentedControl<T extends string | number>({
             tabIndex={checked ? 0 : -1}
             onClick={() => onChange(option.value)}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className={`min-h-11 min-w-11 rounded-lg px-4 text-sm font-medium ${
-              checked ? 'bg-text text-bg' : 'text-text hover:bg-surface'
+            whileTap={{ scale: 0.96 }}
+            className={`relative min-h-11 min-w-11 rounded-lg px-4 text-sm font-medium ${
+              checked ? 'text-bg' : 'text-text hover:bg-surface'
             }`}
           >
-            {option.label}
-          </button>
+            {checked && (
+              <m.span
+                layoutId={indicatorId}
+                data-segment-indicator=""
+                aria-hidden="true"
+                transition={springs.snappy}
+                className="absolute inset-0 rounded-lg bg-text"
+              />
+            )}
+            <span className="relative">{option.label}</span>
+          </m.button>
         );
       })}
     </div>

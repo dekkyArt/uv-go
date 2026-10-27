@@ -35,3 +35,11 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Bundle budget
+        run: npm run check:bundle
+
+      - name: Lighthouse budgets
+        run: |
+          export CHROME_PATH="$(node -e "console.log(require('@playwright/test').chromium.executablePath())")"
+          npx lhci autorun

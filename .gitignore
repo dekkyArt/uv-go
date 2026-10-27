@@ -10,3 +10,4 @@ playwright-report/
 .superpowers/
 .vscode/
 .idea/
+.lighthouseci/

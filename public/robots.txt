@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://uv-go.vercel.app/sitemap-index.xml

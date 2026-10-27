@@ -1,0 +1,9 @@
+dist/
+.astro/
+node_modules/
+.superpowers/
+.agents/
+.claude/
+docs/
+package-lock.json
+IDEA.md

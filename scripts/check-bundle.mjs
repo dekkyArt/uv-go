@@ -1,4 +1,4 @@
-// Performance budget check (ТЗ 12.1, controller ruling R17).
+// Performance budget check (ТЗ 12.1, controller ruling R17 as revised).
 //
 // For every dist/**/index.html it sums the gzip size of all JavaScript the page
 // can load in normal use:
@@ -7,7 +7,8 @@
 //             chunk they import statically.
 //   lazy    = chunks reachable only through dynamic import() (lazy domMax
 //             features, lazy SkyLayer).
-// Budget applies to initial + lazy. Exits 1 on overrun.
+// Only the initial JS is gated (130,000 B for `/`, 2,000 B for other pages, gzip). The lazy and
+// total columns are informational and not budgeted. Exits 1 when initial JS overruns.
 import { gzipSync } from 'node:zlib';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -136,18 +137,18 @@ for (const file of pages) {
   const route = '/' + rel.replace(/index\.html$/, '');
   const r = analysePage(file);
   const budget = route === '/' ? HOME_BUDGET : PAGE_BUDGET;
-  const ok = r.total <= budget;
+  const ok = r.initial <= budget;
   if (!ok) failed = true;
   rows.push({ route, ...r, budget, ok });
 }
 
 const w = Math.max(...rows.map((r) => r.route.length), 4);
 console.log(
-  `${'page'.padEnd(w)}  ${'initial'.padStart(10)}  ${'lazy'.padStart(10)}  ${'total'.padStart(10)}  ${'budget'.padStart(10)}  status`,
+  `${'page'.padEnd(w)}  ${'initial'.padStart(10)}  ${'budget'.padStart(10)}  ${'lazy*'.padStart(10)}  ${'total*'.padStart(10)}  status`,
 );
 for (const r of rows) {
   console.log(
-    `${r.route.padEnd(w)}  ${kb(r.initial)}  ${kb(r.lazy)}  ${kb(r.total)}  ${kb(r.budget)}  ${r.ok ? 'ok' : 'OVER'}`,
+    `${r.route.padEnd(w)}  ${kb(r.initial)}  ${kb(r.budget)}  ${kb(r.lazy)}  ${kb(r.total)}  ${r.ok ? 'ok' : 'OVER'}`,
   );
   if (verbose) {
     for (const f of r.initialFiles)
@@ -159,7 +160,8 @@ for (const r of rows) {
 }
 
 if (failed) {
-  console.error('\nBundle budget exceeded (gzip, 1 KB = 1000 B).');
+  console.error('\nInitial JS budget exceeded (gzip, 1 KB = 1000 B).');
   process.exit(1);
 }
-console.log('\nAll pages within the JS budget.');
+console.log('\n* lazy and total are informational (lazy chunks are not budgeted).');
+console.log('All pages within the initial JS budget.');

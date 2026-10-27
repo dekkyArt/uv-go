@@ -1,4 +1,5 @@
-import type { DayForecast, HourData } from '../types';
+import { hourVerdict, scoreHour } from '../scoring';
+import type { Activity, DayForecast, HourData, ScoredHour } from '../types';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -30,4 +31,21 @@ export function makeDay(
     sunset: '2026-10-27T19:30',
     ...dayProps,
   };
+}
+
+// Full ScoredHour for every hour of the day. isPast / inFreeTime are left false:
+// window building does not read them (evaluate sets them for real).
+export function scored(day: DayForecast, activity: Activity): ScoredHour[] {
+  return day.hours.map((hour) => {
+    const { points, noData, score } = scoreHour(hour, activity);
+    return {
+      ...hour,
+      points,
+      noData,
+      score,
+      verdict: hourVerdict(hour, score),
+      isPast: false,
+      inFreeTime: false,
+    };
+  });
 }

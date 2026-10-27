@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { ScoredHour } from '../../domain/types';
+import { KEEP_DETAILS_ATTR } from './HourStrip';
 import { FACTORS, FACTOR_LABELS, formatHour, verdictLabel } from '../ui';
 
 interface Props {
@@ -18,8 +19,17 @@ export function HourDetails({ hour, onClose }: Props) {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
     }
+    // Tap outside closes, except on the hour strip (selecting another hour) or the details itself.
+    function onPointerDown(e: PointerEvent) {
+      if (e.target instanceof Element && e.target.closest(`[${KEEP_DETAILS_ATTR}]`)) return;
+      onClose();
+    }
     document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
   }, [onClose]);
 
   const time = formatHour(hour.hour);
@@ -32,6 +42,7 @@ export function HourDetails({ hour, onClose }: Props) {
 
   return (
     <section
+      {...{ [KEEP_DETAILS_ATTR]: '' }}
       aria-label={`Details for ${time}`}
       className="rounded-2xl border border-border bg-surface p-4"
     >

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -168,6 +168,46 @@ describe('HourStrip', () => {
     expect(onSelect).toHaveBeenLastCalledWith(16);
     await user.keyboard('{ArrowLeft}');
     expect(onSelect).toHaveBeenLastCalledWith(14);
+  });
+
+  it('selects a cell on click, not on pointerdown (a touch scroll starts with pointerdown)', async () => {
+    const user = userEvent.setup();
+    const { onSelect } = setup(null);
+    const cell = document.querySelector('[data-hour="10"]')!;
+    fireEvent.pointerDown(cell, { pointerType: 'touch', clientX: 100 });
+    expect(onSelect).not.toHaveBeenCalled();
+    await user.click(cell);
+    expect(onSelect).toHaveBeenCalledWith(10);
+  });
+
+  it('scrubs only after horizontal travel beyond the threshold', () => {
+    const { slider, onSelect } = setup(null);
+    slider.getBoundingClientRect = () => ({ left: 0, width: 240 }) as DOMRect;
+    fireEvent.pointerDown(slider, { clientX: 100, buttons: 1 });
+    fireEvent.pointerMove(slider, { clientX: 103, buttons: 1 });
+    expect(onSelect).not.toHaveBeenCalled();
+    fireEvent.pointerMove(slider, { clientX: 125, buttons: 1 });
+    expect(onSelect).toHaveBeenLastCalledWith(12);
+  });
+
+  it('does not select while moving without a press', () => {
+    const { slider, onSelect } = setup(null);
+    slider.getBoundingClientRect = () => ({ left: 0, width: 240 }) as DOMRect;
+    fireEvent.pointerMove(slider, { clientX: 200, buttons: 0 });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('marks every hour with a non-colour cue and shows a legend with the same cues', () => {
+    setup(null);
+    // day: hour 15 yellow (UV 6), hour 16 green, hour 3 night.
+    const glyphs = (hour: number) => document.querySelector(`[data-hour="${hour}"] svg`)!.innerHTML;
+    expect(glyphs(16)).not.toBe(glyphs(15));
+    expect(glyphs(3)).not.toBe(glyphs(16));
+    expect(glyphs(3)).not.toBe(glyphs(15));
+    expect(document.querySelectorAll('[data-hour] svg')).toHaveLength(24);
+    for (const label of ['Good hour', 'Needs protection', 'Not recommended', 'Night']) {
+      expect(screen.getByText(label, { selector: 'li', exact: false })).toBeInTheDocument();
+    }
   });
 
   it('does not go past the ends of the day', async () => {

@@ -1,7 +1,10 @@
-import type { KeyboardEvent, PointerEvent } from 'react';
+import { useRef, type KeyboardEvent, type PointerEvent } from 'react';
 import { roundHalfUp } from '../../domain/scoring';
 import type { ScoredHour, TimeWindow } from '../../domain/types';
 import { VERDICT_FILL_CLASS, formatHour, verdictLabel } from '../ui';
+
+/** Marks UI that must not count as an "outside tap" for HourDetails. */
+export const KEEP_DETAILS_ATTR = 'data-keep-hour-details';
 
 interface Props {
   hours: ScoredHour[];
@@ -14,6 +17,41 @@ interface Props {
 const LAST_HOUR = 23;
 const HOURS_PER_DAY = 24;
 const LABEL_HOURS = [0, 6, 12, 18];
+/** Horizontal travel before a press turns into a scrub, so a vertical page scroll never selects. */
+const SCRUB_THRESHOLD_PX = 8;
+
+const LEGEND: { kind: ScoredHour['verdict']; label: string }[] = [
+  { kind: 'green', label: 'Good hour' },
+  { kind: 'yellow', label: 'Needs protection' },
+  { kind: 'red', label: 'Not recommended' },
+  { kind: 'night', label: 'Night' },
+];
+
+/**
+ * Non-colour cue for an hour: check / exclamation / cross / dot. Drawn in the page background
+ * colour, which has >= 3:1 against every verdict fill in both themes (see global.css).
+ */
+function HourGlyph({ kind }: { kind: ScoredHour['verdict'] }) {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 10 10"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="text-bg"
+    >
+      {kind === 'green' && <path d="M1.5 5.2l2.4 2.4 4.6-5" />}
+      {kind === 'yellow' && <path d="M5 1.5v4M5 8.4v.1" />}
+      {kind === 'red' && <path d="M2 2l6 6M8 2L2 8" />}
+      {kind === 'night' && <circle cx="5" cy="5" r="1.2" fill="currentColor" />}
+    </svg>
+  );
+}
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 const pct = (hour: number) => `${(hour / HOURS_PER_DAY) * 100}%`;
@@ -42,9 +80,24 @@ export function HourStrip({ hours, freeTime, best, selectedHour, onSelect }: Pro
     if (next !== current) onSelect(next);
   }
 
-  // Dragging across the strip (touch pointers stay captured by the cell they started on).
+  // Taps select on click. A press only becomes a scrub after real horizontal travel, so the
+  // pointerdown that starts a vertical page scroll on touch never selects an hour.
+  const pressX = useRef<number | null>(null);
+  const scrubbing = useRef(false);
+
+  function onPointerDown(e: PointerEvent<HTMLDivElement>) {
+    pressX.current = e.clientX;
+    scrubbing.current = false;
+  }
+
+  function onPointerEnd() {
+    pressX.current = null;
+  }
+
   function onPointerMove(e: PointerEvent<HTMLDivElement>) {
-    if (e.buttons !== 1) return;
+    if (e.buttons !== 1 || pressX.current === null) return;
+    if (!scrubbing.current && Math.abs(e.clientX - pressX.current) < SCRUB_THRESHOLD_PX) return;
+    scrubbing.current = true;
     const rect = e.currentTarget.getBoundingClientRect();
     if (rect.width === 0) return;
     const hour = clamp(
@@ -56,7 +109,7 @@ export function HourStrip({ hours, freeTime, best, selectedHour, onSelect }: Pro
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1" {...{ [KEEP_DETAILS_ATTR]: '' }}>
       <div
         role="slider"
         tabIndex={0}
@@ -66,7 +119,10 @@ export function HourStrip({ hours, freeTime, best, selectedHour, onSelect }: Pro
         aria-valuenow={current}
         aria-valuetext={currentHour ? describe(currentHour) : formatHour(current)}
         onKeyDown={onKeyDown}
+        onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
+        onPointerUp={onPointerEnd}
+        onPointerCancel={onPointerEnd}
         style={{ touchAction: 'pan-y' }}
         className="relative select-none rounded-md"
       >
@@ -75,12 +131,18 @@ export function HourStrip({ hours, freeTime, best, selectedHour, onSelect }: Pro
             <div
               key={hour.hour}
               data-hour={hour.hour}
-              onPointerDown={() => onSelect(hour.hour)}
-              className={`flex-1 cursor-pointer rounded-sm ${VERDICT_FILL_CLASS[hour.verdict]} ${
+              onClick={() => {
+                // The click that ends a scrub must not re-select the cell it was released on.
+                if (scrubbing.current) scrubbing.current = false;
+                else onSelect(hour.hour);
+              }}
+              className={`flex flex-1 cursor-pointer items-center justify-center rounded-sm ${VERDICT_FILL_CLASS[hour.verdict]} ${
                 hour.hour === selectedHour ? 'ring-2 ring-text ring-offset-2 ring-offset-bg' : ''
               }`}
               style={hour.isPast ? { opacity: 'var(--color-past-opacity)' } : undefined}
-            />
+            >
+              <HourGlyph kind={hour.verdict} />
+            </div>
           ))}
         </div>
         {best && (
@@ -107,6 +169,21 @@ export function HourStrip({ hours, freeTime, best, selectedHour, onSelect }: Pro
           </span>
         ))}
       </div>
+      <ul
+        aria-hidden="true"
+        className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-muted"
+      >
+        {LEGEND.map(({ kind, label }) => (
+          <li key={kind} className="inline-flex items-center gap-1.5">
+            <span
+              className={`inline-flex size-4 items-center justify-center rounded-sm ${VERDICT_FILL_CLASS[kind]}`}
+            >
+              <HourGlyph kind={kind} />
+            </span>
+            {label}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

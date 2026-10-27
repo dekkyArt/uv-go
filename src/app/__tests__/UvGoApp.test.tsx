@@ -221,6 +221,29 @@ describe('UvGoApp', () => {
     expect(screen.queryByRole('region', { name: 'Details for 15:00' })).not.toBeInTheDocument();
   });
 
+  it('closes the hour details on an outside tap but not on a strip tap', async () => {
+    storePlace();
+    const user = userEvent.setup();
+    render(<UvGoApp />);
+    await screen.findByText('18:00–19:00');
+    const slider = screen.getByRole('slider', { name: 'Hour of the day' });
+    act(() => slider.focus());
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('region', { name: 'Details for 19:00' })).toBeInTheDocument();
+
+    // Another hour on the strip: details stay open and update.
+    await user.click(document.querySelector('[data-hour="16"]')!);
+    expect(screen.getByRole('region', { name: 'Details for 16:00' })).toBeInTheDocument();
+
+    // Inside the details: stays open.
+    await user.click(screen.getByRole('heading', { name: '16:00' }));
+    expect(screen.getByRole('region', { name: 'Details for 16:00' })).toBeInTheDocument();
+
+    // Anywhere else: closes.
+    await user.click(screen.getByRole('heading', { name: 'Adjust your plan' }));
+    expect(screen.queryByRole('region', { name: /Details for/ })).not.toBeInTheDocument();
+  });
+
   it('refetches the forecast once the location passes midnight', async () => {
     vi.setSystemTime(Date.UTC(2026, 9, 27, 23, 30));
     storePlace();

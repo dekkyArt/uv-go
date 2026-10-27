@@ -80,11 +80,13 @@ export const CARD_SLOT_CLASS = 'flex min-h-[26rem] flex-col gap-3';
 
 /**
  * Hour strip: 44 cells, 8 gap, 6 free-time bar, 4 gap, 16 hour labels = 78, then a 4 gap, 4
- * margin and the legend. The legend wraps to two 16 px rows below 30rem (measured at 430 px
- * wide; one row from 480 px): 78 + 8 + 36 = 122 px, otherwise 102 px. The skeleton uses the same
+ * margin and the legend. The legend wraps to two 16 px rows below 495 px (measured in the e2e
+ * pass: two rows at 390 to 493 px, one row from 495 px): 78 + 8 + 36 = 122 px, otherwise 102 px.
+ * The breakpoint is 32rem (512 px), a little above the measured one, because reserving too much
+ * only leaves slack while reserving too little shifts the layout. The skeleton uses the same
  * heights.
  */
-export const HOUR_STRIP_MIN_H_CLASS = 'min-h-[7.625rem] min-[30rem]:min-h-[6.375rem]';
+export const HOUR_STRIP_MIN_H_CLASS = 'min-h-[7.625rem] min-[32rem]:min-h-[6.375rem]';
 
 /**
  * A translucent page-colour surface under text and graphics that would otherwise sit directly on

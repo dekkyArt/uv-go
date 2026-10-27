@@ -1,0 +1,50 @@
+---
+// WHO-style UV index scale (0-11+). Band names and ranges follow the five-band scale published by
+// Cancer Council Australia. Chips use the app's verdict tokens, the closest match to how UV GO
+// scores each UV value on its own (rules.config.ts: 0-2 green, 3-7 yellow, 8+ red). The label and
+// range carry the meaning, so colour is never the only cue.
+const bands = [
+  { range: '0–2', name: 'Low', tone: 'green' },
+  { range: '3–5', name: 'Moderate', tone: 'yellow' },
+  { range: '6–7', name: 'High', tone: 'yellow' },
+  { range: '8–10', name: 'Very high', tone: 'red' },
+  { range: '11+', name: 'Extreme', tone: 'red' },
+] as const;
+
+const chip = {
+  green: 'bg-verdict-green',
+  yellow: 'bg-verdict-yellow',
+  red: 'bg-verdict-red',
+} as const;
+---
+
+<div class="mt-4 overflow-x-auto rounded-xl border border-border bg-surface">
+  <table class="w-full border-collapse text-left text-base">
+    <caption class="sr-only">UV index scale from 0 to 11 and above</caption>
+    <thead>
+      <tr class="border-b border-border/60 text-sm text-text-muted">
+        <th scope="col" class="px-4 py-2 font-semibold">
+          UV index
+        </th>
+        <th scope="col" class="px-4 py-2 font-semibold">
+          Category
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {bands.map((band) => (
+        <tr class="border-b border-border/30 last:border-b-0">
+          <th scope="row" class="px-4 py-3 font-semibold text-text">
+            {band.range}
+          </th>
+          <td class="px-4 py-3 text-text">
+            <span class="inline-flex items-center gap-2">
+              <span aria-hidden="true" class={`size-4 shrink-0 rounded-full ${chip[band.tone]}`} />
+              {band.name}
+            </span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

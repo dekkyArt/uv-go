@@ -1,0 +1,108 @@
+---
+import { getEntry } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  slug: string;
+  article: CollectionEntry<'articles'>;
+}
+
+const { slug, article } = Astro.props;
+const { title, description, updatedAt, sources, related, tldr } = article.data;
+
+const relatedArticles = await Promise.all(
+  related.map(async (id) => {
+    const entry = await getEntry('articles', id);
+    if (!entry) throw new Error(`Article "${slug}" lists unknown related article "${id}".`);
+    return { href: `/${entry.id}`, title: entry.data.title };
+  }),
+);
+
+const updatedLabel = updatedAt.toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+const updatedIso = updatedAt.toISOString().slice(0, 10);
+
+const sectionHeading = 'text-xl font-bold tracking-tight text-text';
+---
+
+<BaseLayout title={title} description={description} ogImage={`/og/${slug}.png`}>
+  <article class="sky-panel mx-auto max-w-3xl rounded-2xl px-5 py-6 sm:px-8 sm:py-8">
+    <h1 class="text-3xl font-bold leading-tight tracking-tight text-text sm:text-4xl">{title}</h1>
+
+    <section
+      aria-labelledby="tldr-heading"
+      class="mt-6 rounded-xl border border-border bg-surface-strong p-4 sm:p-5"
+    >
+      <h2 id="tldr-heading" class="text-sm font-bold uppercase tracking-wide text-text-muted">
+        TL;DR
+      </h2>
+      <ul class="mt-2 list-disc space-y-1.5 pl-5 text-text">
+        {tldr.map((point) => (
+          <li>{point}</li>
+        ))}
+      </ul>
+    </section>
+
+    <div class="article-prose mt-8">
+      <slot />
+    </div>
+
+    <nav aria-labelledby="related-heading" class="mt-10">
+      <h2 id="related-heading" class={sectionHeading}>
+        Related
+      </h2>
+      <ul class="mt-2 space-y-1">
+        {relatedArticles.map((item) => (
+          <li>
+            <a
+              class="inline-flex min-h-11 items-center font-medium text-focus underline underline-offset-2"
+              href={item.href}
+            >
+              {item.title}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <p class="mt-8">
+      <a
+        href="/"
+        class="inline-flex min-h-11 items-center rounded-xl border border-border bg-surface-strong px-5 font-bold text-text hover:bg-surface"
+      >
+        Find your best time to go outside
+      </a>
+    </p>
+
+    <section aria-labelledby="sources-heading" class="mt-10">
+      <h2 id="sources-heading" class={sectionHeading}>
+        Sources
+      </h2>
+      <ol class="mt-2 list-decimal space-y-2 pl-5 text-sm text-text-muted">
+        {sources.map((source) => (
+          <li>
+            <a class="text-focus underline underline-offset-2" href={source.url} rel="noopener">
+              {source.title}
+            </a>
+            <span>, {source.publisher}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <footer class="mt-8 space-y-1 border-t border-border/40 pt-4 text-sm text-text-muted">
+      <p>
+        Last updated <time datetime={updatedIso}>{updatedLabel}</time>
+      </p>
+      <p>
+        UV GO gives general guidance, not medical advice. Talk to a healthcare professional about
+        your skin.
+      </p>
+    </footer>
+  </article>
+</BaseLayout>

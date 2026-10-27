@@ -1,0 +1,93 @@
+---
+title: 'UV Index Explained: Scale, Colours and What Affects It'
+description: 'What the UV index measures, how the 0 to 11+ scale works, why UV peaks around midday, and how UV GO turns the forecast into a best time to go outside.'
+publishedAt: 2026-10-27
+updatedAt: 2026-10-27
+sources:
+  - title: 'Ultraviolet radiation (fact sheet)'
+    url: 'https://www.who.int/news-room/fact-sheets/detail/ultraviolet-radiation'
+    publisher: 'World Health Organization'
+  - title: 'Radiation: The ultraviolet (UV) index'
+    url: 'https://www.who.int/news-room/questions-and-answers/item/radiation-the-ultraviolet-(uv)-index'
+    publisher: 'World Health Organization'
+  - title: 'Understanding the UV index'
+    url: 'https://www.cancer.org.au/cancer-information/causes-and-prevention/sun-safety/uv-index'
+    publisher: 'Cancer Council Australia'
+  - title: 'Calculating the UV Index'
+    url: 'https://www.epa.gov/sunsafety/calculating-uv-index-0'
+    publisher: 'US EPA'
+  - title: 'UV Index Scale'
+    url: 'https://www.epa.gov/sunsafety/uv-index-scale-1'
+    publisher: 'US EPA'
+related:
+  - uv-risks
+  - sun-protection
+tldr:
+  - 'The UV index measures how strong the sun’s ultraviolet radiation is at ground level. Higher numbers mean less time before skin and eyes can be harmed.'
+  - 'Plan for sun protection when the index reaches 3 or above. Below 3, most people need little or none.'
+  - 'UV peaks around solar noon, and it also rises with a higher sun, a lower latitude, more altitude and reflective ground such as snow.'
+  - 'Cloud lowers UV but does not remove it, so check the number, not the sky.'
+---
+
+## What the UV index measures
+
+The UV index (UVI) is a simple number for a complicated thing. The World Health Organization describes it as [a measure of the level of UV radiation](https://www.who.int/news-room/questions-and-answers/item/radiation-the-ultraviolet-(uv)-index). The higher the number, the greater the potential for skin and eye damage, and the less time it takes for harm to occur.
+
+A number helps because UV does not follow temperature or brightness. Cancer Council Australia points out that UV can stay strong on [cool or cloudy days](https://www.cancer.org.au/cancer-information/causes-and-prevention/sun-safety/uv-index), so it recommends checking the UV index rather than judging by the weather.
+
+The number is calculated, not measured on your street. The US EPA explains that a model combines the angle of the sunlight with forecast ozone to estimate UV strength across the UV wavelengths. Each wavelength is weighted by how strongly it affects skin, the weighted values are added up, the total is adjusted for elevation and cloud, and the result is divided by 25 and rounded ([US EPA](https://www.epa.gov/sunsafety/calculating-uv-index-0)).
+
+## The UV scale
+
+The scale starts at 0 and has no fixed top: values of 11 and above are called extreme. Cancer Council Australia publishes the five bands below ([source](https://www.cancer.org.au/cancer-information/causes-and-prevention/sun-safety/uv-index)).
+
+import UvScaleTable from '../../components/UvScaleTable.astro';
+
+<UvScaleTable />
+
+The coloured dots are UV GO’s own colours, matched to the closest of its three verdict colours. Green covers 0 to 2, yellow covers 3 to 7, and red covers 8 and above. Other bodies group the numbers differently. The WHO’s public question-and-answer page uses [three bands](https://www.who.int/news-room/questions-and-answers/item/radiation-the-ultraviolet-(uv)-index): 0 to 2, 3 to 7, and 8 and above. The US EPA scale groups them the same way, and for 8 and above it adds a rule of thumb: if your shadow is shorter than you, seek shade ([US EPA](https://www.epa.gov/sunsafety/uv-index-scale-1)).
+
+The number worth remembering is 3. The WHO says sun protection measures should be used [when the UV index reaches 3 or above](https://www.who.int/news-room/fact-sheets/detail/ultraviolet-radiation), and Cancer Council Australia says sun protection times are issued when the index is forecast to reach 3 or above, because at that level UV can damage skin and lead to skin cancer.
+
+## Why UV peaks around midday
+
+UV follows the sun’s height in the sky. The higher the sun, the more ultraviolet radiation reaches the ground, and the WHO notes that levels vary with the [time of day and the time of year](https://www.who.int/news-room/fact-sheets/detail/ultraviolet-radiation).
+
+The daily UV index you see in a forecast is the day’s maximum. The WHO says that maximum occurs during the four-hour period around solar noon, and that solar noon falls between noon and 2 p.m. depending on location and whether daylight saving time applies. Cancer Council Australia describes peak UV hours as usually between 10 am and 4 pm.
+
+For planning, this means the middle of the day is where the number is highest and the early morning and late afternoon are where it drops. That is the pattern UV GO looks for inside your free time.
+
+## Season, latitude and altitude
+
+Three things set the baseline before the weather has a say. All three come from the [WHO fact sheet](https://www.who.int/news-room/fact-sheets/detail/ultraviolet-radiation).
+
+- **Season.** The sun is higher in summer, so UV is higher.
+- **Latitude.** The closer you are to the equator, the higher the UV.
+- **Altitude.** The air is thinner higher up, so less UV is absorbed on the way down.
+
+The EPA puts a number on altitude: UV intensity [increases about 6% per kilometre](https://www.epa.gov/sunsafety/calculating-uv-index-0) of elevation above sea level. By that rule, a ridge at 2 km would see about 12% more UV than the same sky at sea level. The WHO adds one more factor, ozone: the less ozone in the atmosphere, the more UV reaches the surface.
+
+## Clouds, water, sand and snow
+
+Clouds help, but less than most people think. The WHO says UV levels are highest under cloudless skies and can still be high with cloud cover. The EPA gives the share of UV that gets through in its model: virtually 100% under clear skies, 89% with scattered clouds, 73% with broken clouds and 31% when fully overcast ([US EPA](https://www.epa.gov/sunsafety/calculating-uv-index-0)).
+
+So thin cloud barely changes the number, and even a grey overcast sky lets through about a third of UV in the EPA model. That is the reason a cloudy afternoon can still burn.
+
+The ground matters as well. The WHO lists water, sand and fresh snow as surfaces that increase UV levels. The sources used here do not give percentages for reflection, so treat it as a reason to be more careful at the beach or on a ski slope, not as a figure to calculate with.
+
+## How UV GO uses the UV index
+
+UV GO reads the hourly UV forecast for your location from Open-Meteo, rounds each hour’s value to a whole number (5.5 rounds up to 6), and gives the hour points. These thresholds are UV GO’s own rules and they all live in one configuration file:
+
+- UV 0 to 2 adds 0 points.
+- UV 3 to 5 adds 2 points.
+- UV 6 to 7 adds 4 points.
+- UV 8 and above adds 6 points.
+
+If you choose “Long in the sun”, the UV points are multiplied by 1.5, because a longer stay means more exposure.
+
+Rain, heat, cold and wind add points too. The best time is the window inside your free time with the lowest average score, and lower is better. A score of 0 to 2 shows green, 3 to 5 shows yellow and 6 or more shows red.
+
+The UV index also drives the short reason under your result, such as “UV 5, use sunscreen”, and two items on the what-to-take list. Sunscreen appears at UV 3 or above, which matches the WHO threshold above. Hat and sunglasses appear at UV 6 or above, which is a UV GO choice that lines up with the start of the High band.
+
+UV GO is a planning aid. It tells you when the numbers look best inside your free time and what to bring, and it does not know your skin, your medication or your plans. For that, see [the risks](/uv-risks) and [how to protect yourself](/sun-protection).

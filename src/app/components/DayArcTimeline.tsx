@@ -2,7 +2,8 @@ import { m, useReducedMotion } from 'motion/react';
 import { useId } from 'react';
 import { sunPosition } from '../../domain/sky';
 import type { DayForecast, ScoredHour, TimeWindow } from '../../domain/types';
-import { durations, ease, springs } from '../../motion/tokens';
+import { firstResult } from '../../motion/choreography';
+import { ease, springs } from '../../motion/tokens';
 import { HourStrip } from './HourStrip';
 
 interface Props {
@@ -13,6 +14,8 @@ interface Props {
   selectedHour: number | null;
   onSelect(h: number | null): void;
   playIntro: boolean;
+  /** First result: the time label rides in the search frame until it moves into the card. */
+  labelInFrame?: boolean;
 }
 
 // Half-ellipse in a 320 x 140 viewBox: the baseline sits at y = 120, the apex at y = 20.
@@ -51,6 +54,7 @@ export function DayArcTimeline({
   selectedHour,
   onSelect,
   playIntro,
+  labelInFrame = false,
 }: Props) {
   const reduced = useReducedMotion() ?? false;
   const drawMask = `arc-draw-${useId().replace(/:/g, '')}`;
@@ -83,7 +87,7 @@ export function DayArcTimeline({
             stroke="white"
             strokeWidth="6"
             initial={playIntro && !reduced ? { pathLength: 0 } : false}
-            animate={{ pathLength: 1, transition: { duration: durations.slow, ease } }}
+            animate={{ pathLength: 1, transition: { duration: firstResult.arcDraw, ease } }}
           />
         </mask>
         <path
@@ -128,6 +132,7 @@ export function DayArcTimeline({
         selectedHour={selectedHour}
         onSelect={onSelect}
         playIntro={playIntro}
+        labelInFrame={labelInFrame}
       />
     </div>
   );

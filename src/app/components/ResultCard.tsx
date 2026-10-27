@@ -1,4 +1,11 @@
-import type { Activity, EvaluationResult, TimeWindow, Verdict } from '../../domain/types';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
+import { useEffect, useRef, useState, type Ref } from 'react';
+import { roundHalfUp } from '../../domain/scoring';
+import type { Activity, EvaluationResult, TimeWindow } from '../../domain/types';
+import { firstResult } from '../../motion/choreography';
+import { durations, springs } from '../../motion/tokens';
+import { useCountUp } from '../hooks/useCountUp';
+import { VerdictIcon } from '../icons/VerdictIcon';
 import {
   CARD_CLASS,
   FACTORS,
@@ -12,66 +19,106 @@ import { WhatToTake } from './WhatToTake';
 interface Props {
   result: EvaluationResult & { best: TimeWindow };
   activity: Activity;
-}
-
-// Minimal inline icons; the verdict is always icon + text, never colour alone.
-function VerdictMark({ verdict }: { verdict: Verdict }) {
-  const common = {
-    width: 20,
-    height: 20,
-    viewBox: '0 0 20 20',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 2,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    'aria-hidden': true,
-  };
-  if (verdict === 'green') {
-    return (
-      <svg {...common}>
-        <circle cx="10" cy="10" r="8" />
-        <path d="M6 10.5l3 3 5-6" />
-      </svg>
-    );
-  }
-  if (verdict === 'yellow') {
-    return (
-      <svg {...common}>
-        <path d="M10 2.5l8 14H2z" />
-        <path d="M10 8v4M10 14.5v.01" />
-      </svg>
-    );
-  }
-  return (
-    <svg {...common}>
-      <circle cx="10" cy="10" r="8" />
-      <path d="M7 7l6 6M13 7l-6 6" />
-    </svg>
-  );
+  /** First result: the card reveals its body after the label hand-off (ТЗ 10.3). */
+  intro?: boolean;
+  /** The time label is still travelling in the search frame on the timeline. */
+  labelInFrame?: boolean;
+  ref?: Ref<HTMLElement>;
 }
 
 const oneDecimal = (n: number) => n.toFixed(1);
 
-export function ResultCard({ result, activity }: Props) {
+/** Highest UV in the window, rounded like the rest of the app; null when there is no data. */
+function peakUv(best: TimeWindow): number | null {
+  const values = best.hours.flatMap((h) => (h.uv === null ? [] : [h.uv]));
+  return values.length === 0 ? null : roundHalfUp(Math.max(...values));
+}
+
+export function ResultCard({ result, activity, intro = false, labelInFrame = false, ref }: Props) {
   const { best, reason, checklist } = result;
   const length = best.hours.length;
+  const reduced = useReducedMotion() ?? false;
+  const reveal = intro && !reduced;
+  const fade = { duration: reduced ? durations.fast : durations.base };
+
+  // The verdict badge turns from neutral to its colour when the body reveals.
+  const [revealed, setRevealed] = useState(!reveal);
+  useEffect(() => {
+    if (revealed) return;
+    const timer = setTimeout(() => setRevealed(true), firstResult.cardReveal * 1000);
+    return () => clearTimeout(timer);
+  }, [revealed]);
+
+  const [whyOpen, setWhyOpen] = useState(false);
+
+  const uv = peakUv(best);
+  const uvRef = useRef<HTMLSpanElement>(null);
+  useCountUp(uvRef, uv ?? 0, { intro: reveal, delay: firstResult.cardReveal, reduced });
 
   return (
-    <article aria-label="Best time" className={`${CARD_CLASS} flex flex-col gap-4`}>
+    <article ref={ref} aria-label="Best time" className={`${CARD_CLASS} flex flex-col gap-4`}>
       <div>
         <p className="text-sm text-text-muted">Best time to go out</p>
-        <p className="text-4xl font-bold tracking-tight">{best.label}</p>
+        <p className="relative min-h-10 text-4xl font-bold tracking-tight">
+          {labelInFrame && <span className="sr-only">Best time {best.label}</span>}
+          {/* Values crossfade when an input changes: the new one fades in. The first render and
+              the first-result hand-off from the timeline frame (layoutId) do not fade. */}
+          <AnimatePresence initial={false}>
+            {!labelInFrame && (
+              <m.span
+                key={best.label}
+                layoutId="best-window-label"
+                className="inline-block"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: fade }}
+              >
+                {best.label}
+              </m.span>
+            )}
+          </AnimatePresence>
+        </p>
       </div>
-      <p
-        className={`inline-flex items-center gap-2 self-start text-lg font-semibold ${VERDICT_TEXT_CLASS[best.verdict]}`}
-      >
-        <VerdictMark verdict={best.verdict} />
-        <span>{verdictLabel(best.verdict)}</span>
-      </p>
-      {reason && <p className="text-base">{reason}</p>}
-      <details className="text-sm">
-        <summary className="inline-flex min-h-11 cursor-pointer items-center font-medium">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p
+          className={`inline-flex items-center gap-2 text-lg font-semibold transition-colors duration-300 motion-reduce:duration-150 ${VERDICT_TEXT_CLASS[best.verdict]}`}
+        >
+          <VerdictIcon verdict={best.verdict} neutral={!revealed} />
+          <span>{verdictLabel(best.verdict)}</span>
+        </p>
+        {uv !== null && (
+          <m.p
+            className="text-sm text-text-muted"
+            initial={reveal ? { opacity: 0 } : false}
+            animate={{
+              opacity: 1,
+              transition: { ...fade, delay: reveal ? firstResult.cardReveal : 0 },
+            }}
+          >
+            UV <span ref={uvRef} className="font-semibold tabular-nums text-text" />
+          </m.p>
+        )}
+      </div>
+      <AnimatePresence initial={false}>
+        {reason && (
+          <m.p
+            key={reason}
+            className="text-base"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: fade }}
+          >
+            {reason}
+          </m.p>
+        )}
+      </AnimatePresence>
+      {/* Neighbours glide to their new place when this block opens instead of jumping. */}
+      <m.details layout="position" transition={springs.gentle} open={whyOpen} className="text-sm">
+        <summary
+          onClick={(event) => {
+            event.preventDefault();
+            setWhyOpen((open) => !open);
+          }}
+          className="inline-flex min-h-11 cursor-pointer items-center font-medium"
+        >
           Why this time?
         </summary>
         <div className="mt-1 flex flex-col gap-2 text-text-muted">
@@ -90,8 +137,10 @@ export function ResultCard({ result, activity }: Props) {
             })}
           </ul>
         </div>
-      </details>
-      <WhatToTake items={checklist} />
+      </m.details>
+      <m.div layout="position" transition={springs.gentle}>
+        <WhatToTake items={checklist} intro={intro} />
+      </m.div>
     </article>
   );
 }

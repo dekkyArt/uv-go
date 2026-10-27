@@ -8,13 +8,15 @@ import {
 import {
   useLayoutEffect,
   useRef,
+  useState,
   useSyncExternalStore,
   type KeyboardEvent,
   type PointerEvent,
 } from 'react';
 import { roundHalfUp } from '../../domain/scoring';
 import type { ScoredHour, TimeWindow } from '../../domain/types';
-import { springs } from '../../motion/tokens';
+import { firstResult } from '../../motion/choreography';
+import { durations, ease, springs } from '../../motion/tokens';
 import { VERDICT_FILL_CLASS, formatHour, verdictLabel } from '../ui';
 
 /** Marks UI that must not count as an "outside tap" for HourDetails. */
@@ -28,6 +30,8 @@ interface Props {
   onSelect(h: number | null): void;
   /** Cells grow in along the strip; ignored with reduced motion. */
   playIntro?: boolean;
+  /** First result: the time label rides in the search frame until it moves into the card. */
+  labelInFrame?: boolean;
 }
 
 const LAST_HOUR = 23;
@@ -38,8 +42,8 @@ const SCRUB_THRESHOLD_PX = 8;
 /** Touch layout: one hour is one 44 px tap target, so the day is wider than the screen. */
 const HOUR_PX = 44;
 const STRIP_PX = HOUR_PX * HOURS_PER_DAY;
-/** Seconds between neighbouring cells of the intro (Task 16 moves this to the choreography). */
-const CELL_STAGGER = 0.015;
+/** How far (in hours) the search frame overshoots the best window before it snaps back. */
+const FRAME_OVERSHOOT_HOURS = 0.5;
 /** How far a flick carries the strip before it snaps to an hour, in seconds of release velocity. */
 const FLICK_SECONDS = 0.15;
 const TOUCH_QUERY = '(hover: none)';
@@ -92,6 +96,74 @@ function HourGlyph({ kind }: { kind: ScoredHour['verdict'] }) {
   );
 }
 
+/**
+ * Outline of the best window. On the first result it starts at the beginning of the free time,
+ * slides to the window and settles with a small overshoot (x in percent of its own width, so the
+ * border is never scaled). After that a changed window glides there on a layout spring.
+ */
+function BestFrame({
+  best,
+  freeStart,
+  intro,
+  searching,
+  snapped,
+  onSnapped,
+}: {
+  best: TimeWindow;
+  freeStart: number;
+  intro: boolean;
+  searching: boolean;
+  snapped: boolean;
+  onSnapped(): void;
+}) {
+  const length = best.hours.length;
+  const fromPct = ((freeStart - best.startHour) / length) * 100;
+  const overshootPct = ((fromPct <= 0 ? 1 : -1) * FRAME_OVERSHOOT_HOURS * 100) / length;
+  return (
+    <m.div
+      aria-hidden="true"
+      data-best-frame=""
+      {...(searching ? { 'data-search-frame': '' } : null)}
+      layout="position"
+      transition={springs.gentle}
+      initial={{ x: intro ? `${fromPct}%` : '0%' }}
+      animate={
+        intro && !snapped
+          ? {
+              x: `${overshootPct}%`,
+              transition: {
+                delay: firstResult.searchStart,
+                duration: firstResult.searchDuration,
+                ease,
+              },
+            }
+          : { x: '0%', transition: intro ? springs.bouncy : springs.gentle }
+      }
+      onAnimationComplete={() => {
+        if (intro) onSnapped();
+      }}
+      className="pointer-events-none absolute -inset-y-1 rounded-md border-2 border-text"
+      style={{ left: pct(best.startHour), width: pct(length) }}
+    >
+      {searching && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <m.span
+            layoutId="best-window-label"
+            className="whitespace-nowrap rounded-sm bg-text px-1.5 py-0.5 text-xs font-semibold text-bg"
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: 1,
+              transition: { delay: firstResult.searchStart, duration: durations.fast },
+            }}
+          >
+            {best.label}
+          </m.span>
+        </span>
+      )}
+    </m.div>
+  );
+}
+
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 const pct = (hour: number) => `${(hour / HOURS_PER_DAY) * 100}%`;
 
@@ -109,6 +181,7 @@ export function HourStrip({
   selectedHour,
   onSelect,
   playIntro = false,
+  labelInFrame = false,
 }: Props) {
   // With nothing selected the slider rests on the best hour (or the start of free time).
   const current = clamp(selectedHour ?? best?.startHour ?? freeTime.start, 0, LAST_HOUR);
@@ -116,6 +189,9 @@ export function HourStrip({
   const touch = useTouchDevice();
   const reduced = useReducedMotion() ?? false;
   const intro = playIntro && !reduced;
+  // The search frame exists only on the first result and never with reduced motion.
+  const searching = intro && labelInFrame;
+  const [snapped, setSnapped] = useState(false);
 
   const viewport = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
@@ -233,7 +309,10 @@ export function HourStrip({
                   initial={intro ? { scaleY: 0 } : false}
                   animate={{
                     scaleY: 1,
-                    transition: { ...springs.snappy, delay: intro ? i * CELL_STAGGER : 0 },
+                    transition: {
+                      ...springs.snappy,
+                      delay: intro ? i * firstResult.hourStagger : 0,
+                    },
                   }}
                   whileHover={touch || reduced ? undefined : { y: -2 }}
                   onClick={() => {
@@ -256,10 +335,13 @@ export function HourStrip({
               ))}
             </div>
             {best && (
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -inset-y-1 rounded-md border-2 border-text"
-                style={{ left: pct(best.startHour), width: pct(best.hours.length) }}
+              <BestFrame
+                best={best}
+                freeStart={freeTime.start}
+                intro={intro}
+                searching={searching}
+                snapped={snapped}
+                onSnapped={() => setSnapped(true)}
               />
             )}
             <div aria-hidden="true" className="mt-2 h-1.5 rounded-full bg-surface-strong">

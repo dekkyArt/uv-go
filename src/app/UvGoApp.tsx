@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { useReducedMotion } from 'motion/react';
 import { loadInputs, loadPlace, saveInputs, savePlace } from '../data/storage';
 import type { Place } from '../data/types';
 import { evaluate } from '../domain/evaluate';
@@ -10,11 +19,14 @@ import { FreeTimePicker } from './components/FreeTimePicker';
 import { HourDetails } from './components/HourDetails';
 import { DayArcTimeline } from './components/DayArcTimeline';
 import { LocationPicker } from './components/LocationPicker';
+import { MiniResult } from './components/MiniResult';
 import { ResultCard } from './components/ResultCard';
 import { SegmentedControl } from './components/SegmentedControl';
+import { useFirstResult } from './hooks/useFirstResult';
 import { useForecastLoader } from './hooks/useForecastLoader';
 import { useNow } from './hooks/useNow';
 import { initialState, isForecastStale, reducer } from './state';
+import { useCardOffscreen } from './hooks/useCardOffscreen';
 import { ACTIVITY_OPTIONS, CARD_CLASS, DAY_OPTIONS, DURATION_OPTIONS, verdictLabel } from './ui';
 
 type StoredInputs = Pick<Inputs, 'freeTime' | 'duration' | 'activity'>;
@@ -87,6 +99,17 @@ function App() {
     dispatch(action);
   }
 
+  // The first-result choreography plays once per place and day; input changes only recalculate.
+  const reduced = useReducedMotion() ?? false;
+  const introKey =
+    place === null || evaluation === null
+      ? null
+      : `${place.id}:${place.lat},${place.lon}:${inputs.day}`;
+  const { playIntro, labelInFrame } = useFirstResult(introKey, reduced);
+
+  const [cardEl, setCardEl] = useState<HTMLElement | null>(null);
+  const cardOffscreen = useCardOffscreen(cardEl);
+
   const best: TimeWindow | null = evaluation?.best ?? null;
   const selected: ScoredHour | null =
     evaluation !== null && selectedHour !== null ? evaluation.scoredHours[selectedHour] : null;
@@ -108,7 +131,14 @@ function App() {
     );
   } else if (evaluation.best !== null) {
     card = (
-      <ResultCard result={{ ...evaluation, best: evaluation.best }} activity={inputs.activity} />
+      <ResultCard
+        key={introKey}
+        ref={setCardEl}
+        result={{ ...evaluation, best: evaluation.best }}
+        activity={inputs.activity}
+        intro={playIntro}
+        labelInFrame={labelInFrame}
+      />
     );
   } else if (evaluation.emptyReason !== null) {
     card = (
@@ -131,6 +161,17 @@ function App() {
         {announcement}
       </p>
 
+      {best !== null && (
+        <MiniResult
+          label={best.label}
+          verdict={best.verdict}
+          visible={cardOffscreen}
+          onClick={() =>
+            cardEl?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+          }
+        />
+      )}
+
       <section aria-label="Location" className="flex flex-col gap-3 lg:col-span-2">
         {place === null && <h2 className="text-2xl font-bold">Where are you heading out?</h2>}
         <LocationPicker place={place} onPlace={choosePlace} />
@@ -151,13 +192,15 @@ function App() {
       >
         {evaluation !== null && activeDay !== null ? (
           <DayArcTimeline
+            key={introKey}
             day={activeDay}
             hours={evaluation.scoredHours}
             freeTime={inputs.freeTime}
             best={best}
             selectedHour={selectedHour}
             onSelect={(hour) => dispatch({ type: 'selectHour', hour })}
-            playIntro
+            playIntro={playIntro}
+            labelInFrame={labelInFrame}
           />
         ) : (
           <div aria-hidden="true" className="h-[4.75rem] rounded-md bg-surface-strong" />

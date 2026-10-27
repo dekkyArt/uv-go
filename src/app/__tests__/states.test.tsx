@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearForecastCache } from '../../data/openMeteo';
 import { makeForecastJson } from '../../test/forecastJson';
 import UvGoApp from '../UvGoApp';
+import { reservePlaceLayout } from '../reservePlaceLayout';
 import { CARD_SLOT_CLASS, HOUR_STRIP_MIN_H_CLASS } from '../ui';
 
 const STORED_PLACE = {
@@ -117,5 +118,43 @@ describe('server render', () => {
     for (const token of HOUR_STRIP_MIN_H_CLASS.split(' '))
       expect(strip?.classList).toContain(token);
     expect(doc.querySelector('[data-adjust-skeleton]')).not.toBeNull();
+  });
+});
+
+describe('stored-place layout before hydration', () => {
+  function run(stored: string | null, throws = false) {
+    const dataset: Record<string, string | undefined> = {};
+    reservePlaceLayout({
+      localStorage: {
+        getItem: () => {
+          if (throws) throw new Error('blocked');
+          return stored;
+        },
+      },
+      document: { documentElement: { dataset } },
+    });
+    return 'hasPlace' in dataset;
+  }
+
+  it('marks the page for a valid stored place only', () => {
+    expect(run(JSON.stringify(STORED_PLACE))).toBe(true);
+    expect(run(JSON.stringify({ name: 'X', lat: 1, lon: 2 }))).toBe(true);
+    expect(run(null)).toBe(false);
+    expect(run('not json')).toBe(false);
+    expect(run('[]')).toBe(false);
+    expect(run(JSON.stringify({ name: '', lat: 1, lon: 2 }))).toBe(false);
+    expect(run(JSON.stringify({ name: 'X', lat: 'a', lon: 2 }))).toBe(false);
+    expect(run(JSON.stringify({ name: 'X', lat: 1, lon: 2, id: 'x' }))).toBe(false);
+    expect(run(JSON.stringify(STORED_PLACE), true)).toBe(false);
+  });
+
+  it('keys the placeholder location height on the mark: 44 px row for a stored place', () => {
+    const html = renderToString(<UvGoApp />);
+    const block = new DOMParser()
+      .parseFromString(html, 'text/html')
+      .querySelector('[data-location-skeleton]');
+    expect(block?.className).toContain('min-h-[10.5rem]');
+    expect(block?.className).toContain('sm:min-h-28');
+    expect(block?.className).toContain('[[data-has-place]_&]:min-h-11');
   });
 });

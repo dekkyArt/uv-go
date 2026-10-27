@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../components/BaseLayout.astro';
 import UvGoApp from '../app/UvGoApp';
+import { reservePlaceLayout } from '../app/reservePlaceLayout';
 ---
 
 <BaseLayout
@@ -9,5 +10,6 @@ import UvGoApp from '../app/UvGoApp';
   ogImage="/og/home.png"
 >
   <h1 class="sr-only">UV GO</h1>
+  <script is:inline set:html={`(${reservePlaceLayout})()`} />
   <UvGoApp client:load />
 </BaseLayout>

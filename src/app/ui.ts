@@ -87,11 +87,13 @@ export const CARD_SLOT_CLASS = 'flex min-h-[26rem] flex-col gap-3';
 export const HOUR_STRIP_MIN_H_CLASS = 'min-h-[7.625rem] min-[30rem]:min-h-[6.375rem]';
 
 /**
- * Space held before hydration for what the first visit shows (no place yet): heading 32 + 12 gap
- * + 124 search (button, 12 gap, input and message) = 168 px; 112 px from `sm`, where the button
- * sits next to the input.
+ * Space held before hydration for the location block. First visit (no place): heading 32 + 12
+ * gap + 124 search (button, 12 gap, input and message) = 168 px; 112 px from `sm`, where the
+ * button sits next to the input. With a stored place (<html data-has-place>, set by an inline
+ * script before first paint) the block is one 44 px row.
  */
-export const LOCATION_SKELETON_CLASS = 'min-h-[10.5rem] sm:min-h-28 lg:col-span-2';
+export const LOCATION_SKELETON_CLASS =
+  'min-h-[10.5rem] sm:min-h-28 [[data-has-place]_&]:min-h-11 lg:col-span-2';
 
 /**
  * Space held before hydration for "Adjust your plan": heading 28, day control 52, free time

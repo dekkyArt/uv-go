@@ -1,4 +1,5 @@
 import { m, useReducedMotion } from 'motion/react';
+import { useId } from 'react';
 import { sunPosition } from '../../domain/sky';
 import type { DayForecast, ScoredHour, TimeWindow } from '../../domain/types';
 import { durations, ease, springs } from '../../motion/tokens';
@@ -52,6 +53,7 @@ export function DayArcTimeline({
   playIntro,
 }: Props) {
   const reduced = useReducedMotion() ?? false;
+  const drawMask = `arc-draw-${useId().replace(/:/g, '')}`;
 
   // The sky follows the selected hour, else the best window, else midday.
   const refHour = selectedHour ?? best?.startHour ?? DEFAULT_HOUR;
@@ -72,15 +74,26 @@ export function DayArcTimeline({
           stroke="var(--color-border)"
           strokeWidth="1"
         />
-        <m.path
+        {/* Motion owns strokeDasharray while pathLength animates, so the draw runs on a mask
+            and the dotted path stays static. */}
+        <mask id={drawMask}>
+          <m.path
+            d={ARC_PATH}
+            fill="none"
+            stroke="white"
+            strokeWidth="6"
+            initial={playIntro && !reduced ? { pathLength: 0 } : false}
+            animate={{ pathLength: 1, transition: { duration: durations.slow, ease } }}
+          />
+        </mask>
+        <path
           d={ARC_PATH}
           fill="none"
           stroke="var(--color-text-muted)"
           strokeWidth="2"
           strokeLinecap="round"
           strokeDasharray="1 6"
-          initial={playIntro && !reduced ? { pathLength: 0 } : false}
-          animate={{ pathLength: 1, transition: { duration: durations.slow, ease } }}
+          mask={`url(#${drawMask})`}
         />
         <m.g
           initial={false}

@@ -224,49 +224,53 @@ export function HourStrip({
           style={touch ? { x, width: STRIP_PX, touchAction: 'pan-y' } : undefined}
           className="relative"
         >
-          <div className="flex h-11 gap-px">
-            {hours.map((hour, i) => (
-              <m.div
-                key={hour.hour}
-                data-hour={hour.hour}
-                initial={intro ? { scaleY: 0 } : false}
-                animate={{
-                  scaleY: 1,
-                  transition: { ...springs.snappy, delay: intro ? i * CELL_STAGGER : 0 },
-                }}
-                whileHover={touch || reduced ? undefined : { y: -2 }}
-                onClick={() => {
-                  // The click that ends a scrub must not re-select the cell it was released on.
-                  if (scrubbing.current) scrubbing.current = false;
-                  else onSelect(hour.hour);
-                }}
-                className={`flex flex-1 cursor-pointer items-center justify-center rounded-sm ${VERDICT_FILL_CLASS[hour.verdict]} ${
-                  hour.hour === selectedHour ? 'ring-2 ring-text ring-offset-2 ring-offset-bg' : ''
-                }`}
+          <div className="relative" data-strip-frame="">
+            <div className="flex h-11 gap-px">
+              {hours.map((hour, i) => (
+                <m.div
+                  key={hour.hour}
+                  data-hour={hour.hour}
+                  initial={intro ? { scaleY: 0 } : false}
+                  animate={{
+                    scaleY: 1,
+                    transition: { ...springs.snappy, delay: intro ? i * CELL_STAGGER : 0 },
+                  }}
+                  whileHover={touch || reduced ? undefined : { y: -2 }}
+                  onClick={() => {
+                    // The click that ends a scrub must not re-select the cell it was released on.
+                    if (scrubbing.current) scrubbing.current = false;
+                    else onSelect(hour.hour);
+                  }}
+                  className={`flex flex-1 cursor-pointer items-center justify-center rounded-sm ${VERDICT_FILL_CLASS[hour.verdict]} ${
+                    hour.hour === selectedHour
+                      ? 'ring-2 ring-text ring-offset-2 ring-offset-bg'
+                      : ''
+                  }`}
+                  style={{
+                    transformOrigin: 'bottom',
+                    ...(hour.isPast ? { opacity: 'var(--color-past-opacity)' } : null),
+                  }}
+                >
+                  <HourGlyph kind={hour.verdict} />
+                </m.div>
+              ))}
+            </div>
+            {best && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -inset-y-1 rounded-md border-2 border-text"
+                style={{ left: pct(best.startHour), width: pct(best.hours.length) }}
+              />
+            )}
+            <div aria-hidden="true" className="mt-2 h-1.5 rounded-full bg-surface-strong">
+              <div
+                className="h-full rounded-full bg-focus"
                 style={{
-                  transformOrigin: 'bottom',
-                  ...(hour.isPast ? { opacity: 'var(--color-past-opacity)' } : null),
+                  marginLeft: pct(freeTime.start),
+                  width: pct(freeTime.end - freeTime.start),
                 }}
-              >
-                <HourGlyph kind={hour.verdict} />
-              </m.div>
-            ))}
-          </div>
-          {best && (
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -inset-y-1 rounded-md border-2 border-text"
-              style={{ left: pct(best.startHour), width: pct(best.hours.length) }}
-            />
-          )}
-          <div aria-hidden="true" className="mt-2 h-1.5 rounded-full bg-surface-strong">
-            <div
-              className="h-full rounded-full bg-focus"
-              style={{
-                marginLeft: pct(freeTime.start),
-                width: pct(freeTime.end - freeTime.start),
-              }}
-            />
+              />
+            </div>
           </div>
           <div aria-hidden="true" className="relative mt-1 h-4 text-xs text-text-muted">
             {LABEL_HOURS.map((hour) => (

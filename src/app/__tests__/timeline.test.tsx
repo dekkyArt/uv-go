@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { makeDay, scored } from '../../domain/__tests__/factories';
+import { makeDay, makeWindow, scored } from '../../domain/__tests__/factories';
 import { DayArcTimeline, arcPoint } from '../components/DayArcTimeline';
 
 afterEach(() => {
@@ -92,6 +92,29 @@ describe('DayArcTimeline', () => {
     const style = (document.querySelector('[data-sun]') as SVGElement).getAttribute('style') ?? '';
     expect(style).toMatch(/transform/);
     expect(style).not.toMatch(/\b(left|top|width|height)\b/);
+  });
+
+  it('keeps the best-window frame off the hour labels and the dotted arc dotted', () => {
+    const d = makeDay({});
+    const best = makeWindow({ 14: {}, 15: {} });
+    render(
+      <DayArcTimeline
+        day={d}
+        hours={scored(d, 'relaxed')}
+        freeTime={{ start: 13, end: 19 }}
+        best={best}
+        selectedHour={null}
+        onSelect={vi.fn()}
+        playIntro
+      />,
+    );
+    const frame = document.querySelector('.border-text')!;
+    const container = frame.parentElement!;
+    expect(container.contains(document.querySelector('[data-hour="14"]'))).toBe(true);
+    expect(container.textContent).not.toContain('18');
+    expect(container.querySelector('.text-xs')).toBeNull();
+    // the dotted path is static; only the mask path is drawn by pathLength
+    expect(document.querySelector('path[stroke-dasharray="1 6"]')).toBeInTheDocument();
   });
 
   it('keeps arrow-key selection working through the strip', async () => {

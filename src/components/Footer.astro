@@ -1,0 +1,28 @@
+---
+import { siteConfig } from '../site.config';
+
+const linkClass = 'inline-flex min-h-11 items-center underline underline-offset-2 hover:text-text';
+---
+
+<footer class="border-t border-border/40 bg-surface text-sm text-text-muted">
+  <div class="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-4">
+    <p class="flex flex-wrap items-center gap-x-1">
+      <span>Weather data by</span>
+      <a class={linkClass} href="https://open-meteo.com/" rel="noopener">
+        Open-Meteo.com
+      </a>
+    </p>
+    <p class="flex flex-wrap items-center gap-x-4">
+      <a class={linkClass} href={siteConfig.repoUrl} rel="noopener">
+        GitHub
+      </a>
+      <span class="inline-flex flex-wrap items-center gap-x-1">
+        <span>Designed &amp; built by</span>
+        <a class={linkClass} href={siteConfig.author.url} rel="noopener">
+          {siteConfig.author.name}
+        </a>
+      </span>
+    </p>
+    <p>UV GO gives general guidance, not medical advice.</p>
+  </div>
+</footer>

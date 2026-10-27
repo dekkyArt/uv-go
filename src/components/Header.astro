@@ -1,0 +1,31 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+
+const links = [
+  { href: '/uv-index', label: 'UV Index' },
+  { href: '/uv-risks', label: 'Risks' },
+  { href: '/sun-protection', label: 'Protection' },
+];
+---
+
+<header class="border-b border-border/40 bg-surface">
+  <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-2 px-4">
+    <a
+      href="/"
+      class="inline-flex min-h-11 items-center text-lg font-bold tracking-tight text-text"
+    >
+      UV GO
+    </a>
+    <nav aria-label="Main" class="flex flex-wrap items-center gap-x-1">
+      {links.map((link) => (
+        <a
+          href={link.href}
+          class="inline-flex min-h-11 items-center rounded-md px-2 text-sm font-medium text-text-muted hover:text-text"
+        >
+          {link.label}
+        </a>
+      ))}
+      <ThemeToggle />
+    </nav>
+  </div>
+</header>

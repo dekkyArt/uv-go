@@ -1,17 +1,11 @@
 ---
-import '../styles/global.css';
+import BaseLayout from '../components/BaseLayout.astro';
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>UV GO</title>
-  </head>
-  <body>
-    <h1>UV GO</h1>
-  </body>
-</html>
+<BaseLayout
+  title="UV GO"
+  description="Find the best time to go outside based on the UV forecast for your location."
+  ogImage="/og/home.png"
+>
+  <h1 class="text-3xl font-bold">UV GO</h1>
+</BaseLayout>

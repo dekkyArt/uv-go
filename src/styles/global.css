@@ -1,1 +1,153 @@
 @import 'tailwindcss';
+
+/* Dark variant is bound to the data-theme attribute set by ThemeScript. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+/*
+ * Design tokens. `@theme static` makes Tailwind emit every variable (so
+ * `bg-surface`, `text-verdict-green`, ... exist and unused tokens survive).
+ * The values below are the LIGHT set and double as the no-JS fallback; the
+ * `[data-theme='light']` / `[data-theme='dark']` blocks after it are what the
+ * ThemeScript switches between. Utilities read var(--color-*), so the
+ * attribute override re-themes everything without extra classes.
+ *
+ * Contrast (WCAG 2.x relative luminance; computed with a throwaway script).
+ * bg / surface / surface-strong are the three surfaces content can sit on.
+ *
+ * LIGHT   bg #f4f7fb  surface #ffffff  surface-strong #e6edf6
+ *   text        #101a2e   17.37 on surface, 16.16 on bg, 14.73 on strong
+ *   text-muted  #475569    7.58 on surface,  7.05 on bg,  6.43 on strong
+ *   border      #8493a8    3.12 on surface (control outlines, >= 3:1)
+ *   focus       #1d4ed8    6.70 on surface,  6.24 on bg
+ *   verdict fills (graphics >= 3:1; surface / bg / strong)
+ *     green  #15803d   5.02 / 4.67 / 4.25
+ *     yellow #b07400   3.93 / 3.66 / 3.33   (checked separately, per spec 9.1)
+ *     red    #dc2626   4.83 / 4.49 / 4.10
+ *   verdict text (>= 4.5:1; surface / bg / strong)
+ *     green  #166534   7.13 / 6.64 / 6.05
+ *     yellow #854d0e   6.85 / 6.38 / 5.81
+ *     red    #b91c1c   6.47 / 6.02 / 5.49
+ *   night #4c5a8a      6.69 on surface, 6.23 on bg
+ *
+ * DARK    bg #0b1220  surface #151e31  surface-strong #1f2a42
+ *   text        #eef3fb   14.94 on surface, 16.81 on bg, 12.84 on strong
+ *   text-muted  #a3b1c7    7.66 on surface,  8.62 on bg,  6.59 on strong
+ *   border      #6b7c97    3.93 on surface
+ *   focus       #8ab4ff    7.97 on surface,  8.96 on bg
+ *   verdict fills (surface / bg / strong)
+ *     green  #34c26b   7.19 / 8.09 / 6.18
+ *     yellow #e0a82e   7.77 / 8.75 / 6.68
+ *     red    #f2605c   5.23 / 5.89 / 4.50
+ *   verdict text (surface / bg / strong)
+ *     green  #6fdc97   9.79 / 11.02 / 8.42
+ *     yellow #f2c75c  10.38 / 11.68 / 8.92
+ *     red    #ff8f8b   7.57 /  8.52 / 6.51
+ *   night #7886c4       4.76 on surface, 5.35 on bg
+ */
+@theme static {
+  --font-sans:
+    'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+
+  --color-bg: #f4f7fb;
+  --color-surface: #ffffff;
+  --color-surface-strong: #e6edf6;
+  --color-text: #101a2e;
+  --color-text-muted: #475569;
+  --color-border: #8493a8;
+  --color-focus: #1d4ed8;
+
+  --color-verdict-green: #15803d;
+  --color-verdict-yellow: #b07400;
+  --color-verdict-red: #dc2626;
+  --color-verdict-green-text: #166534;
+  --color-verdict-yellow-text: #854d0e;
+  --color-verdict-red-text: #b91c1c;
+
+  --color-night: #4c5a8a;
+}
+
+/* Not a colour, so it lives outside @theme (no bogus `bg-past-opacity`). */
+:root {
+  --color-past-opacity: 0.45;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --color-bg: #f4f7fb;
+  --color-surface: #ffffff;
+  --color-surface-strong: #e6edf6;
+  --color-text: #101a2e;
+  --color-text-muted: #475569;
+  --color-border: #8493a8;
+  --color-focus: #1d4ed8;
+  --color-verdict-green: #15803d;
+  --color-verdict-yellow: #b07400;
+  --color-verdict-red: #dc2626;
+  --color-verdict-green-text: #166534;
+  --color-verdict-yellow-text: #854d0e;
+  --color-verdict-red-text: #b91c1c;
+  --color-night: #4c5a8a;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #0b1220;
+  --color-surface: #151e31;
+  --color-surface-strong: #1f2a42;
+  --color-text: #eef3fb;
+  --color-text-muted: #a3b1c7;
+  --color-border: #6b7c97;
+  --color-focus: #8ab4ff;
+  --color-verdict-green: #34c26b;
+  --color-verdict-yellow: #e0a82e;
+  --color-verdict-red: #f2605c;
+  --color-verdict-green-text: #6fdc97;
+  --color-verdict-yellow-text: #f2c75c;
+  --color-verdict-red-text: #ff8f8b;
+  --color-night: #7886c4;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Theme switch: the circular reveal is driven from ThemeToggle's script. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}

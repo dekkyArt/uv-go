@@ -1,0 +1,16 @@
+---
+// Static sky for pages without the app: sets <html data-sky-phase> from the device time before
+// first paint. The phase boundaries are computed here at build time (from articlePhase), so the
+// inline script is just a lookup. No location is known on these pages, hence the assumed sun times.
+import { skyRanges } from './skyRanges';
+
+const ranges = skyRanges();
+---
+
+<script is:inline define:vars={{ ranges }}>
+  var d = new Date();
+  var m = d.getHours() * 60 + d.getMinutes();
+  var p = ranges[0][1];
+  for (var i = 0; i < ranges.length; i++) if (m >= ranges[i][0]) p = ranges[i][1];
+  document.documentElement.dataset.skyPhase = p;
+</script>

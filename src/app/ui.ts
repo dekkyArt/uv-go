@@ -87,19 +87,27 @@ export const CARD_SLOT_CLASS = 'flex min-h-[26rem] flex-col gap-3';
 export const HOUR_STRIP_MIN_H_CLASS = 'min-h-[7.625rem] min-[30rem]:min-h-[6.375rem]';
 
 /**
+ * A translucent page-colour surface under text and graphics that would otherwise sit directly on
+ * the sky (contrast AA over every phase: see the sky section of global.css). 16 px padding.
+ */
+export const PANEL_CLASS = 'sky-panel rounded-2xl p-4';
+
+/**
  * Space held before hydration for the location block. First visit (no place): heading 32 + 12
  * gap + 124 search (button, 12 gap, input and message) = 168 px; 112 px from `sm`, where the
  * button sits next to the input. With a stored place (<html data-has-place>, set by an inline
- * script before first paint) the block is one 44 px row.
+ * script before first paint) the block is one 44 px row. Each block also carries the 32 px of
+ * padding of its PANEL_CLASS surface.
  */
 export const LOCATION_SKELETON_CLASS =
-  'min-h-[10.5rem] sm:min-h-28 [[data-has-place]_&]:min-h-11 lg:col-span-2';
+  'min-h-[12.5rem] sm:min-h-36 [[data-has-place]_&]:min-h-[4.75rem] lg:col-span-2';
 
 /**
  * Space held before hydration for "Adjust your plan": heading 28, day control 52, free time
- * 20 + 4 + 84, duration and activity 20 + 4 + 52 each, four 16 gaps = 404 px.
+ * 20 + 4 + 84, duration and activity 20 + 4 + 52 each, four 16 gaps = 404 px, plus 32 of panel
+ * padding.
  */
-export const ADJUST_SKELETON_CLASS = 'min-h-[25.25rem] lg:col-start-1 lg:row-start-3';
+export const ADJUST_SKELETON_CLASS = 'min-h-[27.25rem] lg:col-start-1 lg:row-start-3';
 
 export const BUTTON_CLASS =
   'inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-surface-strong px-4 text-sm font-medium text-text hover:bg-surface';

@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -28,6 +30,7 @@ import { TimelineSkeleton } from './components/TimelineSkeleton';
 import { useFirstResult } from './hooks/useFirstResult';
 import { useForecastLoader } from './hooks/useForecastLoader';
 import { useNow } from './hooks/useNow';
+import { useSky } from './hooks/useSkyRef';
 import { initialState, isForecastStale, reducer } from './state';
 import { useCardOffscreen } from './hooks/useCardOffscreen';
 import {
@@ -38,10 +41,14 @@ import {
   DAY_OPTIONS,
   DURATION_OPTIONS,
   LOCATION_SKELETON_CLASS,
+  PANEL_CLASS,
   verdictLabel,
 } from './ui';
 
 type StoredInputs = Pick<Inputs, 'freeTime' | 'duration' | 'activity'>;
+
+/** The live sky is its own chunk: the CSS phase gradient paints first, the animated layer follows. */
+const SkyLayer = lazy(() => import('./components/SkyLayer'));
 
 const noopSubscribe = () => () => {};
 
@@ -112,14 +119,14 @@ const TIMELINE_PLACEMENT = 'lg:col-start-2 lg:row-span-2 lg:row-start-2';
 function Placeholder() {
   return (
     <div aria-busy="true" className={LAYOUT_CLASS}>
-      <div data-location-skeleton="" className={LOCATION_SKELETON_CLASS} />
+      <div data-location-skeleton="" className={`${PANEL_CLASS} ${LOCATION_SKELETON_CLASS}`} />
       <div data-card-slot="" className={`${CARD_SLOT_CLASS} ${CARD_SLOT_PLACEMENT}`}>
         <div className={CARD_CLASS} />
       </div>
-      <div className={TIMELINE_PLACEMENT}>
+      <div className={`${PANEL_CLASS} ${TIMELINE_PLACEMENT}`}>
         <TimelineSkeleton />
       </div>
-      <div data-adjust-skeleton="" className={ADJUST_SKELETON_CLASS} />
+      <div data-adjust-skeleton="" className={`${PANEL_CLASS} ${ADJUST_SKELETON_CLASS}`} />
     </div>
   );
 }
@@ -170,6 +177,7 @@ function App() {
 
   // The first-result choreography plays once per place and day; input changes only recalculate.
   const reduced = useReducedMotion() ?? false;
+  const sky = useSky(state, evaluation, now);
   const introKey =
     place === null || evaluation === null
       ? null
@@ -242,6 +250,11 @@ function App() {
 
   return (
     <div className={LAYOUT_CLASS}>
+      {/* Fixed and behind everything: not a grid item, so it takes no part in the layout. */}
+      <Suspense fallback={null}>
+        <SkyLayer sky={sky} reducedMotion={reduced} />
+      </Suspense>
+
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
@@ -257,7 +270,7 @@ function App() {
         />
       )}
 
-      <section aria-label="Location" className="flex flex-col gap-3 lg:col-span-2">
+      <section aria-label="Location" className={`${PANEL_CLASS} flex flex-col gap-3 lg:col-span-2`}>
         {place === null && <h2 className="text-2xl font-bold">Where are you heading out?</h2>}
         <LocationPicker place={place} onPlace={choosePlace} />
       </section>
@@ -292,7 +305,10 @@ function App() {
         )}
       </div>
 
-      <section aria-label="Day timeline" className={`flex flex-col gap-4 ${TIMELINE_PLACEMENT}`}>
+      <section
+        aria-label="Day timeline"
+        className={`${PANEL_CLASS} flex flex-col gap-4 ${TIMELINE_PLACEMENT}`}
+      >
         {evaluation !== null && activeDay !== null ? (
           <DayArcTimeline
             key={introKey}
@@ -313,7 +329,7 @@ function App() {
 
       <section
         aria-labelledby="adjust-heading"
-        className="flex flex-col gap-4 lg:col-start-1 lg:row-start-3"
+        className={`${PANEL_CLASS} flex flex-col gap-4 lg:col-start-1 lg:row-start-3`}
       >
         <h2 id="adjust-heading" className="text-lg font-semibold">
           Adjust your plan

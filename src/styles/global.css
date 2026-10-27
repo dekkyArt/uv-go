@@ -71,6 +71,26 @@
   --uv-verdict-yellow-text: #854d0e;
   --uv-verdict-red-text: #b91c1c;
   --uv-night: #4c5a8a;
+
+  /* Sky (spec 9.3): one ready gradient per phase, top to bottom; light = lighter and livelier. */
+  --sky-night: linear-gradient(180deg, #2a3a7c 0%, #4a5fa6 55%, #7d8fcc 100%);
+  --sky-dawn: linear-gradient(180deg, #7e8fd6 0%, #f0a9bd 55%, #ffd9a8 100%);
+  --sky-morning: linear-gradient(180deg, #6fb7ff 0%, #b8dcff 55%, #fff0d2 100%);
+  --sky-day: linear-gradient(180deg, #3d9bff 0%, #8ec8ff 55%, #dff0ff 100%);
+  --sky-golden: linear-gradient(180deg, #6ea3ea 0%, #ffb870 55%, #ffe3a6 100%);
+  --sky-dusk: linear-gradient(180deg, #3d4496 0%, #b9577f 55%, #ff9d5c 100%);
+  --sky-panel-alpha: 0.92;
+  --sky-glow-color: #ffe28c;
+  --sky-glow-alpha: 0.35;
+  --sky-veil-color: #c9d2de;
+  --sky-flash-color: #ffffff;
+  --sky-flash-alpha: 0.3;
+  --sky-moon-hi: #ffffff;
+  --sky-moon-lo: #dfe6fa;
+  --sky-rain: rgba(31, 58, 110, 0.5);
+  --sky-snow: rgba(255, 255, 255, 0.9);
+  --sky-streak: rgba(255, 255, 255, 0.55);
+  --sky-shimmer: rgba(255, 190, 90, 0.1);
 }
 
 [data-theme='dark'] {
@@ -89,6 +109,26 @@
   --uv-verdict-yellow-text: #f2c75c;
   --uv-verdict-red-text: #ff8f8b;
   --uv-night: #7886c4;
+
+  /* Sky: deeper and more muted than light. */
+  --sky-night: linear-gradient(180deg, #03060f 0%, #070d22 55%, #0e1836 100%);
+  --sky-dawn: linear-gradient(180deg, #0f1a3a 0%, #3a2b52 55%, #6b3f55 100%);
+  --sky-morning: linear-gradient(180deg, #0f2a52 0%, #1f4678 55%, #3f6a8f 100%);
+  --sky-day: linear-gradient(180deg, #0b2a5a 0%, #14437f 55%, #26629c 100%);
+  --sky-golden: linear-gradient(180deg, #2a2748 0%, #7a3f3a 55%, #b2683a 100%);
+  --sky-dusk: linear-gradient(180deg, #0f1636 0%, #3a2652 55%, #7a3550 100%);
+  --sky-panel-alpha: 0.92;
+  --sky-glow-color: #ffb45a;
+  --sky-glow-alpha: 0.22;
+  --sky-veil-color: #121a2a;
+  --sky-flash-color: #cfd8ff;
+  --sky-flash-alpha: 0.3;
+  --sky-moon-hi: #aab6e0;
+  --sky-moon-lo: #5b6aa0;
+  --sky-rain: rgba(190, 215, 255, 0.5);
+  --sky-snow: rgba(255, 255, 255, 0.85);
+  --sky-streak: rgba(220, 232, 255, 0.4);
+  --sky-shimmer: rgba(255, 170, 80, 0.07);
 }
 
 @theme static inline {
@@ -127,10 +167,10 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* No background here: the page colour lives on <html> so the fixed sky (z-index -1) shows. */
   body {
     min-height: 100vh;
     min-height: 100dvh;
-    background-color: var(--color-bg);
     color: var(--color-text);
   }
 
@@ -152,5 +192,270 @@
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none !important;
+  }
+}
+
+/*
+ * Live sky (spec 9.2, 9.3). The sky is a fixed layer behind the page (z-index -1) and only paints
+ * the background; the interface keeps its theme colours and sits on opaque cards or on `.sky-panel`
+ * (the page colour at --sky-panel-alpha), so no text or graphic is ever read directly on the sky.
+ * No backdrop-filter anywhere; everything that moves animates transform or opacity.
+ *
+ * Contrast (same method as above; enforced by src/app/__tests__/skyContrast.test.ts). Worst case =
+ * the panel (page colour at 0.92) over any sky colour: every gradient stop of the six phases, each
+ * also under the sun glow at full strength, the fog veil (0.75), a thunder flash and the moon.
+ * Header, footer, cards and controls are opaque and need no check.
+ *   LIGHT (worst: night, #2a3a7c)    text 14.13, text-muted 6.17, focus 5.45, night 5.45
+ *     verdict fills green 4.08 / yellow 3.20 / red 3.93 (>= 3:1)
+ *     verdict text  green 5.80 / yellow 5.58 / red 5.27 (>= 4.5:1)
+ *     day and golden only (the phases the brief names): text >= 15.02, muted >= 6.55, yellow fill
+ *     >= 3.40
+ *   DARK  (worst: moon highlight, #aab6e0)   text 14.76, text-muted 7.57, focus 7.87, night 4.70
+ *     verdict fills green 7.11 / yellow 7.68 / red 5.17
+ *     verdict text  green 9.68 / yellow 10.26 / red 7.48
+ * Rain, snow and wind streaks are hairline particles under the panel; they carry no contrast duty.
+ */
+@layer components {
+  .sky-panel {
+    background-color: color-mix(
+      in srgb,
+      var(--color-bg) calc(var(--sky-panel-alpha) * 100%),
+      transparent
+    );
+  }
+}
+
+/*
+ * Before React (and the SkyLayer chunk) arrive, and on pages without the app, the phase is
+ * painted by this pseudo-layer: SkyScript sets html[data-sky-phase] from the device time (no
+ * attribute, e.g. without JS: the day sky). SkyLayer shows the same gradients, then sets
+ * html[data-sky-live] and the pseudo-layer steps aside.
+ */
+html::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--sky-day);
+}
+html[data-sky-phase='night']::before {
+  background-image: var(--sky-night);
+}
+html[data-sky-phase='dawn']::before {
+  background-image: var(--sky-dawn);
+}
+html[data-sky-phase='morning']::before {
+  background-image: var(--sky-morning);
+}
+html[data-sky-phase='day']::before {
+  background-image: var(--sky-day);
+}
+html[data-sky-phase='golden']::before {
+  background-image: var(--sky-golden);
+}
+html[data-sky-phase='dusk']::before {
+  background-image: var(--sky-dusk);
+}
+html[data-sky-live]::before {
+  display: none;
+}
+
+.sky-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint;
+}
+.sky-layer > * {
+  position: absolute;
+  pointer-events: none;
+}
+
+/*
+ * Six phase layers, stacked. The current one sits on top and fades in over the previous one, which
+ * stays opaque until the fade is done and then drops out: a crossfade of two adjacent layers by
+ * opacity, never an interpolated gradient (no dip towards the page colour mid-fade).
+ */
+.sky-phase {
+  inset: 0;
+  opacity: 0;
+  z-index: 0;
+  transition: opacity 0s linear var(--sky-fade, 1200ms);
+}
+.sky-phase[data-active] {
+  opacity: 1;
+  z-index: 1;
+  transition: opacity var(--sky-fade, 1200ms) ease-out;
+}
+.sky-phase-night {
+  background-image: var(--sky-night);
+}
+.sky-phase-dawn {
+  background-image: var(--sky-dawn);
+}
+.sky-phase-morning {
+  background-image: var(--sky-morning);
+}
+.sky-phase-day {
+  background-image: var(--sky-day);
+}
+.sky-phase-golden {
+  background-image: var(--sky-golden);
+}
+.sky-phase-dusk {
+  background-image: var(--sky-dusk);
+}
+
+.sky-layer > :not(.sky-phase) {
+  z-index: 2;
+}
+
+/* A viewport-sized radial layer: SkyLayer translates it so its centre follows the sun's arc. */
+.sky-glow {
+  inset: 0;
+  background-image: radial-gradient(
+    circle 42vmin at 50% 50%,
+    color-mix(in srgb, var(--sky-glow-color) calc(var(--sky-glow-alpha) * 100%), transparent) 0%,
+    color-mix(in srgb, var(--sky-glow-color) calc(var(--sky-glow-alpha) * 40%), transparent) 45%,
+    transparent 100%
+  );
+  transition:
+    opacity var(--sky-fade, 1200ms) ease-out,
+    transform var(--sky-fade, 1200ms) ease-in-out;
+}
+
+.sky-moon {
+  right: 14%;
+  top: 12%;
+  width: 3.5rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background-image: radial-gradient(circle at 35% 35%, var(--sky-moon-hi), var(--sky-moon-lo));
+  box-shadow: 0 0 2rem color-mix(in srgb, var(--sky-moon-hi) 40%, transparent);
+  transition: opacity var(--sky-fade, 1200ms) ease-out;
+}
+
+/* Overcast and fog: a flat veil that mutes whatever phase is underneath. */
+.sky-veil {
+  inset: 0;
+  background-color: var(--sky-veil-color);
+  transition: opacity var(--sky-fade, 1200ms) ease-out;
+}
+
+/* Heat: a striped texture drifting upwards in a loop (transform only, no SVG filters). */
+.sky-heat {
+  inset: 0;
+  top: -2rem;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 1rem,
+    var(--sky-shimmer) 1rem,
+    var(--sky-shimmer) 2rem
+  );
+  animation: sky-shimmer 4s linear infinite;
+}
+
+/* Falling and drifting particles. SkyLayer sets --x (or --y), --dur and --delay on each one. */
+.sky-drop,
+.sky-flake,
+.sky-wind {
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: var(--dur);
+  animation-delay: var(--delay);
+}
+.sky-drop {
+  left: var(--x);
+  top: -2rem;
+  width: 2px;
+  height: 1.1rem;
+  border-radius: 1px;
+  background-color: var(--sky-rain);
+  animation-name: sky-fall;
+}
+.sky-flake {
+  left: var(--x);
+  top: -1rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--sky-snow);
+  animation-name: sky-drift;
+}
+.sky-wind {
+  top: var(--y);
+  left: -10rem;
+  width: 8rem;
+  height: 2px;
+  background-image: linear-gradient(90deg, transparent, var(--sky-streak), transparent);
+  animation-name: sky-blow;
+}
+
+/* Thunder: one flash in each 8 s cycle, never more often. */
+.sky-flash {
+  inset: 0;
+  background-color: var(--sky-flash-color);
+  opacity: 0;
+  animation: sky-flash 8s linear infinite;
+}
+
+@keyframes sky-fall {
+  from {
+    transform: translate3d(0, 0, 0) rotate(8deg);
+  }
+  to {
+    transform: translate3d(-4rem, calc(100vh + 4rem), 0) rotate(8deg);
+  }
+}
+@keyframes sky-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(3rem, calc(100vh + 2rem), 0);
+  }
+}
+@keyframes sky-blow {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(100vw + 20rem), 0, 0);
+  }
+}
+@keyframes sky-shimmer {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 2rem, 0);
+  }
+}
+@keyframes sky-flash {
+  0%,
+  72% {
+    opacity: 0;
+  }
+  74% {
+    opacity: var(--sky-flash-alpha);
+  }
+  80%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* SkyLayer already draws none of these with reduced motion; this covers a stale class list. */
+@media (prefers-reduced-motion: reduce) {
+  .sky-drop,
+  .sky-flake,
+  .sky-wind,
+  .sky-heat,
+  .sky-flash {
+    animation: none;
   }
 }

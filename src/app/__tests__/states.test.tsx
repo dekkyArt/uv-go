@@ -153,8 +153,9 @@ describe('stored-place layout before hydration', () => {
     const block = new DOMParser()
       .parseFromString(html, 'text/html')
       .querySelector('[data-location-skeleton]');
-    expect(block?.className).toContain('min-h-[10.5rem]');
-    expect(block?.className).toContain('sm:min-h-28');
-    expect(block?.className).toContain('[[data-has-place]_&]:min-h-11');
+    // The content heights (168 / 112 / 44 px) plus the 32 px padding of the sky panel.
+    expect(block?.className).toContain('min-h-[12.5rem]');
+    expect(block?.className).toContain('sm:min-h-36');
+    expect(block?.className).toContain('[[data-has-place]_&]:min-h-[4.75rem]');
   });
 });

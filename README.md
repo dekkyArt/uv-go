@@ -89,7 +89,7 @@ Prose in the articles and FAQ that quotes a rule is written by hand. After chang
 
 ## Motion decisions
 
-The rule behind all of them: motion helps you understand the answer. The best time is readable at 0.95 s after the data arrives, and the whole first choreography finishes at 1.34 s. Both numbers come from `src/motion/choreography.ts`. They are computed from the timing constants (`labelVisibleAt()` and `totalDuration()`), not measured on a device. The spec limits are 1.0 s and 1.8 s.
+The rule behind all of them: motion helps you understand the answer. The best time is readable at 0.95 s after the data arrives, and the whole first choreography finishes at about 1.5 s (1.34 s from the choreography constants plus the 0.15 s loading-card exit). The 0.95 s and 1.34 s come from `src/motion/choreography.ts` (`labelVisibleAt()` and `totalDuration()`); the 0.15 s comes from the loading card leaving before the result card mounts. They are computed from timing constants, not measured on a device. The spec limits are 1.0 s and 1.8 s.
 
 1. **`LazyMotion` with `m` components and a lazy `domMax`.** `MotionProvider` loads the feature set with a dynamic import, and `strict` mode makes any full `motion.*` component throw. The app shell is on the page first; layout and drag code arrive after. `domMax` is needed for layout animation and drag.
 2. **One `layoutId` hand-off for the time label.** On the first result the time label rides in the search frame on the timeline and then flows into the ResultCard header (`best-window-label`). The eye follows one object from "where" to "answer". The segmented controls (`SegmentedControl`) use the same mechanism for their sliding indicator.
@@ -102,7 +102,7 @@ The rule behind all of them: motion helps you understand the answer. The best ti
 
 ## Performance and accessibility
 
-All numbers below come from the Task 25 and Task 18 work on this repository. Nothing here is a claim about a real phone yet.
+The numbers below come from Lighthouse CI runs and a Chrome DevTools-protocol CLS measurement on the built site. Nothing here is a claim about a real phone yet.
 
 **Lighthouse** (mobile, simulated throttling, 3 runs per page, `lhci autorun`):
 
@@ -133,7 +133,7 @@ The budget applies to the JavaScript loaded up front. The lazy chunks (Motion's 
 - Chrome DevTools Performance, CPU throttling 4x: pending, author measurement.
 - Real mid-range Android device: pending, author measurement (device model and result to be added here).
 
-**Accessibility:** keyboard access to everything; city search is an ARIA combobox; free-time handles are `role="slider"`; the result is announced through `aria-live="polite"`; verdicts never rely on colour alone; decorative sky layers are `aria-hidden`; touch targets are at least 44x44 px. axe runs in the Playwright suite (`e2e/a11y.spec.ts`).
+**Accessibility.** Checked automatically: axe (Playwright, `e2e/a11y.spec.ts`) finds 0 serious or critical violations on every page in both themes. Checked in tests and code: city search is an ARIA combobox, free-time handles are `role="slider"`, and the result is announced through `aria-live="polite"`. Design rules the code follows (not separately audited): touch targets of at least 44x44 px, verdicts never rely on colour alone, decorative sky layers are `aria-hidden`, and everything is reachable from the keyboard.
 
 ## Lottie assets
 
@@ -165,7 +165,7 @@ The code version of each candidate stays as the implementation. It is also the f
 
 I want this to be plain about what was made with AI and what was checked.
 
-- **Code.** Written with Claude Code (an AI coding agent from Anthropic) under my direction and review. I set the spec and the architecture, and the agent wrote the implementation, tests and CI in small tasks, each followed by review.
+- **Code.** Implemented by Claude Code (an AI coding agent from Anthropic) from my spec and plan, in small tasks. Each task was gated by unit and component tests, type check, lint, e2e and axe checks, plus an AI code-review pass. I have not yet done my own line-by-line review of the code.
 - **Article and FAQ drafts.** Drafts of the three articles (`src/content/articles/`) and the FAQ were written with AI from a short list of allowed sources: WHO, Cancer Council Australia, Skin Cancer Foundation, American Academy of Dermatology, NHS and US EPA. Each article lists its sources. Status: verification of every claim against its source by the author is to be done before release. Until then, treat the health content as unverified draft text.
 - **Lottie.** No Lottie asset has been made or used yet. See the section below. If I add one, its origin will be recorded there.
 - **What AI does not do at runtime.** The scoring is a fixed set of rules in `rules.config.ts`. There is no model, no prompt and no AI service in the running site.

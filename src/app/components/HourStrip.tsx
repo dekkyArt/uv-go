@@ -17,7 +17,7 @@ import { roundHalfUp } from '../../domain/scoring';
 import type { ScoredHour, TimeWindow } from '../../domain/types';
 import { firstResult } from '../../motion/choreography';
 import { durations, ease, springs } from '../../motion/tokens';
-import { VERDICT_FILL_CLASS, formatHour, verdictLabel } from '../ui';
+import { HOUR_STRIP_MIN_H_CLASS, VERDICT_FILL_CLASS, formatHour, verdictLabel } from '../ui';
 
 /** Marks UI that must not count as an "outside tap" for HourDetails. */
 export const KEEP_DETAILS_ATTR = 'data-keep-hour-details';
@@ -269,7 +269,10 @@ export function HourStrip({
   }
 
   return (
-    <div className="flex flex-col gap-1" {...{ [KEEP_DETAILS_ATTR]: '' }}>
+    <div
+      className={`flex flex-col gap-1 ${HOUR_STRIP_MIN_H_CLASS}`}
+      {...{ [KEEP_DETAILS_ATTR]: '' }}
+    >
       <div
         ref={viewport}
         role="slider"

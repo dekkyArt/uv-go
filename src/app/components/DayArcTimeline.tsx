@@ -21,7 +21,11 @@ interface Props {
 // Half-ellipse in a 320 x 140 viewBox: the baseline sits at y = 120, the apex at y = 20.
 const CENTRE = { x: 160, y: 120 };
 const RADIUS = { x: 140, y: 100 };
-const VIEW_BOX = '0 0 320 140';
+const ARC_WIDTH = 320;
+const ARC_HEIGHT = 140;
+const VIEW_BOX = `0 0 ${ARC_WIDTH} ${ARC_HEIGHT}`;
+/** The loading skeleton takes the arc's aspect ratio, so the arc replaces it without a shift. */
+export const ARC_ASPECT_RATIO = `${ARC_WIDTH} / ${ARC_HEIGHT}`;
 const DEFAULT_HOUR = 12;
 const HOURS_PER_DAY = 24;
 const MINUTES_PER_HOUR = 60;

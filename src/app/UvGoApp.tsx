@@ -7,27 +7,39 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { useReducedMotion } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { loadInputs, loadPlace, saveInputs, savePlace } from '../data/storage';
 import type { Place } from '../data/types';
 import { evaluate } from '../domain/evaluate';
 import type { Inputs, ScoredHour, TimeWindow } from '../domain/types';
 import { MotionProvider } from '../motion/MotionProvider';
+import { durations } from '../motion/tokens';
 import { EmptyState } from './components/EmptyState';
 import { ErrorState } from './components/ErrorState';
 import { FreeTimePicker } from './components/FreeTimePicker';
 import { HourDetails } from './components/HourDetails';
 import { DayArcTimeline } from './components/DayArcTimeline';
+import { LoadingSun } from './components/LoadingSun';
 import { LocationPicker } from './components/LocationPicker';
 import { MiniResult } from './components/MiniResult';
 import { ResultCard } from './components/ResultCard';
 import { SegmentedControl } from './components/SegmentedControl';
+import { TimelineSkeleton } from './components/TimelineSkeleton';
 import { useFirstResult } from './hooks/useFirstResult';
 import { useForecastLoader } from './hooks/useForecastLoader';
 import { useNow } from './hooks/useNow';
 import { initialState, isForecastStale, reducer } from './state';
 import { useCardOffscreen } from './hooks/useCardOffscreen';
-import { ACTIVITY_OPTIONS, CARD_CLASS, DAY_OPTIONS, DURATION_OPTIONS, verdictLabel } from './ui';
+import {
+  ACTIVITY_OPTIONS,
+  ADJUST_SKELETON_CLASS,
+  CARD_CLASS,
+  CARD_SLOT_CLASS,
+  DAY_OPTIONS,
+  DURATION_OPTIONS,
+  LOCATION_SKELETON_CLASS,
+  verdictLabel,
+} from './ui';
 
 type StoredInputs = Pick<Inputs, 'freeTime' | 'duration' | 'activity'>;
 
@@ -51,7 +63,64 @@ export default function UvGoApp() {
       <App />
     </MotionProvider>
   ) : (
-    <section aria-busy="true" className={CARD_CLASS} />
+    <Placeholder />
+  );
+}
+
+/** Longest an old card may stay on screen after its exit should have finished (> durations.fast). */
+const EXIT_GRACE_MS = 400;
+
+/**
+ * The motion features load lazily. A card that left before they arrived never gets its exit
+ * animation, and AnimatePresence would keep it on screen for good. When an exit does not finish
+ * in time, a new `presenceKey` remounts the presence tree with the current card.
+ */
+function useUnstickPresence(cardKey: string) {
+  const [presenceKey, setPresenceKey] = useState(0);
+  const shownKey = useRef(cardKey);
+  const leaving = useRef(false);
+
+  useEffect(() => {
+    if (shownKey.current === cardKey) return;
+    shownKey.current = cardKey;
+    leaving.current = true;
+    const timer = setTimeout(() => {
+      if (!leaving.current) return;
+      leaving.current = false;
+      setPresenceKey((k) => k + 1);
+    }, EXIT_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [cardKey]);
+
+  return {
+    presenceKey,
+    onExitComplete: () => {
+      leaving.current = false;
+    },
+  };
+}
+
+const LAYOUT_CLASS =
+  'flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-x-8';
+const CARD_SLOT_PLACEMENT = 'lg:col-start-1 lg:row-start-2';
+const TIMELINE_PLACEMENT = 'lg:col-start-2 lg:row-span-2 lg:row-start-2';
+
+/**
+ * Server render and hydration: empty blocks of the sizes the interactive layout takes (location,
+ * card container, timeline, plan), so the footer stays put when the app mounts.
+ */
+function Placeholder() {
+  return (
+    <div aria-busy="true" className={LAYOUT_CLASS}>
+      <div data-location-skeleton="" className={LOCATION_SKELETON_CLASS} />
+      <div data-card-slot="" className={`${CARD_SLOT_CLASS} ${CARD_SLOT_PLACEMENT}`}>
+        <div className={CARD_CLASS} />
+      </div>
+      <div className={TIMELINE_PLACEMENT}>
+        <TimelineSkeleton />
+      </div>
+      <div data-adjust-skeleton="" className={ADJUST_SKELETON_CLASS} />
+    </div>
   );
 }
 
@@ -114,22 +183,35 @@ function App() {
   const selected: ScoredHour | null =
     evaluation !== null && selectedHour !== null ? evaluation.scoredHours[selectedHour] : null;
 
+  // One card at a time; the key tells AnimatePresence when the state, not just the data, changes.
   let card;
+  let cardKey = 'none';
   if (place === null) {
+    cardKey = 'no-place';
     card = (
       <div className={`${CARD_CLASS} flex items-center text-text-muted`}>
         Choose a city to see the best time to go out.
       </div>
     );
   } else if (state.forecast.status === 'error') {
+    cardKey = 'error';
     card = <ErrorState onRetry={() => dispatch({ type: 'retry' })} />;
   } else if (evaluation === null) {
+    cardKey = 'loading';
     card = (
-      <div aria-busy="true" className={CARD_CLASS}>
-        <span className="sr-only">Loading the forecast</span>
+      <div
+        data-skeleton=""
+        aria-busy="true"
+        className={`${CARD_CLASS} flex flex-col items-center justify-center gap-3`}
+      >
+        <LoadingSun />
+        <p role="status" className="text-base text-text-muted">
+          Loading forecast…
+        </p>
       </div>
     );
   } else if (evaluation.best !== null) {
+    cardKey = 'result';
     card = (
       <ResultCard
         key={introKey}
@@ -141,6 +223,7 @@ function App() {
       />
     );
   } else if (evaluation.emptyReason !== null) {
+    cardKey = 'empty';
     card = (
       <EmptyState
         reason={evaluation.emptyReason}
@@ -150,13 +233,15 @@ function App() {
     );
   }
 
+  const { presenceKey, onExitComplete } = useUnstickPresence(cardKey);
+
   const announcement =
     best !== null && evaluation?.reason
       ? `Best time ${best.label}, ${verdictLabel(best.verdict)}. ${evaluation.reason}.`
       : '';
 
   return (
-    <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-x-8">
+    <div className={LAYOUT_CLASS}>
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
@@ -177,19 +262,37 @@ function App() {
         <LocationPicker place={place} onPlace={choosePlace} />
       </section>
 
-      <div className="flex flex-col gap-3 lg:col-start-1 lg:row-start-2">
+      <div data-card-slot="" className={`${CARD_SLOT_CLASS} ${CARD_SLOT_PLACEMENT}`}>
+        {/* Crossfade between states: the old one leaves quickly (the answer must not wait), the
+            new one fades in. The container keeps its height, so nothing below moves. */}
+        <AnimatePresence
+          key={presenceKey}
+          mode="wait"
+          initial={false}
+          onExitComplete={onExitComplete}
+        >
+          <m.div
+            key={cardKey}
+            className="flex flex-1 flex-col"
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: 1,
+              transition: { duration: reduced ? durations.fast : durations.base },
+            }}
+            exit={{ opacity: 0, transition: { duration: durations.fast } }}
+          >
+            {card}
+          </m.div>
+        </AnimatePresence>
+        {/* Below the card, so it never pushes the card (or the one fading out) down. */}
         {state.autoSwitchNotice && (
           <p role="status" className="rounded-lg bg-surface-strong px-3 py-2 text-sm">
             Your free time today has passed — showing tomorrow
           </p>
         )}
-        {card}
       </div>
 
-      <section
-        aria-label="Day timeline"
-        className="flex flex-col gap-4 lg:col-start-2 lg:row-span-2 lg:row-start-2"
-      >
+      <section aria-label="Day timeline" className={`flex flex-col gap-4 ${TIMELINE_PLACEMENT}`}>
         {evaluation !== null && activeDay !== null ? (
           <DayArcTimeline
             key={introKey}
@@ -203,7 +306,7 @@ function App() {
             labelInFrame={labelInFrame}
           />
         ) : (
-          <div aria-hidden="true" className="h-[4.75rem] rounded-md bg-surface-strong" />
+          <TimelineSkeleton />
         )}
         {selected !== null && <HourDetails hour={selected} onClose={closeDetails} />}
       </section>

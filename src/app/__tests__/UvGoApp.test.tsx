@@ -84,7 +84,8 @@ describe('UvGoApp', () => {
     await user.type(screen.getByRole('combobox'), 'Lis');
     await user.click(await screen.findByRole('option', { name: 'Lisbon, Portugal' }));
     expect(await screen.findByText('18:00–19:00')).toBeInTheDocument();
-    expect(screen.getByText('Good')).toBeInTheDocument();
+    // The card fades in once the loading card has left.
+    expect(await screen.findByText('Good')).toBeInTheDocument();
     expect(JSON.parse(window.localStorage.getItem('uvgo:location') ?? 'null')).toMatchObject({
       name: 'Lisbon',
     });

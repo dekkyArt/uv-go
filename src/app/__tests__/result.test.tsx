@@ -216,6 +216,8 @@ describe('mini result in the app', () => {
     const user = userEvent.setup();
     render(<UvGoApp />);
     await screen.findByText(BEST_LABEL);
+    // The card follows the loading card's short exit; the observer attaches to it.
+    await screen.findByRole('article', { name: 'Best time' });
     expect(screen.queryByRole('button', { name: `${BEST_LABEL} · Good` })).not.toBeInTheDocument();
 
     scrollCardOffscreen(true);

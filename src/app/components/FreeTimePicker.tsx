@@ -1,4 +1,6 @@
+import { m } from 'motion/react';
 import { useRef, type KeyboardEvent, type PointerEvent } from 'react';
+import { springs } from '../../motion/tokens';
 import { formatHour } from '../ui';
 
 interface Props {
@@ -7,6 +9,8 @@ interface Props {
 }
 
 type Handle = 'start' | 'end';
+/** `tie` means the press was exactly between the handles; the first move resolves it. */
+type Grab = Handle | 'tie';
 
 const HOURS_PER_DAY = 24;
 const MIN_SPAN = 1;
@@ -17,7 +21,7 @@ const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(mi
 export function FreeTimePicker({ value, onChange }: Props) {
   const { start, end } = value;
   const trackRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef<Handle | null>(null);
+  const dragging = useRef<Grab | null>(null);
 
   function move(handle: Handle, hour: number) {
     if (handle === 'start') {
@@ -41,32 +45,48 @@ export function FreeTimePicker({ value, onChange }: Props) {
     move(handle, next);
   }
 
-  function hourAt(e: PointerEvent): number | null {
+  /** Pointer position in (fractional) hours from the track's left edge, or null if unmeasurable. */
+  function hoursAt(e: PointerEvent): number | null {
     const rect = trackRef.current?.getBoundingClientRect();
     if (!rect || rect.width === 0) return null;
-    return Math.round(((e.clientX - rect.left) / rect.width) * HOURS_PER_DAY);
+    return ((e.clientX - rect.left) / rect.width) * HOURS_PER_DAY;
   }
 
   function onPointerDown(e: PointerEvent<HTMLDivElement>) {
-    const hour = hourAt(e);
-    if (hour === null) return;
-    const target = (e.target as HTMLElement).closest<HTMLElement>('[data-handle]');
-    const picked = target?.dataset.handle as Handle | undefined;
-    // Pressing the bare track grabs whichever handle is closer.
-    let handle: Handle;
-    if (picked) handle = picked;
-    else if (hour <= start) handle = 'start';
-    else if (hour >= end) handle = 'end';
-    else handle = hour - start <= end - hour ? 'start' : 'end';
-    dragging.current = handle;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    move(handle, hour);
+    const at = hoursAt(e);
+    if (at === null) return;
+    // The nearer handle wins, whatever element was hit: short windows overlap the
+    // two 44 px touch areas, so the DOM target alone cannot tell them apart.
+    const toStart = Math.abs(at - start);
+    const toEnd = Math.abs(at - end);
+    dragging.current = toStart < toEnd ? 'start' : toEnd < toStart ? 'end' : 'tie';
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Capture is best-effort; the track still receives moves while the pointer is over it.
+    }
+    if (dragging.current !== 'tie') move(dragging.current, Math.round(at));
   }
 
   function onPointerMove(e: PointerEvent<HTMLDivElement>) {
     if (dragging.current === null) return;
-    const hour = hourAt(e);
-    if (hour !== null) move(dragging.current, hour);
+    const at = hoursAt(e);
+    if (at === null) return;
+    const hour = Math.round(at);
+    if (dragging.current === 'tie') {
+      // Equidistant: the first real movement decides, towards a handle that has room to go.
+      const centre = (start + end) / 2;
+      if (at === centre) return;
+      const left = at < centre;
+      dragging.current = left
+        ? start > 0
+          ? 'start'
+          : 'end'
+        : end < HOURS_PER_DAY
+          ? 'end'
+          : 'start';
+    }
+    move(dragging.current, hour);
   }
 
   function onPointerEnd() {
@@ -85,6 +105,7 @@ export function FreeTimePicker({ value, onChange }: Props) {
       <div className="px-[22px]">
         <div
           ref={trackRef}
+          data-track=""
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerEnd}
@@ -93,29 +114,41 @@ export function FreeTimePicker({ value, onChange }: Props) {
           className="relative h-11 cursor-pointer select-none"
         >
           <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-surface-strong" />
-          <div
-            className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-text-muted"
-            style={{ left: pct(start), width: pct(end - start) }}
+          {/* Full-width bar scaled from its left edge and shifted to `start`: transform only. */}
+          <m.div
+            aria-hidden="true"
+            initial={false}
+            animate={{ x: pct(start), scaleX: (end - start) / HOURS_PER_DAY }}
+            transition={springs.snappy}
+            style={{ transformOrigin: 'left' }}
+            className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-text-muted"
           />
           {(['start', 'end'] as const).map((handle) => {
             const hour = handle === 'start' ? start : end;
             return (
-              <div
+              // Full-width, click-through carrier: a percentage `x` is relative to the track.
+              <m.div
                 key={handle}
-                data-handle={handle}
-                role="slider"
-                tabIndex={0}
-                aria-label={handle === 'start' ? 'Free time start' : 'Free time end'}
-                aria-valuemin={handle === 'start' ? 0 : MIN_SPAN}
-                aria-valuemax={handle === 'start' ? HOURS_PER_DAY - MIN_SPAN : HOURS_PER_DAY}
-                aria-valuenow={hour}
-                aria-valuetext={formatHour(hour)}
-                onKeyDown={(e) => onKeyDown(e, handle)}
-                className="absolute top-0 flex size-11 -translate-x-1/2 items-center justify-center rounded-full"
-                style={{ left: pct(hour) }}
+                initial={false}
+                animate={{ x: pct(hour) }}
+                transition={springs.snappy}
+                className="pointer-events-none absolute inset-x-0 top-0 h-11"
               >
-                <span className="size-5 rounded-full border-2 border-text bg-surface shadow" />
-              </div>
+                <div
+                  data-handle={handle}
+                  role="slider"
+                  tabIndex={0}
+                  aria-label={handle === 'start' ? 'Free time start' : 'Free time end'}
+                  aria-valuemin={handle === 'start' ? 0 : MIN_SPAN}
+                  aria-valuemax={handle === 'start' ? HOURS_PER_DAY - MIN_SPAN : HOURS_PER_DAY}
+                  aria-valuenow={hour}
+                  aria-valuetext={formatHour(hour)}
+                  onKeyDown={(e) => onKeyDown(e, handle)}
+                  className="pointer-events-auto absolute top-0 -left-[22px] flex size-11 items-center justify-center rounded-full"
+                >
+                  <span className="size-5 rounded-full border-2 border-text bg-surface shadow" />
+                </div>
+              </m.div>
             );
           })}
         </div>

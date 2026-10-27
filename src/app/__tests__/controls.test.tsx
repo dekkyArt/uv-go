@@ -129,6 +129,56 @@ describe('FreeTimePicker', () => {
   });
 });
 
+describe('FreeTimePicker drag', () => {
+  // Track 240 px wide => 10 px per hour, left edge at 0.
+  function setup(value: { start: number; end: number }) {
+    const onChange = vi.fn();
+    render(<FreeTimePicker value={value} onChange={onChange} />);
+    const start = screen.getByRole('slider', { name: 'Free time start' });
+    const end = screen.getByRole('slider', { name: 'Free time end' });
+    const track = start.closest('[data-track]') as HTMLElement;
+    track.getBoundingClientRect = () => ({ left: 0, width: 240 }) as DOMRect;
+    track.setPointerCapture = vi.fn();
+    return { onChange, start, end, track };
+  }
+
+  it('pointer drag snaps to hour', () => {
+    const { onChange, start } = setup({ start: 13, end: 19 });
+    fireEvent.pointerDown(start, { clientX: 130 });
+    fireEvent.pointerMove(start, { clientX: 136 });
+    expect(onChange).toHaveBeenLastCalledWith({ start: 14, end: 19 });
+    fireEvent.pointerMove(start, { clientX: 200 });
+    expect(onChange).toHaveBeenLastCalledWith({ start: 18, end: 19 });
+    fireEvent.pointerUp(start, { clientX: 200 });
+    onChange.mockClear();
+    fireEvent.pointerMove(start, { clientX: 20 });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('grabs the nearer handle when the two handles overlap', () => {
+    const { onChange, start, end } = setup({ start: 13, end: 14 });
+    fireEvent.pointerDown(end, { clientX: 132 });
+    fireEvent.pointerMove(end, { clientX: 100 });
+    expect(onChange).toHaveBeenLastCalledWith({ start: 10, end: 14 });
+    fireEvent.pointerUp(end, { clientX: 100 });
+    fireEvent.pointerDown(start, { clientX: 139 });
+    fireEvent.pointerMove(start, { clientX: 180 });
+    expect(onChange).toHaveBeenLastCalledWith({ start: 13, end: 18 });
+  });
+
+  it('on an exact tie the first movement direction picks the handle', () => {
+    const { onChange, end, track } = setup({ start: 13, end: 14 });
+    fireEvent.pointerDown(end, { clientX: 135 });
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.pointerMove(end, { clientX: 120 });
+    expect(onChange).toHaveBeenLastCalledWith({ start: 12, end: 14 });
+    fireEvent.pointerUp(track, { clientX: 120 });
+    fireEvent.pointerDown(end, { clientX: 135 });
+    fireEvent.pointerMove(end, { clientX: 150 });
+    expect(onChange).toHaveBeenLastCalledWith({ start: 13, end: 15 });
+  });
+});
+
 describe('HourStrip', () => {
   // Hour 15 has UV 4 -> 2 points -> green; UV 6 -> yellow.
   const day = makeDay({ 15: { uv: 6 }, 16: { uv: 4 }, 3: { isDay: false } });

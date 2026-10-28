@@ -191,7 +191,10 @@ describe('first result in the app', () => {
     const frame = document.querySelector('[data-search-frame]');
     expect(frame).toBeInTheDocument();
     expect(frame).toContainElement(label);
-    expect(within(article()).queryByText(BEST_LABEL)).not.toBeInTheDocument();
+    // The card replaces the loading skeleton only after its exit fade (mode="wait"), later than
+    // the label appears in the frame, so wait for it instead of querying it at once.
+    const card = await screen.findByRole('article', { name: 'Best time' });
+    expect(within(card).queryByText(BEST_LABEL)).not.toBeInTheDocument();
 
     await waitFor(() => expect(within(article()).getByText(BEST_LABEL)).toBeInTheDocument(), {
       timeout: 1500,

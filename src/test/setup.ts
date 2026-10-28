@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import { afterAll, afterEach } from 'vitest';
 
 // jsdom drives requestAnimationFrame with setInterval, which tests fake to move the clock. Tie
 // the frame loop to the real setTimeout instead, so animations (and AnimatePresence exits) still
@@ -10,9 +10,27 @@ const realClearTimeout = globalThis.clearTimeout;
 const FRAME_MS = 16;
 // Server-side tests (`@vitest-environment node`, e.g. Astro components) have no window.
 if (typeof window !== 'undefined') {
-  window.requestAnimationFrame = (callback) =>
-    Number(realSetTimeout(() => callback(performance.now()), FRAME_MS));
-  window.cancelAnimationFrame = (handle) => realClearTimeout(handle);
+  const pendingFrames = new Set<number>();
+  window.requestAnimationFrame = (callback) => {
+    const handle = Number(
+      realSetTimeout(() => {
+        pendingFrames.delete(handle);
+        callback(performance.now());
+      }, FRAME_MS),
+    );
+    pendingFrames.add(handle);
+    return handle;
+  };
+  window.cancelAnimationFrame = (handle) => {
+    pendingFrames.delete(handle);
+    realClearTimeout(handle);
+  };
+  // A frame still queued when the file ends (layout projection after the last unmount) would run
+  // after jsdom is torn down and throw "document is not defined" outside any test.
+  afterAll(() => {
+    for (const handle of pendingFrames) realClearTimeout(handle);
+    pendingFrames.clear();
+  });
 }
 
 // Vitest globals are off, so Testing Library cannot register its own cleanup.

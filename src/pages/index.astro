@@ -13,6 +13,7 @@ import { faqPageLd, webApplicationLd } from '../seo/jsonld';
   title="Best Time to Go Outside Today — UV & Weather Planner"
   description="Pick your free time and place. UV GO reads the hourly UV and weather forecast, finds the best hour to go outside and tells you what to take with you."
   ogImage="/og/home.png"
+  withToolbar
   jsonLd={[webApplicationLd(siteConfig.site), faqPageLd(faqItems)]}
 >
   <script is:inline set:html={`(${reserveLayout})()`} />

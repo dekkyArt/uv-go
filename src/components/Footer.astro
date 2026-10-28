@@ -1,11 +1,25 @@
 ---
 import { siteConfig } from '../site.config';
+import { TOOLBAR_H } from '../app/ui';
 
+interface Props {
+  /** The page has the fixed bottom toolbar (the home page): leave room for it under the footer. */
+  withToolbar?: boolean;
+}
+
+const { withToolbar = false } = Astro.props;
 const linkClass = 'inline-flex min-h-11 items-center underline underline-offset-2 hover:text-text';
 ---
 
-<footer class="border-t border-border/40 bg-surface text-sm text-text-muted">
-  <div class="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-4">
+<footer
+  class="px-4 pb-6 pt-8"
+  style={
+    withToolbar
+      ? `padding-bottom: calc(${TOOLBAR_H}px + 24px + env(safe-area-inset-bottom))`
+      : undefined
+  }
+>
+  <div class="glass mx-auto flex max-w-[1200px] flex-col gap-1 rounded-2xl px-4 py-4 text-[13px] text-text-muted">
     <p class="flex flex-wrap items-center gap-x-1">
       <span>Weather data by</span>
       <a class={linkClass} href="https://open-meteo.com/" rel="noopener">

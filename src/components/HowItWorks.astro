@@ -93,35 +93,36 @@ const steps = [
   },
 ];
 
-const tableWrap = 'mt-3 overflow-x-auto rounded-xl border border-border bg-surface';
+// Rows like the Your free time table (spec 4.4): 44 px tall, hairline dividers.
+const tableWrap = 'mt-3 overflow-x-auto';
 const table = 'w-full border-collapse text-left text-base';
-const headRow = 'border-b border-border/60 text-sm text-text-muted';
-const bodyRow = 'border-b border-border/30 last:border-b-0';
-const th = 'px-4 py-2 font-semibold';
-const rowHead = 'px-4 py-3 font-semibold text-text';
-const td = 'px-4 py-3 text-text';
-const h3 = 'mt-8 text-lg font-bold text-text';
+const headRow = 'h-11 border-b border-white/15 text-sm text-text-muted';
+const bodyRow = 'h-11 border-b border-white/15 last:border-b-0';
+const th = 'py-2 pr-4 font-semibold';
+const rowHead = 'py-2 pr-4 font-semibold text-text';
+const td = 'py-2 pr-4 text-text';
+const h3 = 'mt-8 text-[17px] font-semibold text-text';
 ---
 
 <section
   id="how-it-works"
   aria-labelledby="how-heading"
-  class="reveal sky-panel mt-8 rounded-2xl p-4 sm:p-6"
+  class="reveal glass mt-8 rounded-[22px] p-4 sm:p-6"
 >
-  <h2 id="how-heading" class="text-2xl font-bold tracking-tight text-text">
+  <h2 id="how-heading" class="text-[22px] font-semibold leading-7 text-text">
     How it works
   </h2>
 
   <ol class="mt-4 grid gap-3 sm:grid-cols-3">
     {steps.map((step, i) => (
-      <li class="rounded-xl border border-border bg-surface p-4">
+      <li class="rounded-xl bg-white/8 p-4">
         <span
           aria-hidden="true"
-          class="inline-flex size-8 items-center justify-center rounded-full bg-surface-strong text-sm font-bold text-text"
+          class="inline-flex size-8 items-center justify-center rounded-full bg-white/12 text-sm font-semibold text-text"
         >
           {i + 1}
         </span>
-        <h3 class="mt-2 text-lg font-bold text-text">{step.title}</h3>
+        <h3 class="mt-2 text-[17px] font-semibold text-text">{step.title}</h3>
         <p class="mt-1 text-text-muted">{step.text}</p>
       </li>
     ))}

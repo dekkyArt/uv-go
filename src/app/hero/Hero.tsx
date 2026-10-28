@@ -135,7 +135,7 @@ export function Hero({
       <div className="relative flex min-h-[300px] w-full flex-col items-center justify-center gap-2 px-4 py-6 text-center text-text lg:items-start lg:text-left [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]">
         <div
           aria-hidden="true"
-          className="hero-scrim pointer-events-none absolute -inset-x-4 -inset-y-6 lg:-inset-x-14"
+          className="hero-scrim pointer-events-none"
         />
         {/* A size container: the big time is capped by this width as well as by the viewport. */}
         <div className="@container relative flex w-full flex-col items-center gap-2 lg:items-start">

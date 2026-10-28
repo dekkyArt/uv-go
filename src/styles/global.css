@@ -160,30 +160,45 @@ html[data-sky-phase='dusk'] {
     font-variant-numeric: tabular-nums;
   }
   /*
-   * Under the hero text, which sits on the bare sky. The alpha is a plateau (flat to 72% of the
-   * ellipse, then a fade), not a point at the centre: the small lines (eyebrow, verdict, reason)
-   * sit off-centre, so the whole text block has to stand on the full 0.28. The big time and the
-   * city are large text and only need 3:1 on the bare sky. The vertical mask softens the top and
-   * bottom edge inside the 24 px the layer extends past the hero (no text there). The layer also
-   * extends 16 px sideways (56 px from 1024 px, where the hero is a left-aligned column and its text
-   * corners are further from the centre), which the page gutter (or the viewport edge) absorbs. e2e/heroScrim.spec.ts
-   * measures every text line against the plateau. src/app/__tests__/heroContrast.test.ts
-   * parses the stops and checks the plateau.
+   * Under the hero text, which sits on the bare sky. The scrim is a flat black at 0.28 over the
+   * whole hero box, so it does not depend on where a line lands (a long city name that wraps makes
+   * the hero taller, the left-aligned desktop column moves the corners): every text box inside the
+   * hero stands on the full 0.28. It extends past the hero by a bleed (--scrim-x sideways,
+   * --scrim-y up and down) and the mask feathers it to transparent only inside that bleed: full
+   * at the hero's edge, 0 at the scrim's edge. There is no text in the bleed. The sideways bleed
+   * stays within the 16 px page gutter on a phone; on desktop the hero is a column of the grid and
+   * the extra reaches into the gap. The big time and the city are large text and only need 3:1 on
+   * the bare sky. src/app/__tests__/heroContrast.test.ts checks the flat alpha and the mask,
+   * e2e/heroScrim.spec.ts checks that every line lies inside the unfeathered rect.
    */
   .hero-scrim {
-    background: radial-gradient(
-      ellipse at center,
-      rgb(0 0 0 / 0.28) 0%,
-      rgb(0 0 0 / 0.28) 72%,
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      to bottom,
-      transparent,
-      #000 24px,
-      #000 calc(100% - 24px),
-      transparent
-    );
+    --scrim-x: 16px;
+    --scrim-y: 24px;
+    position: absolute;
+    inset: calc(var(--scrim-y) * -1) calc(var(--scrim-x) * -1);
+    background: rgb(0 0 0 / 0.28);
+    mask-image:
+      linear-gradient(
+        to right,
+        transparent,
+        #000 var(--scrim-x),
+        #000 calc(100% - var(--scrim-x)),
+        transparent
+      ),
+      linear-gradient(
+        to bottom,
+        transparent,
+        #000 var(--scrim-y),
+        #000 calc(100% - var(--scrim-y)),
+        transparent
+      );
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
+  }
+  @media (min-width: 1024px) {
+    .hero-scrim {
+      --scrim-x: 40px;
+    }
   }
 }
 

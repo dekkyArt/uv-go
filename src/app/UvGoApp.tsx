@@ -156,7 +156,7 @@ function Placeholder() {
         >
           <div
             aria-hidden="true"
-            className="hero-scrim pointer-events-none absolute -inset-x-4 -inset-y-6 lg:-inset-x-14"
+            className="hero-scrim pointer-events-none"
           />
           <h1 className="relative m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">
             {HERO_H1}

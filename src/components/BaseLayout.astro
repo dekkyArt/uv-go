@@ -47,7 +47,7 @@ const ogImageUrl = new URL(ogImage, siteConfig.site).href;
     />
   </head>
   <body class="font-sans text-text antialiased">
-    <div data-page class="relative flex min-h-screen flex-col">
+    <div data-page class="flex min-h-screen flex-col">
       <a
         href="#main"
         class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2"
@@ -55,12 +55,7 @@ const ogImageUrl = new URL(ogImage, siteConfig.site).href;
         Skip to content
       </a>
       <Header />
-      {/* The header floats over the top of the page: main leaves room for its row (64 px) or, below
-          360 px where the nav pill wraps under the logo, for its two rows. */}
-      <main
-        id="main"
-        class="mx-auto w-full max-w-[1200px] flex-1 px-4 pb-6 pt-[7.5rem] min-[360px]:pt-16"
-      >
+      <main id="main" class="mx-auto w-full max-w-[1200px] flex-1 px-4 py-4">
         <slot />
       </main>
       <Footer withToolbar={withToolbar} />

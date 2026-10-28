@@ -86,14 +86,14 @@ export function CitySearch({ onSelect, inputRef }: Props) {
           setActive(NONE);
         }}
         onKeyDown={onKeyDown}
-        className="min-h-11 w-full rounded-lg border border-border bg-surface px-3 text-base text-text placeholder:text-text-muted"
+        className="min-h-11 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-base text-white placeholder:text-white/55"
       />
       <ul
         id={listId}
         role="listbox"
         aria-label="Cities"
         hidden={!open}
-        className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-border bg-surface shadow-lg"
+        className="glass absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-xl shadow-lg"
       >
         {open &&
           results.map((place, i) => (
@@ -105,8 +105,8 @@ export function CitySearch({ onSelect, inputRef }: Props) {
               // Keep focus in the input so a click never blurs it before selecting.
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => select(place)}
-              className={`flex min-h-11 cursor-pointer items-center px-3 text-sm text-text ${
-                i === activeIndex ? 'bg-surface-strong' : 'hover:bg-surface-strong'
+              className={`flex min-h-11 cursor-pointer items-center px-3 text-sm text-white ${
+                i === activeIndex ? 'bg-white/15' : 'hover:bg-white/15'
               }`}
             >
               {formatPlace(place)}

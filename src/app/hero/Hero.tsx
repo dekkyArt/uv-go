@@ -87,7 +87,7 @@ export function Hero({
     );
   } else if (state.kind === 'loading') {
     below = (
-      <p role="status" className={`${SECONDARY_LINE} text-text-muted`}>
+      <p role="status" className={`${SECONDARY_LINE}`}>
         Loading forecast…
       </p>
     );
@@ -125,9 +125,7 @@ export function Hero({
           <span>{`${verdictLabel(state.best.verdict)} · ${durationLabel(state.duration)}`}</span>
         </p>
         {state.reason ? <p className={SECONDARY_LINE}>{state.reason}</p> : null}
-        {state.nowLine ? (
-          <p className={`${SECONDARY_LINE} text-text-muted`}>{state.nowLine}</p>
-        ) : null}
+        {state.nowLine ? <p className={`${SECONDARY_LINE}`}>{state.nowLine}</p> : null}
       </>
     );
   }
@@ -140,7 +138,7 @@ export function Hero({
           className="hero-scrim pointer-events-none absolute -inset-x-4 -inset-y-2"
         />
         <div className="relative flex w-full flex-col items-center gap-2">
-          <h1 className="m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em] text-text-muted">
+          <h1 className="m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">
             {HERO_H1}
           </h1>
           <p className="m-0 max-w-full break-words text-[32px] font-normal leading-10 lg:text-[40px] lg:leading-[48px]">

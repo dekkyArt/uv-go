@@ -188,6 +188,28 @@ describe('Hero', () => {
     );
   });
 
+  it('uses no secondary text colour anywhere in the hero (AA over the scrim needs full white)', () => {
+    const states: HeroState[] = [
+      { kind: 'no-place' },
+      { kind: 'loading', place: LISBON },
+      { kind: 'error', place: LISBON },
+      { kind: 'empty', place: LISBON, reason: 'past', duration: 60 },
+      {
+        kind: 'result',
+        place: LISBON,
+        best: BEST,
+        reason: 'Low UV',
+        duration: 60,
+        nowLine: 'Now UV 6 · Feels 24°',
+      },
+    ];
+    for (const state of states) {
+      const { container, unmount } = setup(state, { notice: true, geoError: true });
+      expect(container.querySelectorAll('.text-text-muted')).toHaveLength(0);
+      unmount();
+    }
+  });
+
   it('has the decorative scrim, hidden from assistive tech', () => {
     const { container } = setup({ kind: 'no-place' });
     const scrim = container.querySelector('.hero-scrim');

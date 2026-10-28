@@ -28,6 +28,9 @@ export const DAY_OPTIONS = [
   { value: 'tomorrow', label: 'Tomorrow' },
 ] as const;
 
+/** Height in px the bottom toolbar occupies: 48 px buttons plus 12 px above and below. */
+export const TOOLBAR_H = 72;
+
 export const DURATION_OPTIONS: { value: DurationMin; label: string }[] = [
   { value: 30, label: '30 min' },
   { value: 60, label: '1 h' },

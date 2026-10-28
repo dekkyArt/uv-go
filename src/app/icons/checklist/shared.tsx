@@ -28,7 +28,7 @@ export function Frame({ play, delay = 0, children }: IconProps & { children: Rea
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="size-5 shrink-0"
+      className="size-4 shrink-0"
     >
       <Ctx.Provider value={{ go, delay }}>{children}</Ctx.Provider>
     </svg>

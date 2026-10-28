@@ -67,7 +67,7 @@ describe('HourlyCard', () => {
     expect(hourButton(13)).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('fades past hours', () => {
+  it('dims past hours without fading their text', () => {
     const day = makeDay();
     const { scoredHours } = evaluate(
       day,
@@ -75,8 +75,26 @@ describe('HourlyCard', () => {
       { hour: 12, minute: 0 },
     );
     setup({ hours: scoredHours, nowHour: 12 }, day);
-    expect(hourButton(11)).toHaveStyle({ opacity: '0.45' });
-    expect(hourButton(12)).not.toHaveStyle({ opacity: '0.45' });
+    const past = hourButton(11);
+    const current = hourButton(12);
+    const texts = (cell: HTMLElement) => [
+      ...cell.querySelectorAll(':scope > span:not(.opacity-45)'),
+    ];
+
+    expect(past).toHaveAttribute('data-past');
+    expect(past.style.opacity).toBe('');
+    expect(past).not.toHaveClass('opacity-45');
+    expect(past).toHaveClass('text-text-muted');
+    expect(past.querySelector('svg[data-icon]')).toHaveClass('opacity-45');
+    expect(past.querySelector('span.size-1\\.5')).toHaveClass('opacity-45');
+    expect(texts(past).length).toBeGreaterThan(0);
+    expect(past.querySelectorAll('.opacity-45')).toHaveLength(2);
+
+    expect(current).not.toHaveAttribute('data-past');
+    expect(current.style.opacity).toBe('');
+    expect(current).toHaveClass('text-text');
+    expect(current).not.toHaveClass('text-text-muted');
+    expect(current.querySelectorAll('.opacity-45')).toHaveLength(0);
   });
 
   describe('keyboard', () => {

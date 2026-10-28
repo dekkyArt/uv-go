@@ -8,6 +8,12 @@ import { cellName, metricValue, type Metric, type StripItem } from './stripItems
 /** Fixed cell height, so the best-window outline can be drawn at an exact size. */
 export const CELL_H = 100;
 
+/**
+ * Past hours: only the decorative icon and dot fade. The text keeps AA contrast by switching to
+ * the secondary colour instead of fading, because axe computes contrast through opacity.
+ */
+const PAST_FADE = 'opacity-45';
+
 const CELL_BASE = 'flex shrink-0 snap-start flex-col items-center justify-between py-2';
 
 interface HourCellProps {
@@ -30,24 +36,28 @@ export const HourCell = forwardRef<HTMLButtonElement, HourCellProps>(function Ho
       ref={ref}
       type="button"
       data-hour={hour.hour}
+      {...(hour.isPast ? { 'data-past': '' } : null)}
       aria-label={cellName(hour)}
       aria-pressed={selected}
       tabIndex={tabbable ? 0 : -1}
       onClick={onPress}
       onFocus={onFocus}
-      style={{ width: CELL_W, height: CELL_H, ...(hour.isPast ? { opacity: 0.45 } : null) }}
-      className={`${CELL_BASE} rounded-2xl text-text ${selected ? 'bg-surface-strong' : ''}`}
+      style={{ width: CELL_W, height: CELL_H }}
+      className={`${CELL_BASE} rounded-2xl ${hour.isPast ? 'text-text-muted' : 'text-text'} ${selected ? 'bg-surface-strong' : ''}`}
     >
       <span aria-hidden="true" className="text-[15px] font-semibold leading-5 tabular-nums">
         {isNow ? 'Now' : String(hour.hour).padStart(2, '0')}
       </span>
-      <WeatherIcon name={weatherIcon(hour.weatherCode, hour.cloudCover, hour.isDay)} />
+      <WeatherIcon
+        name={weatherIcon(hour.weatherCode, hour.cloudCover, hour.isDay)}
+        className={hour.isPast ? `size-7 ${PAST_FADE}` : undefined}
+      />
       <span aria-hidden="true" className="text-[17px] font-medium leading-6 tabular-nums">
         {metricValue(hour, metric)}
       </span>
       <span
         aria-hidden="true"
-        className={`size-1.5 rounded-full ${VERDICT_FILL_CLASS[hour.verdict]}`}
+        className={`size-1.5 rounded-full ${VERDICT_FILL_CLASS[hour.verdict]} ${hour.isPast ? PAST_FADE : ''}`}
       />
     </button>
   );

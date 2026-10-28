@@ -21,22 +21,24 @@ const ACTION_CLASS =
 export function CitiesSheet({ open, onClose, place, onPlace, returnFocusRef }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { locating, geoError, locate, clearError } = useGeolocate(choose);
+  const { locating, geoError, locate, clearError, cancel } = useGeolocate(choose);
 
   // A refused position leaves the cursor in the search, the alternative the message points to.
   useEffect(() => {
     if (geoError) inputRef.current?.focus();
   }, [geoError]);
 
-  function choose(p: Place) {
+  // Every way out (Esc, backdrop, drag, Close, a picked place) ends here: a position that
+  // arrives later must not override the user's choice or leave a stale error behind.
+  function close() {
+    cancel();
     clearError();
-    onPlace(p);
     onClose();
   }
 
-  function close() {
-    clearError();
-    onClose();
+  function choose(p: Place) {
+    onPlace(p);
+    close();
   }
 
   return (

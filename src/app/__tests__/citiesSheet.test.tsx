@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GeoError, requestPosition, yourLocationPlace } from '../../data/geolocation';
 import type { Place } from '../../data/types';
 import { MotionProvider } from '../../motion/MotionProvider';
+import { useGeolocate } from '../hooks/useGeolocate';
 import { CitiesSheet } from '../sheet/CitiesSheet';
 import { GEO_ERROR } from '../ui';
 
@@ -14,6 +15,7 @@ vi.mock('../../data/geolocation', async (importOriginal) => ({
 }));
 
 const requestPositionMock = vi.mocked(requestPosition);
+const onPlaceMock = vi.fn();
 
 const lisbon: Place = {
   id: 1,
@@ -47,6 +49,7 @@ beforeEach(() => {
   document.body.innerHTML = '';
   fetchMock.mockReset();
   requestPositionMock.mockReset();
+  onPlaceMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
 });
 
@@ -58,20 +61,24 @@ afterEach(() => {
 function setup(props: Partial<Parameters<typeof CitiesSheet>[0]> = {}) {
   const onPlace = vi.fn();
   const onClose = vi.fn();
-  const utils = render(
+  const returnFocusRef = createRef<HTMLElement>();
+  const ui = (open: boolean) => (
     <MotionProvider>
       <div data-page />
       <CitiesSheet
-        open
+        open={open}
         onClose={onClose}
         place={null}
         onPlace={onPlace}
-        returnFocusRef={createRef<HTMLElement>()}
+        returnFocusRef={returnFocusRef}
         {...props}
       />
-    </MotionProvider>,
+    </MotionProvider>
   );
-  return { onPlace, onClose, ...utils };
+  const utils = render(ui(true));
+  // The parent owns `open`: these mimic closing and reopening it.
+  const setOpen = (open: boolean) => utils.rerender(ui(open));
+  return { onPlace, onClose, setOpen, ...utils };
 }
 
 describe('CitiesSheet', () => {
@@ -118,8 +125,8 @@ describe('CitiesSheet', () => {
     const user = userEvent.setup();
     const { onPlace, onClose } = setup();
     await user.click(screen.getByRole('button', { name: 'Use my location' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(GEO_ERROR);
-    expect(document.activeElement).toBe(screen.getByRole('combobox'));
+    expect(await screen.findByText(GEO_ERROR)).toBeInTheDocument();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('combobox')));
     expect(onPlace).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
   });
@@ -158,5 +165,50 @@ describe('CitiesSheet', () => {
     expect(onPlace).not.toHaveBeenCalled();
     expect(errorSpy).not.toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+
+  it('ignores a position that arrives after the sheet was closed', async () => {
+    let resolve!: (v: { lat: number; lon: number }) => void;
+    requestPositionMock.mockReturnValue(new Promise((r) => (resolve = r)));
+    const user = userEvent.setup();
+    const { onPlace, onClose, setOpen } = setup();
+    await user.click(screen.getByRole('button', { name: 'Use my location' }));
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    setOpen(false);
+    resolve({ lat: 10, lon: 20 });
+    await new Promise((r) => setTimeout(r, 0));
+    setOpen(true);
+    expect(onPlace).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Use my location' })).toBeEnabled();
+  });
+
+  it('shows no error on reopen when the position was refused after closing', async () => {
+    let reject!: (e: unknown) => void;
+    requestPositionMock.mockReturnValue(new Promise((_, r) => (reject = r)));
+    const user = userEvent.setup();
+    const { setOpen } = setup();
+    await user.click(screen.getByRole('button', { name: 'Use my location' }));
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    setOpen(false);
+    reject(new GeoError('denied'));
+    await new Promise((r) => setTimeout(r, 0));
+    setOpen(true);
+    expect(screen.queryByText(GEO_ERROR)).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeEmptyDOMElement();
+  });
+
+  it('applies only the result of the latest locate', async () => {
+    const pending: ((v: { lat: number; lon: number }) => void)[] = [];
+    requestPositionMock.mockImplementation(() => new Promise((r) => pending.push(r)));
+    const { result } = renderHook(() => useGeolocate(onPlaceMock));
+    act(() => void result.current.locate());
+    act(() => void result.current.locate());
+    await act(async () => pending[1]({ lat: 2, lon: 2 }));
+    await act(async () => pending[0]({ lat: 1, lon: 1 }));
+    expect(onPlaceMock).toHaveBeenCalledTimes(1);
+    expect(onPlaceMock).toHaveBeenCalledWith(yourLocationPlace(2, 2));
+    expect(result.current.locating).toBe(false);
   });
 });

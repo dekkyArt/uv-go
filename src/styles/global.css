@@ -16,11 +16,12 @@
  * `static` emits every token even if unused, `inline` makes utilities (`bg-surface`,
  * `text-verdict-green`, ...) reference the variable directly.
  *
- * Contrast (WCAG 2.x relative luminance). The glass opacity is the smallest 0.01 step at which
- * white and rgb(255 255 255 / 0.72) text are both >= 4.5:1 over a gray of luminance MAX_SKY_LUMA
- * (0.3), the brightest sky the palette allows, with no backdrop blur counted. Every sky stop is
- * <= MAX_SKY_LUMA (tested), so the claim holds on all phases and over any weather layer that
- * only darkens.
+ * Contrast (WCAG 2.x relative luminance). The glass opacity of each phase is the smallest 0.01
+ * step at which white and rgb(255 255 255 / 0.72) text are both >= 4.5:1 over a set of worst-case
+ * backgrounds (a gray and every palette stop and midpoint, each brightened to the luminance cap
+ * MAX_SKY_LUMA = 0.3; see WORST_BACKGROUNDS in src/domain/glass.ts), with no backdrop blur
+ * counted. skyCss.test.ts also checks the glass in this file over the real gradient stops. The
+ * SkyLayer glow and flash overlays are not covered; they go away with SkyLayer.
  */
 
 :root {
@@ -42,7 +43,7 @@
 
   /* Glass: the day values until a phase sets its own below. */
   --glass-rgb: 24 46 75;
-  --glass-alpha: 0.56;
+  --glass-alpha: 0.58;
 
   /* Sky: one ready gradient per phase, top to bottom (palette in src/domain/skyPalette.ts). */
   --sky-night: linear-gradient(180deg, #0b1530 0%, #1d2c55 100%);
@@ -69,11 +70,11 @@
 /* Glass per phase, as glassFor() computes it from the mean of the phase's two sky colours. */
 html[data-sky-phase='night'] {
   --glass-rgb: 7 11 23;
-  --glass-alpha: 0.43;
+  --glass-alpha: 0.44;
 }
 html[data-sky-phase='dawn'] {
   --glass-rgb: 49 37 52;
-  --glass-alpha: 0.54;
+  --glass-alpha: 0.55;
 }
 html[data-sky-phase='morning'] {
   --glass-rgb: 46 44 51;
@@ -81,7 +82,7 @@ html[data-sky-phase='morning'] {
 }
 html[data-sky-phase='day'] {
   --glass-rgb: 24 46 75;
-  --glass-alpha: 0.56;
+  --glass-alpha: 0.58;
 }
 html[data-sky-phase='golden'] {
   --glass-rgb: 46 42 44;
@@ -89,7 +90,7 @@ html[data-sky-phase='golden'] {
 }
 html[data-sky-phase='dusk'] {
   --glass-rgb: 43 25 44;
-  --glass-alpha: 0.5;
+  --glass-alpha: 0.51;
 }
 
 @theme static inline {

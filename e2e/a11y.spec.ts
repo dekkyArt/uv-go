@@ -16,37 +16,25 @@ async function settleAnimations(page: Page): Promise<void> {
   await page.waitForTimeout(2000);
 }
 
-const THEMES = ['light', 'dark'] as const;
+for (const path of PAGES) {
+  test(`no serious or critical a11y violations: ${path}`, async ({ page }) => {
+    await mockApis(page);
+    await page.goto(path);
 
-for (const theme of THEMES) {
-  for (const path of PAGES) {
-    test(`no serious or critical a11y violations: ${path} (${theme})`, async ({ page }) => {
-      await mockApis(page);
-      await page.addInitScript((t) => {
-        try {
-          localStorage.setItem('uvgo:theme', t);
-        } catch {
-          // storage unavailable: the page falls back to the system theme
-        }
-      }, theme);
-      await page.goto(path);
-      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    if (path === '/') {
+      await searchLisbon(page);
+      await expect(page.getByText(/\d{2}:00–\d{2}:00/).first()).toBeVisible();
+      await settleAnimations(page);
+    }
 
-      if (path === '/') {
-        await searchLisbon(page);
-        await expect(page.getByText(/\d{2}:00–\d{2}:00/).first()).toBeVisible();
-        await settleAnimations(page);
-      }
-
-      const { violations } = await new AxeBuilder({ page }).analyze();
-      const blocking = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
-      expect(
-        blocking.map((v) => ({
-          id: v.id,
-          impact: v.impact,
-          nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })),
-        })),
-      ).toEqual([]);
-    });
-  }
+    const { violations } = await new AxeBuilder({ page }).analyze();
+    const blocking = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+    expect(
+      blocking.map((v) => ({
+        id: v.id,
+        impact: v.impact,
+        nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })),
+      })),
+    ).toEqual([]);
+  });
 }

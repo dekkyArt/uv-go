@@ -1,6 +1,5 @@
 ---
 import '../styles/global.css';
-import ThemeScript from './ThemeScript.astro';
 import SkyScript from './SkyScript.astro';
 import Header from './Header.astro';
 import Footer from './Footer.astro';
@@ -25,7 +24,6 @@ const ogImageUrl = new URL(ogImage, siteConfig.site).href;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <ThemeScript />
     <SkyScript />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" sizes="32x32" />

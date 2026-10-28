@@ -1,8 +1,5 @@
 @import 'tailwindcss';
 
-/* Dark variant is bound to the data-theme attribute set by ThemeScript. */
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
-
 @font-face {
   font-family: 'Inter Variable';
   font-style: normal;
@@ -12,74 +9,50 @@
 }
 
 /*
- * Design tokens. Each theme's values are declared ONCE, as raw `--uv-*`
- * variables: the light set on `:root, [data-theme='light']` (so it is also the
- * no-JS fallback) and the dark set on `[data-theme='dark']` (ThemeScript
- * switches the attribute). `@theme static inline` then maps them to the
- * `--color-*` tokens: `static` emits every token even if unused, `inline`
- * makes utilities (`bg-surface`, `text-verdict-green`, ...) reference the
- * `--uv-*` variable directly, so they re-theme with the attribute.
+ * Design tokens: one set, driven by the sky. Everything is white text on dark glass over the
+ * phase gradient. The sky colours and the glass tint/opacity per phase are generated from
+ * src/domain/skyPalette.ts and src/domain/glass.ts; src/test/skyCss.test.ts fails if this file
+ * drifts from them. `@theme static inline` maps the `--uv-*` variables to `--color-*` tokens:
+ * `static` emits every token even if unused, `inline` makes utilities (`bg-surface`,
+ * `text-verdict-green`, ...) reference the variable directly.
  *
- * Contrast (WCAG 2.x relative luminance; computed with a throwaway script).
- * bg / surface / surface-strong are the three surfaces content can sit on.
- *
- * LIGHT   bg #f4f7fb  surface #ffffff  surface-strong #e6edf6
- *   text        #101a2e   17.37 on surface, 16.16 on bg, 14.73 on strong
- *   text-muted  #475569    7.58 on surface,  7.05 on bg,  6.43 on strong
- *   border      #8493a8    3.12 on surface (control outlines, >= 3:1)
- *   focus       #1d4ed8    6.70 on surface,  6.24 on bg
- *   verdict fills (graphics >= 3:1; surface / bg / strong)
- *     green  #15803d   5.02 / 4.67 / 4.25
- *     yellow #b07400   3.93 / 3.66 / 3.33   (checked separately, per spec 9.1)
- *     red    #dc2626   4.83 / 4.49 / 4.10
- *   verdict text (>= 4.5:1; surface / bg / strong)
- *     green  #166534   7.13 / 6.64 / 6.05
- *     yellow #854d0e   6.85 / 6.38 / 5.81
- *     red    #b91c1c   6.47 / 6.02 / 5.49
- *   night #4c5a8a      6.69 on surface, 6.23 on bg
- *
- * DARK    bg #0b1220  surface #151e31  surface-strong #1f2a42
- *   text        #eef3fb   14.94 on surface, 16.81 on bg, 12.84 on strong
- *   text-muted  #a3b1c7    7.66 on surface,  8.62 on bg,  6.59 on strong
- *   border      #6b7c97    3.93 on surface
- *   focus       #8ab4ff    7.97 on surface,  8.96 on bg
- *   verdict fills (surface / bg / strong)
- *     green  #34c26b   7.19 / 8.09 / 6.18
- *     yellow #e0a82e   7.77 / 8.75 / 6.68
- *     red    #f2605c   5.23 / 5.89 / 4.50
- *   verdict text (surface / bg / strong)
- *     green  #6fdc97   9.79 / 11.02 / 8.42
- *     yellow #f2c75c  10.38 / 11.68 / 8.92
- *     red    #ff8f8b   7.57 /  8.52 / 6.51
- *   night #7886c4       4.76 on surface, 5.35 on bg
+ * Contrast (WCAG 2.x relative luminance). The glass opacity is the smallest 0.01 step at which
+ * white and rgb(255 255 255 / 0.72) text are both >= 4.5:1 over a gray of luminance MAX_SKY_LUMA
+ * (0.3), the brightest sky the palette allows, with no backdrop blur counted. Every sky stop is
+ * <= MAX_SKY_LUMA (tested), so the claim holds on all phases and over any weather layer that
+ * only darkens.
  */
 
-:root,
-[data-theme='light'] {
-  color-scheme: light;
-  --uv-bg: #f4f7fb;
-  --uv-surface: #ffffff;
-  --uv-surface-strong: #e6edf6;
-  --uv-text: #101a2e;
-  --uv-text-muted: #475569;
-  --uv-border: #8493a8;
-  --uv-focus: #1d4ed8;
-  --uv-verdict-green: #15803d;
-  --uv-verdict-yellow: #b07400;
-  --uv-verdict-red: #dc2626;
-  --uv-verdict-green-text: #166534;
-  --uv-verdict-yellow-text: #854d0e;
-  --uv-verdict-red-text: #b91c1c;
-  --uv-night: #4c5a8a;
+:root {
+  color-scheme: dark;
+  --uv-bg: #0b1530;
+  --uv-text: #ffffff;
+  --uv-text-muted: rgb(255 255 255 / 0.72);
+  --uv-surface: rgb(var(--glass-rgb) / var(--glass-alpha));
+  --uv-surface-strong: rgb(255 255 255 / 0.12);
+  --uv-border: rgb(255 255 255 / 0.14);
+  --uv-focus: #ffffff;
+  --uv-verdict-green: #4cd964;
+  --uv-verdict-yellow: #ffd60a;
+  --uv-verdict-red: #ff6961;
+  --uv-verdict-green-text: #4cd964;
+  --uv-verdict-yellow-text: #ffd60a;
+  --uv-verdict-red-text: #ff6961;
+  --uv-night: #8e9cc9;
 
-  /* Sky (spec 9.3): one ready gradient per phase, top to bottom; light = lighter and livelier. */
-  --sky-night: linear-gradient(180deg, #2a3a7c 0%, #4a5fa6 55%, #7d8fcc 100%);
-  --sky-dawn: linear-gradient(180deg, #7e8fd6 0%, #f0a9bd 55%, #ffd9a8 100%);
-  --sky-morning: linear-gradient(180deg, #6fb7ff 0%, #b8dcff 55%, #fff0d2 100%);
-  --sky-day: linear-gradient(180deg, #3d9bff 0%, #8ec8ff 55%, #dff0ff 100%);
-  --sky-golden: linear-gradient(180deg, #6ea3ea 0%, #ffb870 55%, #ffe3a6 100%);
-  --sky-dusk: linear-gradient(180deg, #3d4496 0%, #b9577f 55%, #ff9d5c 100%);
-  --sky-panel-alpha: 0.92;
+  /* Glass: the day values until a phase sets its own below. */
+  --glass-rgb: 24 46 75;
+  --glass-alpha: 0.56;
+
+  /* Sky: one ready gradient per phase, top to bottom (palette in src/domain/skyPalette.ts). */
+  --sky-night: linear-gradient(180deg, #0b1530 0%, #1d2c55 100%);
+  --sky-dawn: linear-gradient(180deg, #4a5a9c 0%, #cc7a8c 100%);
+  --sky-morning: linear-gradient(180deg, #3f78c8 0%, #c8825a 100%);
+  --sky-day: linear-gradient(180deg, #2f6fd0 0%, #5b97dc 100%);
+  --sky-golden: linear-gradient(180deg, #3b72c4 0%, #c9803a 100%);
+  --sky-dusk: linear-gradient(180deg, #2f3a7c 0%, #c4577f 100%);
+
+  /* Weather overlays of SkyLayer (removed with it). */
   --sky-glow-color: #ffe28c;
   --sky-glow-alpha: 0.35;
   --sky-veil-color: #c9d2de;
@@ -93,48 +66,35 @@
   --sky-shimmer: rgba(255, 190, 90, 0.1);
 }
 
-[data-theme='dark'] {
-  color-scheme: dark;
-  --uv-bg: #0b1220;
-  --uv-surface: #151e31;
-  --uv-surface-strong: #1f2a42;
-  --uv-text: #eef3fb;
-  --uv-text-muted: #a3b1c7;
-  --uv-border: #6b7c97;
-  --uv-focus: #8ab4ff;
-  --uv-verdict-green: #34c26b;
-  --uv-verdict-yellow: #e0a82e;
-  --uv-verdict-red: #f2605c;
-  --uv-verdict-green-text: #6fdc97;
-  --uv-verdict-yellow-text: #f2c75c;
-  --uv-verdict-red-text: #ff8f8b;
-  --uv-night: #7886c4;
-
-  /* Sky: deeper and more muted than light. */
-  --sky-night: linear-gradient(180deg, #03060f 0%, #070d22 55%, #0e1836 100%);
-  --sky-dawn: linear-gradient(180deg, #0f1a3a 0%, #3a2b52 55%, #6b3f55 100%);
-  --sky-morning: linear-gradient(180deg, #0f2a52 0%, #1f4678 55%, #3f6a8f 100%);
-  --sky-day: linear-gradient(180deg, #0b2a5a 0%, #14437f 55%, #26629c 100%);
-  --sky-golden: linear-gradient(180deg, #2a2748 0%, #7a3f3a 55%, #b2683a 100%);
-  --sky-dusk: linear-gradient(180deg, #0f1636 0%, #3a2652 55%, #7a3550 100%);
-  --sky-panel-alpha: 0.92;
-  --sky-glow-color: #ffb45a;
-  --sky-glow-alpha: 0.22;
-  --sky-veil-color: #121a2a;
-  --sky-flash-color: #cfd8ff;
-  --sky-flash-alpha: 0.3;
-  --sky-moon-hi: #aab6e0;
-  --sky-moon-lo: #5b6aa0;
-  --sky-rain: rgba(190, 215, 255, 0.5);
-  --sky-snow: rgba(255, 255, 255, 0.85);
-  --sky-streak: rgba(220, 232, 255, 0.4);
-  --sky-shimmer: rgba(255, 170, 80, 0.07);
+/* Glass per phase, as glassFor() computes it from the mean of the phase's two sky colours. */
+html[data-sky-phase='night'] {
+  --glass-rgb: 7 11 23;
+  --glass-alpha: 0.43;
+}
+html[data-sky-phase='dawn'] {
+  --glass-rgb: 49 37 52;
+  --glass-alpha: 0.54;
+}
+html[data-sky-phase='morning'] {
+  --glass-rgb: 46 44 51;
+  --glass-alpha: 0.57;
+}
+html[data-sky-phase='day'] {
+  --glass-rgb: 24 46 75;
+  --glass-alpha: 0.56;
+}
+html[data-sky-phase='golden'] {
+  --glass-rgb: 46 42 44;
+  --glass-alpha: 0.56;
+}
+html[data-sky-phase='dusk'] {
+  --glass-rgb: 43 25 44;
+  --glass-alpha: 0.5;
 }
 
 @theme static inline {
   --font-sans:
-    'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-    Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Inter Variable', sans-serif;
 
   --color-bg: var(--uv-bg);
   --color-surface: var(--uv-surface);
@@ -174,54 +134,29 @@
     color: var(--color-text);
   }
 
+  /* The dark halo keeps the white ring visible on any sky. */
   :focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
-  }
-}
-
-/* Theme switch: the circular reveal is driven from ThemeToggle's script. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(root),
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none !important;
+    box-shadow: 0 0 0 4px rgb(0 0 0 / 0.35);
   }
 }
 
 /*
- * Live sky (spec 9.2, 9.3). The sky is a fixed layer behind the page (z-index -1) and only paints
- * the background; the interface keeps its theme colours and sits on opaque cards or on `.sky-panel`
- * (the page colour at --sky-panel-alpha), so no text or graphic is ever read directly on the sky.
- * No backdrop-filter anywhere; everything that moves animates transform or opacity.
- *
- * Contrast (same method as above; enforced by src/app/__tests__/skyContrast.test.ts). Worst case =
- * the panel (page colour at 0.92) over any sky colour: every gradient stop of the six phases, each
- * also under the sun glow at full strength, the fog veil (0.75), a thunder flash and the moon.
- * Header, footer, cards and controls are opaque and need no check.
- *   LIGHT (worst: night, #2a3a7c)    text 14.13, text-muted 6.17, focus 5.45, night 5.45
- *     verdict fills green 4.08 / yellow 3.20 / red 3.93 (>= 3:1)
- *     verdict text  green 5.80 / yellow 5.58 / red 5.27 (>= 4.5:1)
- *     day and golden only (the phases the brief names): text >= 15.02, muted >= 6.55, yellow fill
- *     >= 3.40
- *   DARK  (worst: moon highlight, #aab6e0)   text 14.76, text-muted 7.57, focus 7.87, night 4.70
- *     verdict fills green 7.11 / yellow 7.68 / red 5.17
- *     verdict text  green 9.68 / yellow 10.26 / red 7.48
- * Rain, snow and wind streaks are hairline particles under the panel; they carry no contrast duty.
+ * The one material: dark, sky-tinted glass. `.sky-panel` is the old name, kept as an alias so
+ * existing markup picks up the new look. The tint and opacity come from html[data-sky-phase].
  */
 @layer components {
+  .glass,
   .sky-panel {
-    background-color: color-mix(
-      in srgb,
-      var(--color-bg) calc(var(--sky-panel-alpha) * 100%),
-      transparent
-    );
+    background: rgb(var(--glass-rgb) / var(--glass-alpha));
+    backdrop-filter: blur(24px) saturate(1.5);
+    border: 1px solid rgb(255 255 255 / 0.14);
+    border-radius: 22px;
+    transition: background-color 600ms ease-out;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 

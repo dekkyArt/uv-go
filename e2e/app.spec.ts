@@ -57,15 +57,4 @@ test.describe('UV GO smoke', () => {
     );
     await context.close();
   });
-
-  test('theme persists after reload', async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: 'Switch to dark theme' }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    expect(await page.evaluate(() => localStorage.getItem('uvgo:theme'))).toBe('dark');
-
-    await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await expect(page.getByRole('button', { name: 'Switch to light theme' })).toBeVisible();
-  });
 });

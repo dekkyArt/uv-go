@@ -160,12 +160,28 @@ html[data-sky-phase='dusk'] {
     font-variant-numeric: tabular-nums;
   }
   /*
-   * Under the hero text, which sits on the bare sky: darkens the middle so small lines hold AA,
-   * fades to nothing at the edge (the big time is large text and needs 3:1 on the bare sky).
-   * src/app/__tests__/heroContrast.test.ts reads this alpha and checks it.
+   * Under the hero text, which sits on the bare sky. The alpha is a plateau (flat to 72% of the
+   * ellipse, then a fade), not a point at the centre: the small lines (eyebrow, verdict, reason)
+   * sit off-centre, so the whole text block has to stand on the full 0.28. The big time and the
+   * city are large text and only need 3:1 on the bare sky. The vertical mask softens the top and
+   * bottom edge inside the 24 px the layer extends past the hero (no text there). The layer also
+   * extends 16 px sideways, which the page gutter absorbs. src/app/__tests__/heroContrast.test.ts
+   * parses the stops and checks the plateau.
    */
   .hero-scrim {
-    background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.28), transparent 70%);
+    background: radial-gradient(
+      ellipse at center,
+      rgb(0 0 0 / 0.28) 0%,
+      rgb(0 0 0 / 0.28) 72%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 24px,
+      #000 calc(100% - 24px),
+      transparent
+    );
   }
 }
 

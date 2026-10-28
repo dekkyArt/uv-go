@@ -135,7 +135,7 @@ export function Hero({
       <div className="relative flex min-h-[300px] w-full flex-col items-center justify-center gap-2 px-4 py-6 text-center text-text [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]">
         <div
           aria-hidden="true"
-          className="hero-scrim pointer-events-none absolute -inset-x-4 -inset-y-2"
+          className="hero-scrim pointer-events-none absolute -inset-x-4 -inset-y-6"
         />
         <div className="relative flex w-full flex-col items-center gap-2">
           <h1 className="m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">

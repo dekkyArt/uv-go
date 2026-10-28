@@ -165,7 +165,9 @@ html[data-sky-phase='dusk'] {
    * sit off-centre, so the whole text block has to stand on the full 0.28. The big time and the
    * city are large text and only need 3:1 on the bare sky. The vertical mask softens the top and
    * bottom edge inside the 24 px the layer extends past the hero (no text there). The layer also
-   * extends 16 px sideways, which the page gutter absorbs. src/app/__tests__/heroContrast.test.ts
+   * extends 16 px sideways (56 px from 1024 px, where the hero is a left-aligned column and its text
+   * corners are further from the centre), which the page gutter (or the viewport edge) absorbs. e2e/heroScrim.spec.ts
+   * measures every text line against the plateau. src/app/__tests__/heroContrast.test.ts
    * parses the stops and checks the plateau.
    */
   .hero-scrim {

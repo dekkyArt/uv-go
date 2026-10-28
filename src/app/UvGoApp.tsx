@@ -77,13 +77,26 @@ const SPLIT_CLASS = 'flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start l
 /**
  * What to take and Plan. On desktop it always takes the right half, even without Your free time
  * (no place, error), and it reserves the Plan card plus one row of tiles, so the tiles arriving
- * with a result do not move what is below. PLAN_CARD_H is the Plan card in the 310 px half column
- * (measured: 70 px of GlassCard chrome without a subtitle, 352 px of PlanControls); a tile row is
- * a square tile of (310 − 12) / 2 = 149 px. 422 + 24 + 149 = 595. Three or more tiles (two rows)
- * still grow it.
+ * with a result do not move what is below. Three or more tiles (two rows) still grow it.
+ *
+ * The container is up to 1200 px (main: max 1200 px minus 2 * 16 px gutter), so the half column
+ * is C = min(100vw, 1200px) - 32px wide in the page, (C - 24) * 2/3 for the right panel and half
+ * of that minus the 24 px gap, (C - 24) / 3 - 12, for this column: 310.7 px at 1024, 369.3 px from
+ * 1200 up (1280 and 1440 give the same). A tile is square, (column - 12) / 2 = (C - 24) / 6 - 12
+ * (149 px at 1024, 178.7 px from 1200 up), so the reserve is PLAN + 24 + tile = PLAN + 12 +
+ * (min(100vw, 1200px) - 56px) / 6, which is continuous in the width. 100vw counts a classic
+ * scrollbar, so it can come out a couple of px too large, never too small.
+ *
+ * PLAN is the Plan card at that width (measured: 70 px of GlassCard chrome without a subtitle
+ * plus PlanControls). The controls re-wrap with the column: 422 px from 1024 up to 1110 px
+ * (column up to 339 px), 374 px from 1120 px. The reserve keeps 422 until the container stops
+ * growing at 1200 px and uses 374 from there, so it is exact at 1024 and from 1200 up and
+ * (slightly) generous in between: 422 + 12 + 161.3 = 595 at 1024, 374 + 12 + 190.7 = 577 at
+ * 1200, 1280 and 1440.
  */
-const PLAN_CARD_H_CLASS = 'h-[422px]';
-const SIDE_COLUMN_LG = 'lg:col-start-2 lg:min-h-[595px] lg:gap-6';
+const PLAN_CARD_H_CLASS = 'h-[374px] lg:max-[1200px]:h-[422px]';
+const SIDE_COLUMN_LG =
+  'lg:col-start-2 lg:min-h-[calc(386px+(min(100vw,1200px)-56px)/6)] lg:max-[1200px]:min-h-[calc(434px+(min(100vw,1200px)-56px)/6)] lg:gap-6';
 const SIDE_CLASS = `flex min-w-0 flex-col gap-3 ${SIDE_COLUMN_LG}`;
 
 /** Room under the content for the fixed toolbar (spec 3.4). */
@@ -143,7 +156,7 @@ function Placeholder() {
         >
           <div
             aria-hidden="true"
-            className="hero-scrim pointer-events-none absolute -inset-x-4 -inset-y-6"
+            className="hero-scrim pointer-events-none absolute -inset-x-4 -inset-y-6 lg:-inset-x-14"
           />
           <h1 className="relative m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">
             {HERO_H1}

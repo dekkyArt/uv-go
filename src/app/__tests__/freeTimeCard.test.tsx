@@ -137,6 +137,12 @@ describe('FreeTimeCard', () => {
     expect(rowOf(18).querySelector('[data-score-bar]')).not.toBeNull();
   });
 
+  it('keeps the night variant of the weather icon on dark rows', () => {
+    setup(makeDay({ 20: { weatherCode: 61 } }), { freeTime: { start: 20, end: 22 } });
+    expect(rowOf(20).querySelector('svg[data-icon="rain"]')).not.toBeNull();
+    expect(rowOf(21).querySelector('svg[data-icon="moon"]')).not.toBeNull();
+  });
+
   it('shows rain only from 30 %, in the rain colour', () => {
     setup(makeDay({ 14: { rainProb: 60 }, 15: { rainProb: 20 } }));
     const wet = within(rowOf(14)).getByText('60%');
@@ -149,6 +155,13 @@ describe('FreeTimeCard', () => {
     expect(within(rowOf(14)).getByText('UV 5')).toBeInTheDocument();
     expect(within(rowOf(15)).getByText('UV –')).toBeInTheDocument();
     expect(document.body).not.toHaveTextContent(/null|NaN/);
+  });
+
+  it('never wraps the UV cell, even for "UV 10"', () => {
+    setup(makeDay({ 14: { uv: 10 } }));
+    const cell = within(rowOf(14)).getByText('UV 10');
+    expect(cell).toHaveClass('whitespace-nowrap');
+    expect(cell).toHaveClass('px-0');
   });
 
   it('labels the rows of the best window and bolds their time', () => {

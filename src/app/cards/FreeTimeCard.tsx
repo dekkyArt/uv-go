@@ -81,7 +81,9 @@ function Row({ row, intro }: { row: FreeTimeRow; intro: boolean }) {
           )}
         </div>
       </td>
-      <td className={`${CELL} text-[13px] tabular-nums text-text-muted`}>UV {uv}</td>
+      <td className={`${CELL} px-0 text-[13px] tabular-nums whitespace-nowrap text-text-muted`}>
+        UV {uv}
+      </td>
       <td className={`${CELL} px-2`}>
         {row.dark ? (
           <span className="text-[13px] text-text-muted">Dark</span>

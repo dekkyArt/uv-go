@@ -31,6 +31,7 @@ function setup(
         duration={60}
         activity="relaxed"
         intro={false}
+        index={0}
         {...props}
       />
     </MotionProvider>,

@@ -51,7 +51,7 @@ export function Part({
   from,
   to,
   at = '50% 50%',
-  transition = springs.bouncy,
+  transition = springs.snappy,
   after = 0,
   children,
 }: PartProps) {

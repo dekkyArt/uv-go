@@ -2,8 +2,10 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearForecastCache } from '../../data/openMeteo';
 import type { Place } from '../../data/types';
+import { totalDuration } from '../../motion/choreography';
 import { makeForecastJson } from '../../test/forecastJson';
 import { useCitySearch } from '../hooks/useCitySearch';
+import { useFirstResult } from '../hooks/useFirstResult';
 import { useForecastLoader } from '../hooks/useForecastLoader';
 import { useNow } from '../hooks/useNow';
 import type { Action } from '../state';
@@ -274,5 +276,44 @@ describe('useForecastLoader', () => {
     rerender({ t: 1 });
     await act(() => vi.advanceTimersByTimeAsync(0));
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('useFirstResult', () => {
+  const INTRO_MS = totalDuration() * 1000;
+
+  it('plays the intro for a new key from the first render, for totalDuration()', () => {
+    const { result, rerender } = renderHook(({ key }) => useFirstResult(key, false), {
+      initialProps: { key: null as string | null },
+    });
+    expect(result.current).toEqual({ playIntro: false });
+    rerender({ key: 'lisbon:today' });
+    expect(result.current).toEqual({ playIntro: true });
+    act(() => {
+      vi.advanceTimersByTime(INTRO_MS - 10);
+    });
+    expect(result.current.playIntro).toBe(true);
+    act(() => {
+      vi.advanceTimersByTime(10);
+    });
+    expect(result.current).toEqual({ playIntro: false });
+  });
+
+  it('replays for a new key and stays off when the key is kept', () => {
+    const { result, rerender } = renderHook(({ key }) => useFirstResult(key, false), {
+      initialProps: { key: 'lisbon:today' as string | null },
+    });
+    act(() => {
+      vi.advanceTimersByTime(INTRO_MS);
+    });
+    rerender({ key: 'lisbon:today' });
+    expect(result.current.playIntro).toBe(false);
+    rerender({ key: 'lisbon:tomorrow' });
+    expect(result.current.playIntro).toBe(true);
+  });
+
+  it('never plays with reduced motion', () => {
+    const { result } = renderHook(() => useFirstResult('lisbon:today', true));
+    expect(result.current).toEqual({ playIntro: false });
   });
 });

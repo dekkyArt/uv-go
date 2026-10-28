@@ -31,6 +31,7 @@ function setup(
         nowHour={null}
         onSelect={onSelect}
         intro={false}
+        index={0}
         {...props}
       />
     </MotionProvider>,

@@ -1,37 +1,61 @@
-import { durations } from './tokens';
+import { durations, springs } from './tokens';
 
-/** Seconds from the moment the result is on screen (ТЗ 10.3). */
+/** Seconds from the moment the first result is on screen (spec 5.2). */
 export const firstResult = {
-  /** The day arc draws itself. */
-  arcDraw: 0.5,
-  /** Gap between neighbouring hour cells growing in. */
-  hourStagger: 0.015,
-  /** The search frame starts sliding along the free time. */
-  searchStart: 0.3,
-  searchDuration: 0.35,
-  /** The time label leaves the frame and flows into the card header. */
-  labelHandoff: 0.65,
-  /** The card body (badge colour, UV counter, checklist) starts to reveal. */
-  cardReveal: 0.8,
-  checklistStagger: 0.06,
+  /** The best time in the hero: blur, rise and fade in; the verdict line follows. */
+  heroIn: 0.05,
+  heroInDuration: 0.3,
+  verdictLag: 0.06,
+  /** The cards rise in one after another. */
+  cardsIn: 0.25,
+  cardStagger: 0.07,
+  /** The hour strip scrolls itself to "Now" or the free time. */
+  hourScroll: 0.45,
+  /** The best-window outline draws along its path. */
+  bestOutline: 0.45,
+  bestOutlineDuration: 0.35,
+  /** The score bars grow from the left; the stagger is capped, however many rows there are. */
+  barsGrow: 0.6,
+  barsDuration: 0.4,
+  barStagger: 0.03,
+  barStaggerMax: 0.2,
+  /** The What to take tiles pop in. */
+  tilesIn: 0.7,
+  tileStagger: 0.05,
 };
 
 type Choreography = typeof firstResult;
 
-const HOURS_PER_DAY = 24;
-/** The checklist never has more than one item per factor. */
-const MAX_CHECKLIST_ITEMS = 5;
+/** The most cards and tiles on the page (Hourly, Your free time, What to take, Plan; 5 items). */
+const MAX_CARDS = 4;
+const MAX_TILES = 5;
+const MAX_ROWS = 24;
 
-/** When the best time is fully readable in the card header (ТЗ 10.1: <= 1.0 s). */
-export function labelVisibleAt(c: Choreography = firstResult): number {
-  return c.labelHandoff + durations.base;
+export function cardDelay(index: number, c: Choreography = firstResult): number {
+  return c.cardsIn + index * c.cardStagger;
 }
 
-/** End of the whole choreography: the latest finishing step (ТЗ 10.1: <= 1.8 s). */
+export function barDelay(index: number, c: Choreography = firstResult): number {
+  return c.barsGrow + Math.min(index * c.barStagger, c.barStaggerMax);
+}
+
+export function tileDelay(index: number, c: Choreography = firstResult): number {
+  return c.tilesIn + index * c.tileStagger;
+}
+
+/** When the best time is fully readable in the hero (spec 5.2: <= 1.0 s). */
+export function labelVisibleAt(c: Choreography = firstResult): number {
+  return c.heroIn + c.heroInDuration;
+}
+
+/** End of the whole choreography: the latest finishing step (spec 5.2: <= 1.8 s). */
 export function totalDuration(c: Choreography = firstResult): number {
-  const cells = (HOURS_PER_DAY - 1) * c.hourStagger + durations.base;
-  // The frame overshoots at the end of its slide and settles back within one base duration.
-  const frame = c.searchStart + c.searchDuration + durations.base;
-  const checklist = c.cardReveal + (MAX_CHECKLIST_ITEMS - 1) * c.checklistStagger + durations.base;
-  return Math.max(c.arcDraw, cells, frame, labelVisibleAt(c), checklist);
+  return Math.max(
+    c.heroIn + c.verdictLag + c.heroInDuration,
+    cardDelay(MAX_CARDS - 1, c) + durations.base,
+    c.hourScroll + springs.smooth.duration,
+    c.bestOutline + c.bestOutlineDuration,
+    barDelay(MAX_ROWS - 1, c) + c.barsDuration,
+    tileDelay(MAX_TILES - 1, c) + durations.base,
+  );
 }

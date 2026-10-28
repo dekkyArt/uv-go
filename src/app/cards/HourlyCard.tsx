@@ -1,5 +1,8 @@
+import { m, useReducedMotion } from 'motion/react';
 import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { DayForecast, ScoredHour, TimeWindow } from '../../domain/types';
+import { firstResult } from '../../motion/choreography';
+import { durations, springs } from '../../motion/tokens';
 import { HourDetails } from '../components/HourDetails';
 import { CELL_W, KEEP_DETAILS_ATTR } from '../ui';
 import { CELL_H, HourCell, SunCell } from './HourCell';
@@ -16,8 +19,10 @@ interface Props {
   /** Current hour of the shown day (Today), or null (Tomorrow). */
   nowHour: number | null;
   onSelect(hour: number | null): void;
-  /** Reserved for the first-result choreography; the card has no intro motion yet. */
+  /** The first-result choreography is playing. */
   intro: boolean;
+  /** Place in the card order, for the intro stagger. */
+  index: number;
 }
 
 const SUBTITLES: Record<Metric, string> = {
@@ -30,7 +35,31 @@ const LAST_HOUR = 23;
 const OUTLINE_RADIUS = 14;
 const OUTLINE_STROKE = 1.5;
 
-export function HourlyCard({ day, hours, freeTime, best, selectedHour, nowHour, onSelect }: Props) {
+function outlineRect(width: number) {
+  return {
+    x: OUTLINE_STROKE / 2,
+    y: OUTLINE_STROKE / 2,
+    width: width - OUTLINE_STROKE,
+    height: CELL_H - OUTLINE_STROKE,
+    rx: OUTLINE_RADIUS,
+    stroke: '#fff',
+    strokeWidth: OUTLINE_STROKE,
+  };
+}
+
+export function HourlyCard({
+  day,
+  hours,
+  freeTime,
+  best,
+  selectedHour,
+  nowHour,
+  onSelect,
+  intro,
+  index,
+}: Props) {
+  const reduced = useReducedMotion() ?? false;
+  const play = intro && !reduced;
   const [metric, setMetric] = useState<Metric>('uv');
   // The hour that holds focus inside the strip; null while focus is elsewhere.
   const [focusedHour, setFocusedHour] = useState<number | null>(null);
@@ -44,14 +73,47 @@ export function HourlyCard({ day, hours, freeTime, best, selectedHour, nowHour, 
   // The one tab stop: the selected hour, else "Now", else the first free hour.
   const tabStop = focusedHour ?? selectedHour ?? nowHour ?? freeTime.start;
 
-  // First placement is instant (no animation): "Now" for Today, the free time for Tomorrow.
-  // Only a different day re-places the strip; the hourly "Now" tick must not move it.
+  // The strip is placed on "Now" for Today, the free time for Tomorrow. During the intro it
+  // scrolls there by itself from the start of the day; otherwise it is placed at once. Only a
+  // different day re-places the strip; the hourly "Now" tick must not move it.
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
     const anchorHour = nowHour ?? freeTime.start;
     const target = spanOf(items, anchorHour, anchorHour + 1);
-    if (target) el.scrollLeft = target.left;
+    if (!target) return;
+    if (!play) {
+      el.scrollLeft = target.left;
+      return;
+    }
+    el.scrollLeft = 0;
+    // Mandatory snapping would pull every in-between frame to a cell edge.
+    el.style.scrollSnapType = 'none';
+    let scroll: { stop(): void } | null = null;
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      scroll?.stop();
+      el.style.scrollSnapType = '';
+      el.removeEventListener('pointerdown', release);
+      el.removeEventListener('wheel', release);
+    };
+    // A finger or wheel on the strip takes over at once.
+    el.addEventListener('pointerdown', release);
+    el.addEventListener('wheel', release, { passive: true });
+    void import('../../motion/features').then(({ animate }) => {
+      if (released) return;
+      scroll = animate(0, target.left, {
+        ...springs.smooth,
+        delay: firstResult.hourScroll,
+        onUpdate: (left) => {
+          el.scrollLeft = left;
+        },
+        onComplete: release,
+      });
+    });
+    return release;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day.date]);
 
@@ -81,6 +143,9 @@ export function HourlyCard({ day, hours, freeTime, best, selectedHour, nowHour, 
 
   return (
     <GlassCard
+      intro={intro}
+      index={index}
+      layout
       title="Hourly"
       subtitle={SUBTITLES[metric]}
       action={
@@ -89,10 +154,15 @@ export function HourlyCard({ day, hours, freeTime, best, selectedHour, nowHour, 
         </div>
       }
     >
-      <div
+      {/* scroll-px-4 puts the snap points where the cells start (56 px apart), so a scroll to a
+          cell does not snap on. Layout: the card grows around the hour details, the strip keeps
+          its shape. */}
+      <m.div
         ref={scroller}
         {...{ [KEEP_DETAILS_ATTR]: '' }}
-        className="-mx-4 snap-x snap-mandatory overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        layout={!reduced}
+        transition={springs.smooth}
+        className="-mx-4 snap-x snap-mandatory scroll-px-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <div
           role="group"
@@ -108,7 +178,7 @@ export function HourlyCard({ day, hours, freeTime, best, selectedHour, nowHour, 
             <div
               aria-hidden="true"
               data-free-band=""
-              className="absolute inset-y-0 rounded-2xl bg-white/[0.08]"
+              className="pointer-events-none absolute inset-y-0 rounded-2xl bg-white/[0.08]"
               style={{ left: freeBand.left, width: freeBand.width }}
             />
           )}
@@ -142,23 +212,36 @@ export function HourlyCard({ day, hours, freeTime, best, selectedHour, nowHour, 
               height={CELL_H}
               fill="none"
             >
-              <rect
-                x={OUTLINE_STROKE / 2}
-                y={OUTLINE_STROKE / 2}
-                width={bestSpan.width - OUTLINE_STROKE}
-                height={CELL_H - OUTLINE_STROKE}
-                rx={OUTLINE_RADIUS}
-                stroke="#fff"
-                strokeWidth={OUTLINE_STROKE}
-              />
+              {/* Drawn along its path only during the intro; a plain rect otherwise, so the dash
+                  never leaves a seam where the path starts. */}
+              {play ? (
+                <m.rect
+                  {...outlineRect(bestSpan.width)}
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: [0, 1] }}
+                  transition={{
+                    ...springs.smooth,
+                    duration: firstResult.bestOutlineDuration,
+                    delay: firstResult.bestOutline,
+                  }}
+                />
+              ) : (
+                <rect {...outlineRect(bestSpan.width)} />
+              )}
             </svg>
           )}
         </div>
-      </div>
+      </m.div>
       {selected && (
-        <div className="mt-4">
+        <m.div
+          layout={!reduced}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={reduced ? { duration: durations.fast } : springs.smooth}
+          className="mt-4"
+        >
           <HourDetails hour={selected} onClose={closeDetails} />
-        </div>
+        </m.div>
       )}
     </GlassCard>
   );

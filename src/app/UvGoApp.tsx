@@ -295,6 +295,7 @@ function App() {
         nowHour={nowHour}
         onSelect={(hour) => dispatch({ type: 'selectHour', hour })}
         intro={playIntro}
+        index={0}
       />
     );
     freeTimeCard = (
@@ -306,6 +307,7 @@ function App() {
         duration={inputs.duration}
         activity={inputs.activity}
         intro={playIntro}
+        index={1}
       />
     );
     if (best !== null) {

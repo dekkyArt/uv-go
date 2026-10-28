@@ -1,5 +1,6 @@
 import { roundHalfUp } from '../../domain/scoring';
 import type { Activity, DurationMin, ScoredHour, TimeWindow } from '../../domain/types';
+import { barDelay } from '../../motion/choreography';
 import { WeatherIcon } from '../icons/weather/Icon';
 import { weatherIcon } from '../icons/weather/weatherIcon';
 import {
@@ -24,8 +25,10 @@ interface Props {
   nowHour: number | null;
   duration: DurationMin;
   activity: Activity;
-  /** Reserved for the first-result choreography; the card has no intro motion yet. */
+  /** The first-result choreography is playing. */
   intro: boolean;
+  /** Place in the card order, for the intro stagger. */
+  index: number;
 }
 
 /** Rain below this share is not worth a line. */
@@ -41,7 +44,7 @@ const PAST_FADE = 'opacity-45';
 // Horizontal padding is set per cell, one utility each, so no two utilities compete.
 const CELL = 'align-middle';
 
-function Row({ row, intro }: { row: FreeTimeRow; intro: boolean }) {
+function Row({ row, intro, order }: { row: FreeTimeRow; intro: boolean; order: number }) {
   const { hour } = row;
   const verdict = hour.verdict === 'night' ? null : hour.verdict;
   const fade = hour.isPast ? PAST_FADE : '';
@@ -89,7 +92,13 @@ function Row({ row, intro }: { row: FreeTimeRow; intro: boolean }) {
         {row.dark ? (
           <span className="text-[13px] text-text-muted">Dark</span>
         ) : (
-          <ScoreBar fill={row.fill} now={row.now} intro={intro} delay={0} className={fade} />
+          <ScoreBar
+            fill={row.fill}
+            now={row.now}
+            intro={intro}
+            delay={barDelay(order)}
+            className={fade}
+          />
         )}
       </td>
       <td className={`${CELL} pl-1`}>
@@ -120,10 +129,21 @@ function Row({ row, intro }: { row: FreeTimeRow; intro: boolean }) {
   );
 }
 
-export function FreeTimeCard({ hours, freeTime, best, nowHour, duration, activity, intro }: Props) {
+export function FreeTimeCard({
+  hours,
+  freeTime,
+  best,
+  nowHour,
+  duration,
+  activity,
+  intro,
+  index,
+}: Props) {
   const rows = freeTimeRows(hours, freeTime, best, nowHour);
   return (
     <GlassCard
+      intro={intro}
+      index={index}
       title="Your free time"
       subtitle={`${formatHour(freeTime.start)}–${formatHour(freeTime.end)} · ${activityLabel(activity)} · ${durationLabel(duration)}`}
     >
@@ -146,8 +166,8 @@ export function FreeTimeCard({ hours, freeTime, best, nowHour, duration, activit
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <Row key={row.hour.hour} row={row} intro={intro} />
+          {rows.map((row, i) => (
+            <Row key={row.hour.hour} row={row} intro={intro} order={i} />
           ))}
         </tbody>
       </table>

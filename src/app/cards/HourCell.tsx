@@ -1,4 +1,6 @@
+import { m } from 'motion/react';
 import { forwardRef } from 'react';
+import { usePress } from '../../motion/press';
 import { WeatherIcon } from '../icons/weather/Icon';
 import { weatherIcon } from '../icons/weather/weatherIcon';
 import type { ScoredHour } from '../../domain/types';
@@ -31,9 +33,11 @@ export const HourCell = forwardRef<HTMLButtonElement, HourCellProps>(function Ho
   { hour, metric, isNow, selected, tabbable, onPress, onFocus },
   ref,
 ) {
+  const press = usePress();
   return (
-    <button
+    <m.button
       ref={ref}
+      {...press}
       type="button"
       data-hour={hour.hour}
       {...(hour.isPast ? { 'data-past': '' } : null)}
@@ -61,7 +65,7 @@ export const HourCell = forwardRef<HTMLButtonElement, HourCellProps>(function Ho
       {/* The name is hidden text, not aria-label: the short visible "14" and "5" are not part of
           it word for word, which axe reports as a label/content mismatch. */}
       <span className="sr-only">{cellName(hour)}</span>
-    </button>
+    </m.button>
   );
 });
 

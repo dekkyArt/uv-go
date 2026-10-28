@@ -1,7 +1,11 @@
+import { m, useReducedMotion } from 'motion/react';
 import { useId } from 'react';
 import type { ComponentType } from 'react';
 import { rules } from '../../domain/rules.config';
 import type { Activity, ChecklistId, ChecklistItem, TimeWindow } from '../../domain/types';
+import { tileDelay } from '../../motion/choreography';
+import { usePress } from '../../motion/press';
+import { durations, springs } from '../../motion/tokens';
 import { HatSunglasses } from '../icons/checklist/HatSunglasses';
 import { RainJacket } from '../icons/checklist/RainJacket';
 import type { IconProps } from '../icons/checklist/shared';
@@ -15,7 +19,7 @@ interface Props {
   /** The best window: the reason lines are read from its hours. */
   window: TimeWindow;
   activity: Activity;
-  /** Reserved for the first-result choreography; the tiles have no intro motion yet. */
+  /** The first-result choreography is playing: the tiles pop in one after another. */
   intro: boolean;
 }
 
@@ -27,15 +31,37 @@ const ICONS: Record<ChecklistId, ComponentType<IconProps>> = {
   'warm-layer': WarmLayer,
 };
 
+const REST = { opacity: 1, scale: 1 };
+
 function Tile({
   item,
   window,
   activity,
-}: Omit<Props, 'items' | 'intro'> & { item: ChecklistItem }) {
+  intro,
+  order,
+}: Omit<Props, 'items'> & { item: ChecklistItem; order: number }) {
   const Icon = ICONS[item.id];
   const { title, detail } = tileReason(item.id, window, activity);
+  const reduced = useReducedMotion() ?? false;
+  const play = intro && !reduced;
+  const press = usePress();
   return (
-    <li className="glass flex aspect-square min-w-0 flex-col justify-between p-3.5">
+    <m.li
+      {...press}
+      // The press makes an element focusable unless it has a tabindex; a tile is not a control.
+      tabIndex={-1}
+      initial={play ? { opacity: 0, scale: 0.94 } : false}
+      animate={
+        play
+          ? {
+              opacity: [0, 1],
+              scale: [0.94, 1],
+              transition: { ...springs.smooth, duration: durations.base, delay: tileDelay(order) },
+            }
+          : REST
+      }
+      className="glass flex aspect-square min-w-0 flex-col justify-between p-3.5"
+    >
       <div className="flex items-center gap-1.5 text-text">
         <Icon play={false} />
         <span className="text-[13px] font-semibold uppercase leading-4 tracking-wide">
@@ -46,11 +72,11 @@ function Tile({
         <p className="m-0 text-[22px] font-semibold leading-7 text-text">{title}</p>
         <p className="m-0 mt-1 text-[13px] leading-[18px] text-text-muted">{detail}</p>
       </div>
-    </li>
+    </m.li>
   );
 }
 
-export function TakeTiles({ items, window, activity }: Props) {
+export function TakeTiles({ items, window, activity, intro }: Props) {
   const headingId = `take-${useId().replace(/:/g, '')}`;
   return (
     <section aria-labelledby={headingId}>
@@ -63,8 +89,15 @@ export function TakeTiles({ items, window, activity }: Props) {
             {rules.emptyChecklistText}
           </li>
         ) : (
-          items.map((item) => (
-            <Tile key={item.id} item={item} window={window} activity={activity} />
+          items.map((item, i) => (
+            <Tile
+              key={item.id}
+              item={item}
+              window={window}
+              activity={activity}
+              intro={intro}
+              order={i}
+            />
           ))
         )}
       </ul>

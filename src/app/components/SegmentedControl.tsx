@@ -1,5 +1,6 @@
-import { m } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import { useId, useRef, type KeyboardEvent } from 'react';
+import { usePress } from '../../motion/press';
 import { springs } from '../../motion/tokens';
 
 interface Props<T extends string | number> {
@@ -17,6 +18,8 @@ export function SegmentedControl<T extends string | number>({
 }: Props<T>) {
   const indicatorId = `seg-${useId()}`;
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  const reduced = useReducedMotion() ?? false;
+  const press = usePress();
 
   function onKeyDown(e: KeyboardEvent, index: number) {
     let next: number;
@@ -49,14 +52,15 @@ export function SegmentedControl<T extends string | number>({
             tabIndex={checked ? 0 : -1}
             onClick={() => onChange(option.value)}
             onKeyDown={(e) => onKeyDown(e, i)}
-            whileTap={{ scale: 0.96 }}
+            {...press}
             className={`relative min-h-11 min-w-11 rounded-full px-4 text-sm font-medium ${
               checked ? 'text-black/85' : 'text-text hover:bg-white/10'
             }`}
           >
             {checked && (
+              // With reduced motion the pill just appears under the new option.
               <m.span
-                layoutId={indicatorId}
+                layoutId={reduced ? undefined : indicatorId}
                 data-segment-indicator=""
                 aria-hidden="true"
                 transition={springs.snappy}

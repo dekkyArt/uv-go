@@ -13,7 +13,6 @@ vi.mock('../domain/rules.config', async (importOriginal) => {
 });
 
 import Faq from '../components/Faq.astro';
-import Hero from '../components/Hero.astro';
 import HowItWorks from '../components/HowItWorks.astro';
 import { faqItems } from '../content/faq';
 
@@ -78,13 +77,5 @@ describe('Faq', () => {
     expect(faqItems).toHaveLength(9);
     const escape = (text: string) => text.replaceAll('"', '&quot;');
     for (const item of faqItems) expect(html).toContain(escape(item.q));
-  });
-});
-
-describe('Hero', () => {
-  it('has the one H1', async () => {
-    const html = await render(Hero);
-    expect(html.match(/<h1/g)).toHaveLength(1);
-    expect(html).toContain('Know the best time to go outside');
   });
 });

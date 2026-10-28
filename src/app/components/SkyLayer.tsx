@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import type { SkyPhase, SkyState, WeatherGroup } from '../../domain/sky';
 import { durations } from '../../motion/tokens';
+import { useIsDesktop } from '../hooks/useIsDesktop';
 
 interface Props {
   sky: SkyState;
@@ -11,7 +12,6 @@ interface Props {
 /** Stacking order of the phase layers; the CSS gradients live in global.css (.sky-phase-*). */
 const PHASES: readonly SkyPhase[] = ['night', 'dawn', 'morning', 'day', 'golden', 'dusk'];
 
-const DESKTOP_QUERY = '(min-width: 1024px)';
 /** Particle caps (spec 9.3): rain, snow and wind lines together. */
 const MAX_PARTICLES = { mobile: 40, desktop: 80 } as const;
 const WIND_LINES = 6;
@@ -67,21 +67,6 @@ function particleStyle(p: Particle, extra: Record<string, string> = {}): CSSProp
 const RAIN_DURATION: [number, number] = [0.7, 1.2];
 const SNOW_DURATION: [number, number] = [6, 11];
 const WIND_DURATION: [number, number] = [3, 6];
-
-function subscribeDesktop(onChange: () => void) {
-  if (typeof window.matchMedia !== 'function') return () => {};
-  const query = window.matchMedia(DESKTOP_QUERY);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-}
-
-function useIsDesktop(): boolean {
-  return useSyncExternalStore(
-    subscribeDesktop,
-    () => typeof window.matchMedia === 'function' && window.matchMedia(DESKTOP_QUERY).matches,
-    () => false,
-  );
-}
 
 function sunTransform(position: number): string {
   const x = (SUN_X.from + SUN_X.span * position - VIEWPORT_CENTER) * 100;

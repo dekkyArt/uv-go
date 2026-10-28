@@ -33,8 +33,17 @@ export async function mockApis(page: Page): Promise<void> {
   );
 }
 
-/** Search "Lis" and pick Lisbon; resolves when the result card shows a verdict. */
+/**
+ * Open the Cities sheet (the hero's "Find a city" on a first visit, else the toolbar's Cities),
+ * search "Lis" and pick Lisbon.
+ */
 export async function searchLisbon(page: Page): Promise<void> {
+  const cities = page.getByRole('button', { name: 'Cities' });
+  // The toolbar comes with the app: once it is there, the hero shows its final buttons too.
+  await cities.waitFor();
+  const findCity = page.getByRole('button', { name: 'Find a city' });
+  if (await findCity.isVisible()) await findCity.click();
+  else await cities.click();
   await page.getByRole('combobox').fill('Lis');
   await page.getByRole('option', { name: 'Lisbon, Portugal' }).click();
 }

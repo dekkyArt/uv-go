@@ -23,7 +23,7 @@ for (const path of PAGES) {
 
     if (path === '/') {
       await searchLisbon(page);
-      await expect(page.getByText(/\d{2}:00–\d{2}:00/).first()).toBeVisible();
+      await expect(page.locator('[data-hero-time]')).toHaveText(/^\d{2}:00–\d{2}:00$/);
       await settleAnimations(page);
     }
 

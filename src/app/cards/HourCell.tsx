@@ -37,7 +37,6 @@ export const HourCell = forwardRef<HTMLButtonElement, HourCellProps>(function Ho
       type="button"
       data-hour={hour.hour}
       {...(hour.isPast ? { 'data-past': '' } : null)}
-      aria-label={cellName(hour)}
       aria-pressed={selected}
       tabIndex={tabbable ? 0 : -1}
       onClick={onPress}
@@ -59,6 +58,9 @@ export const HourCell = forwardRef<HTMLButtonElement, HourCellProps>(function Ho
         aria-hidden="true"
         className={`size-1.5 rounded-full ${VERDICT_FILL_CLASS[hour.verdict]} ${hour.isPast ? PAST_FADE : ''}`}
       />
+      {/* The name is hidden text, not aria-label: the short visible "14" and "5" are not part of
+          it word for word, which axe reports as a label/content mismatch. */}
+      <span className="sr-only">{cellName(hour)}</span>
     </button>
   );
 });

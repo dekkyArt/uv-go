@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearForecastCache } from '../../data/openMeteo';
@@ -35,29 +35,32 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  document.documentElement.removeAttribute('data-sheet-open');
 });
 
 describe('motion foundation', () => {
   it('renders with reduced motion', async () => {
     const user = userEvent.setup();
     render(<UvGoApp />);
-    const day = await screen.findByRole('radiogroup', { name: 'Day' });
+    const day = await screen.findByRole('tablist', { name: 'Day' });
     expect(day).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Today' })).toHaveAttribute('aria-checked', 'true');
-    await user.click(screen.getByRole('radio', { name: 'Tomorrow' }));
+    expect(screen.getByRole('tab', { name: 'Today' })).toHaveAttribute('aria-selected', 'true');
+    await user.click(screen.getByRole('tab', { name: 'Tomorrow' }));
     await waitFor(() =>
-      expect(screen.getByRole('radio', { name: 'Tomorrow' })).toHaveAttribute(
-        'aria-checked',
+      expect(screen.getByRole('tab', { name: 'Tomorrow' })).toHaveAttribute(
+        'aria-selected',
         'true',
       ),
     );
-    expect(screen.getByRole('radio', { name: 'Today' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('tab', { name: 'Today' })).toHaveAttribute('aria-selected', 'false');
   });
 
   it('moves the segmented indicator to the chosen option', async () => {
     const user = userEvent.setup();
     render(<UvGoApp />);
-    const group = await screen.findByRole('radiogroup', { name: 'Duration' });
+    await user.click(await screen.findByRole('button', { name: 'Plan' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Plan' });
+    const group = within(sheet).getByRole('radiogroup', { name: 'Duration' });
     const indicators = () => group.querySelectorAll('[data-segment-indicator]');
     expect(indicators()).toHaveLength(1);
     expect(screen.getByRole('radio', { name: '1 h' }).contains(indicators()[0])).toBe(true);

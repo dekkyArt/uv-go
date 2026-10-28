@@ -36,7 +36,8 @@ describe('live sky in the app', () => {
     });
     expect(layer).toHaveAttribute('aria-hidden', 'true');
     expect(activeLayers()).toEqual(['day']);
-    expect(document.documentElement).toHaveAttribute('data-sky-live');
+    // Set by an effect after the layer is in the DOM, so it can trail the element by a tick.
+    await waitFor(() => expect(document.documentElement).toHaveAttribute('data-sky-live'));
     // Decorative: no text, never announced.
     expect(layer).toHaveTextContent('');
   });

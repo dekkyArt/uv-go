@@ -1,8 +1,7 @@
 ---
 import BaseLayout from '../components/BaseLayout.astro';
 import UvGoApp from '../app/UvGoApp';
-import { reservePlaceLayout } from '../app/reservePlaceLayout';
-import Hero from '../components/Hero.astro';
+import { reserveLayout } from '../app/reserveLayout';
 import HowItWorks from '../components/HowItWorks.astro';
 import Faq from '../components/Faq.astro';
 import { siteConfig } from '../site.config';
@@ -16,8 +15,7 @@ import { faqPageLd, webApplicationLd } from '../seo/jsonld';
   ogImage="/og/home.png"
   jsonLd={[webApplicationLd(siteConfig.site), faqPageLd(faqItems)]}
 >
-  <Hero />
-  <script is:inline set:html={`(${reservePlaceLayout})()`} />
+  <script is:inline set:html={`(${reserveLayout})()`} />
   <UvGoApp client:load />
   <HowItWorks />
   <Faq />

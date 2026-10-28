@@ -1,49 +1,40 @@
 import {
   lazy,
   Suspense,
-  useCallback,
   useEffect,
   useMemo,
   useReducer,
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
+  type RefObject,
 } from 'react';
-import { AnimatePresence, m, useReducedMotion } from 'motion/react';
+import { useReducedMotion } from 'motion/react';
 import { loadInputs, loadPlace, saveInputs, savePlace } from '../data/storage';
 import type { Place } from '../data/types';
 import { evaluate } from '../domain/evaluate';
-import type { Inputs, ScoredHour, TimeWindow } from '../domain/types';
+import type { Inputs } from '../domain/types';
 import { MotionProvider } from '../motion/MotionProvider';
-import { durations } from '../motion/tokens';
-import { EmptyState } from './components/EmptyState';
-import { ErrorState } from './components/ErrorState';
-import { FreeTimePicker } from './components/FreeTimePicker';
-import { HourDetails } from './components/HourDetails';
-import { DayArcTimeline } from './components/DayArcTimeline';
-import { LoadingSun } from './components/LoadingSun';
-import { LocationPicker } from './components/LocationPicker';
-import { MiniResult } from './components/MiniResult';
-import { ResultCard } from './components/ResultCard';
-import { SegmentedControl } from './components/SegmentedControl';
-import { TimelineSkeleton } from './components/TimelineSkeleton';
+import { FreeTimeCard } from './cards/FreeTimeCard';
+import { GlassCard } from './cards/GlassCard';
+import { CELL_H } from './cards/HourCell';
+import { HourlyCard } from './cards/HourlyCard';
+import { PlanControls } from './cards/PlanControls';
+import { TakeTiles } from './cards/TakeTiles';
+import { HERO_H1, Hero } from './hero/Hero';
+import { heroState } from './hero/heroState';
 import { useFirstResult } from './hooks/useFirstResult';
 import { useForecastLoader } from './hooks/useForecastLoader';
+import { useGeolocate } from './hooks/useGeolocate';
+import { useIsDesktop } from './hooks/useIsDesktop';
 import { useNow } from './hooks/useNow';
 import { useSky } from './hooks/useSkyRef';
+import { CitiesSheet } from './sheet/CitiesSheet';
+import { Sheet } from './sheet/Sheet';
 import { initialState, isForecastStale, reducer } from './state';
-import { useCardOffscreen } from './hooks/useCardOffscreen';
-import {
-  ACTIVITY_OPTIONS,
-  ADJUST_SKELETON_CLASS,
-  CARD_CLASS,
-  CARD_SLOT_CLASS,
-  DAY_OPTIONS,
-  DURATION_OPTIONS,
-  LOCATION_SKELETON_CLASS,
-  PANEL_CLASS,
-  verdictLabel,
-} from './ui';
+import { Toolbar } from './toolbar/Toolbar';
+import { DAY_OPTIONS, DAY_PANEL_ID, ROW_H, TOOLBAR_H, verdictLabel } from './ui';
 
 type StoredInputs = Pick<Inputs, 'freeTime' | 'duration' | 'activity'>;
 
@@ -74,62 +65,90 @@ export default function UvGoApp() {
   );
 }
 
-/** Longest an old card may stay on screen after its exit should have finished (> durations.fast). */
-const EXIT_GRACE_MS = 400;
+/**
+ * Mobile: one column (hero, then the day's cards). Desktop (spec 3.4, 4.2): the hero sticks in a
+ * left column; on the right, Hourly over two columns, Your free time | What to take and Plan.
+ */
+const LAYOUT_CLASS =
+  'flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(320px,4fr)_8fr] lg:items-start lg:gap-6';
+const HERO_COLUMN_CLASS = 'lg:sticky lg:top-24';
+const PANEL_CLASS = 'flex min-w-0 flex-col gap-3 lg:gap-6';
+const SPLIT_CLASS = 'flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6';
+const SIDE_CLASS = 'flex min-w-0 flex-col gap-3 lg:gap-6';
+
+/** Room under the content for the fixed toolbar (spec 3.4). */
+const BOTTOM_SPACE: CSSProperties = {
+  paddingBottom: `calc(${TOOLBAR_H}px + 24px + env(safe-area-inset-bottom))`,
+};
 
 /**
- * The motion features load lazily. A card that left before they arrived never gets its exit
- * animation, and AnimatePresence would keep it on screen for good. When an exit does not finish
- * in time, a new `presenceKey` remounts the presence tree with the current card.
+ * Card skeletons have the height of the card they stand in for. GlassCard: 1 px border at the top
+ * and bottom, a 16 px padded header and a 16 px padded body. Hourly's header is as tall as the
+ * 48 px metric switch, its body one row of cells. Your free time's header is a 20 px title over an
+ * 18 px subtitle, its body one ROW_H row per free hour (the column headers are visually hidden).
  */
-function useUnstickPresence(cardKey: string) {
-  const [presenceKey, setPresenceKey] = useState(0);
-  const shownKey = useRef(cardKey);
-  const leaving = useRef(false);
+const HOURLY_SKELETON_H = 2 + 16 + 48 + 2 * 16 + CELL_H;
+const FREE_TIME_CHROME_H = 2 + 16 + 20 + 18 + 2 * 16;
+const freeTimeSkeletonHeight = (rows: number | string) =>
+  `calc(${rows} * ${ROW_H}px + ${FREE_TIME_CHROME_H}px)`;
 
-  useEffect(() => {
-    if (shownKey.current === cardKey) return;
-    shownKey.current = cardKey;
-    leaving.current = true;
-    const timer = setTimeout(() => {
-      if (!leaving.current) return;
-      leaving.current = false;
-      setPresenceKey((k) => k + 1);
-    }, EXIT_GRACE_MS);
-    return () => clearTimeout(timer);
-  }, [cardKey]);
-
-  return {
-    presenceKey,
-    onExitComplete: () => {
-      leaving.current = false;
-    },
-  };
+function HourlySkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      data-skeleton=""
+      className="glass"
+      style={{ height: HOURLY_SKELETON_H }}
+    />
+  );
 }
 
-const LAYOUT_CLASS =
-  'flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-x-8';
-const CARD_SLOT_PLACEMENT = 'lg:col-start-1 lg:row-start-2';
-const TIMELINE_PLACEMENT = 'lg:col-start-2 lg:row-span-2 lg:row-start-2';
+function FreeTimeSkeleton({ rows }: { rows: number | string }) {
+  return (
+    <div
+      aria-busy="true"
+      data-skeleton=""
+      className="glass"
+      style={{ height: freeTimeSkeletonHeight(rows) }}
+    />
+  );
+}
 
 /**
- * Server render and hydration: empty blocks of the sizes the interactive layout takes (location,
- * card container, timeline, plan), so the footer stays put when the app mounts.
+ * Server render and hydration (spec 9): the hero with its H1 (the LCP text, the same as the app's)
+ * and, when a place is stored (<html data-has-place>, set by reserveLayout before first paint),
+ * the Hourly and Your free time skeletons at their final heights, so nothing below moves.
  */
 function Placeholder() {
   return (
-    <div aria-busy="true" className={LAYOUT_CLASS}>
-      <div data-location-skeleton="" className={`${PANEL_CLASS} ${LOCATION_SKELETON_CLASS}`} />
-      <div data-card-slot="" className={`${CARD_SLOT_CLASS} ${CARD_SLOT_PLACEMENT}`}>
-        <div className={CARD_CLASS} />
+    <div className={LAYOUT_CLASS} style={BOTTOM_SPACE}>
+      <div className={HERO_COLUMN_CLASS}>
+        <div
+          // The hero's fixed pre-content height (spec 9), with its scrim under the H1.
+          className="relative flex h-[300px] w-full flex-col items-center justify-center px-4 py-6 text-center text-text [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]"
+        >
+          <div
+            aria-hidden="true"
+            className="hero-scrim pointer-events-none absolute -inset-x-4 -inset-y-6"
+          />
+          <h1 className="relative m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">
+            {HERO_H1}
+          </h1>
+        </div>
       </div>
-      <div className={`${PANEL_CLASS} ${TIMELINE_PLACEMENT}`}>
-        <TimelineSkeleton />
+      {/* Hidden on a first visit; the data-has-place variant is more specific, so it wins. */}
+      <div className="hidden min-w-0 flex-col gap-3 lg:gap-6 [[data-has-place]_&]:flex">
+        <HourlySkeleton />
+        <div className={SPLIT_CLASS}>
+          <FreeTimeSkeleton rows="var(--free-rows, 6)" />
+        </div>
       </div>
-      <div data-adjust-skeleton="" className={`${PANEL_CLASS} ${ADJUST_SKELETON_CLASS}`} />
     </div>
   );
 }
+
+const DONE_CLASS =
+  'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/15 bg-white/10 px-4 text-base font-medium text-white hover:bg-white/15';
 
 function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () =>
@@ -158,13 +177,6 @@ function App() {
     [activeDay, inputs, now],
   );
 
-  const timelineRef = useRef<HTMLElement>(null);
-  const closeDetails = useCallback((restoreFocus: boolean) => {
-    dispatch({ type: 'selectHour', hour: null });
-    // The close button unmounts with the details; hand focus to the hour strip (ТЗ 12.2).
-    if (restoreFocus) timelineRef.current?.querySelector<HTMLElement>('[role="slider"]')?.focus();
-  }, []);
-
   function choosePlace(p: Place) {
     savePlace(p);
     dispatch({ type: 'setPlace', place: p });
@@ -180,6 +192,9 @@ function App() {
     dispatch(action);
   }
 
+  // The hero's "Use my location"; the Cities sheet has its own.
+  const { locating, geoError, locate } = useGeolocate(choosePlace);
+
   // The first-result choreography plays once per place and day; input changes only recalculate.
   const reduced = useReducedMotion() ?? false;
   const sky = useSky(state, evaluation, now);
@@ -187,74 +202,99 @@ function App() {
     place === null || evaluation === null
       ? null
       : `${place.id}:${place.lat},${place.lon}:${inputs.day}`;
-  const { playIntro, labelInFrame } = useFirstResult(introKey, reduced);
+  const { playIntro } = useFirstResult(introKey, reduced);
 
-  const [cardEl, setCardEl] = useState<HTMLElement | null>(null);
-  const cardOffscreen = useCardOffscreen(cardEl);
+  // The Plan sheet exists only below 1024 px; past it the Plan card is on the page instead.
+  const isDesktop = useIsDesktop();
+  const [planOpen, setPlanOpen] = useState(false);
+  if (isDesktop && planOpen) setPlanOpen(false);
+  const [citiesOpen, setCitiesOpen] = useState(false);
 
-  const best: TimeWindow | null = evaluation?.best ?? null;
-  const selected: ScoredHour | null =
-    evaluation !== null && selectedHour !== null ? evaluation.scoredHours[selectedHour] : null;
+  const planRef = useRef<HTMLButtonElement>(null);
+  const citiesRef = useRef<HTMLButtonElement>(null);
+  const findCityRef = useRef<HTMLButtonElement>(null);
+  // Focus goes back to whichever button opened Cities. The hero's "Find a city" is gone once a
+  // place is picked, so then it falls back to the toolbar's Cities.
+  const citiesFromHero = useRef(false);
+  const citiesReturn = useMemo<RefObject<HTMLElement | null>>(
+    () => ({
+      get current() {
+        return (citiesFromHero.current ? findCityRef.current : null) ?? citiesRef.current;
+      },
+    }),
+    [],
+  );
 
-  // One card at a time; the key tells AnimatePresence when the state, not just the data, changes.
-  let card;
-  let cardKey = 'none';
-  if (place === null) {
-    cardKey = 'no-place';
-    card = (
-      <div className={`${CARD_CLASS} flex items-center text-text-muted`}>
-        Choose a city to see the best time to go out.
-      </div>
-    );
-  } else if (state.forecast.status === 'error') {
-    cardKey = 'error';
-    card = <ErrorState onRetry={() => dispatch({ type: 'retry' })} />;
-  } else if (evaluation === null) {
-    cardKey = 'loading';
-    card = (
-      <div
-        data-skeleton=""
-        aria-busy="true"
-        className={`${CARD_CLASS} flex flex-col items-center justify-center gap-3`}
-      >
-        <LoadingSun />
-        <p role="status" className="text-base text-text-muted">
-          Loading forecast…
-        </p>
-      </div>
-    );
-  } else if (evaluation.best !== null) {
-    cardKey = 'result';
-    card = (
-      <ResultCard
-        key={introKey}
-        ref={setCardEl}
-        result={{ ...evaluation, best: evaluation.best }}
-        activity={inputs.activity}
-        intro={playIntro}
-        labelInFrame={labelInFrame}
-      />
-    );
-  } else if (evaluation.emptyReason !== null) {
-    cardKey = 'empty';
-    card = (
-      <EmptyState
-        reason={evaluation.emptyReason}
-        duration={inputs.duration}
-        onShowTomorrow={() => dispatch({ type: 'setDay', day: 'tomorrow' })}
-      />
-    );
+  function openCities(fromHero: boolean) {
+    citiesFromHero.current = fromHero;
+    setCitiesOpen(true);
   }
 
-  const { presenceKey, onExitComplete } = useUnstickPresence(cardKey);
+  const best = evaluation?.best ?? null;
+  const nowHour = inputs.day === 'today' ? (now?.hour ?? null) : null;
+  const hero = heroState(state, evaluation, now);
+  const dayLabel = DAY_OPTIONS.find((o) => o.value === inputs.day)?.label;
 
   const announcement =
     best !== null && evaluation?.reason
       ? `Best time ${best.label}, ${verdictLabel(best.verdict)}. ${evaluation.reason}.`
       : '';
 
+  const planControls = (
+    <PlanControls
+      inputs={inputs}
+      onFreeTime={(freeTime) => changeStored({ freeTime }, { type: 'setFreeTime', freeTime })}
+      onDuration={(duration) => changeStored({ duration }, { type: 'setDuration', duration })}
+      onActivity={(activity) => changeStored({ activity }, { type: 'setActivity', activity })}
+    />
+  );
+
+  // Cards follow the hero's state (spec 4.8): skeletons while loading, nothing without a place or
+  // after an error, What to take only with a result.
+  let hourlyCard = null;
+  let freeTimeCard = null;
+  let takeTiles = null;
+  if (hero.kind === 'loading') {
+    hourlyCard = <HourlySkeleton />;
+    freeTimeCard = <FreeTimeSkeleton rows={inputs.freeTime.end - inputs.freeTime.start} />;
+  } else if (evaluation !== null && activeDay !== null) {
+    hourlyCard = (
+      <HourlyCard
+        day={activeDay}
+        hours={evaluation.scoredHours}
+        freeTime={inputs.freeTime}
+        best={best}
+        selectedHour={selectedHour}
+        nowHour={nowHour}
+        onSelect={(hour) => dispatch({ type: 'selectHour', hour })}
+        intro={playIntro}
+      />
+    );
+    freeTimeCard = (
+      <FreeTimeCard
+        hours={evaluation.scoredHours}
+        freeTime={inputs.freeTime}
+        best={best}
+        nowHour={nowHour}
+        duration={inputs.duration}
+        activity={inputs.activity}
+        intro={playIntro}
+      />
+    );
+    if (best !== null) {
+      takeTiles = (
+        <TakeTiles
+          items={evaluation.checklist}
+          window={best}
+          activity={inputs.activity}
+          intro={playIntro}
+        />
+      );
+    }
+  }
+
   return (
-    <div className={LAYOUT_CLASS}>
+    <div className={LAYOUT_CLASS} style={BOTTOM_SPACE}>
       {/* Fixed and behind everything: not a grid item, so it takes no part in the layout. */}
       <Suspense fallback={null}>
         <SkyLayer sky={sky} reducedMotion={reduced} />
@@ -264,114 +304,68 @@ function App() {
         {announcement}
       </p>
 
-      {best !== null && (
-        <MiniResult
-          label={best.label}
-          verdict={best.verdict}
-          visible={cardOffscreen}
-          onClick={() =>
-            cardEl?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
-          }
+      <div className={HERO_COLUMN_CLASS}>
+        <Hero
+          state={hero}
+          locating={locating}
+          geoError={geoError}
+          onUseLocation={locate}
+          onFindCity={() => openCities(true)}
+          onRetry={() => dispatch({ type: 'retry' })}
+          onShowTomorrow={() => dispatch({ type: 'setDay', day: 'tomorrow' })}
+          notice={state.autoSwitchNotice}
+          intro={playIntro}
+          findCityRef={findCityRef}
         />
-      )}
+      </div>
 
-      <section aria-label="Location" className={`${PANEL_CLASS} flex flex-col gap-3 lg:col-span-2`}>
-        {place === null && <h2 className="text-2xl font-bold">Where are you heading out?</h2>}
-        <LocationPicker place={place} onPlace={choosePlace} />
-      </section>
-
-      <div data-card-slot="" className={`${CARD_SLOT_CLASS} ${CARD_SLOT_PLACEMENT}`}>
-        {/* Crossfade between states: the old one leaves quickly (the answer must not wait), the
-            new one fades in. The container keeps its height, so nothing below moves. */}
-        <AnimatePresence
-          key={presenceKey}
-          mode="wait"
-          initial={false}
-          onExitComplete={onExitComplete}
-        >
-          <m.div
-            key={cardKey}
-            className="flex flex-1 flex-col"
-            initial={{ opacity: 0 }}
-            animate={{
-              opacity: 1,
-              transition: { duration: reduced ? durations.fast : durations.base },
-            }}
-            exit={{ opacity: 0, transition: { duration: durations.fast } }}
-          >
-            {card}
-          </m.div>
-        </AnimatePresence>
-        {/* Below the card, so it never pushes the card (or the one fading out) down. */}
-        {state.autoSwitchNotice && (
-          <p role="status" className="rounded-lg bg-surface-strong px-3 py-2 text-sm">
-            Your free time today has passed — showing tomorrow
-          </p>
+      <div id={DAY_PANEL_ID} role="tabpanel" aria-label={dayLabel} className={PANEL_CLASS}>
+        {hourlyCard}
+        {(freeTimeCard !== null || takeTiles !== null || isDesktop) && (
+          <div className={SPLIT_CLASS}>
+            {freeTimeCard}
+            {(takeTiles !== null || isDesktop) && (
+              <div className={SIDE_CLASS}>
+                {takeTiles}
+                {isDesktop && <GlassCard title="Plan">{planControls}</GlassCard>}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      <section
-        ref={timelineRef}
-        aria-label="Day timeline"
-        className={`${PANEL_CLASS} flex flex-col gap-4 ${TIMELINE_PLACEMENT}`}
-      >
-        {evaluation !== null && activeDay !== null ? (
-          <DayArcTimeline
-            key={introKey}
-            day={activeDay}
-            hours={evaluation.scoredHours}
-            freeTime={inputs.freeTime}
-            best={best}
-            selectedHour={selectedHour}
-            onSelect={(hour) => dispatch({ type: 'selectHour', hour })}
-            playIntro={playIntro}
-            labelInFrame={labelInFrame}
-          />
-        ) : (
-          <TimelineSkeleton />
-        )}
-        {selected !== null && <HourDetails hour={selected} onClose={closeDetails} />}
-      </section>
+      <Toolbar
+        day={inputs.day}
+        onDay={(day) => dispatch({ type: 'setDay', day })}
+        panelId={DAY_PANEL_ID}
+        onPlan={isDesktop ? undefined : () => setPlanOpen(true)}
+        onCities={() => openCities(false)}
+        planRef={planRef}
+        citiesRef={citiesRef}
+      />
 
-      <section
-        aria-labelledby="adjust-heading"
-        className={`${PANEL_CLASS} flex flex-col gap-4 lg:col-start-1 lg:row-start-3`}
+      <Sheet
+        open={planOpen}
+        onClose={() => setPlanOpen(false)}
+        title="Plan"
+        size="auto"
+        returnFocusRef={planRef}
       >
-        <h2 id="adjust-heading" className="text-lg font-semibold">
-          Adjust your plan
-        </h2>
-        <SegmentedControl
-          label="Day"
-          options={[...DAY_OPTIONS]}
-          value={inputs.day}
-          onChange={(day) => dispatch({ type: 'setDay', day })}
-        />
-        <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-medium">Free time</h3>
-          <FreeTimePicker
-            value={inputs.freeTime}
-            onChange={(freeTime) => changeStored({ freeTime }, { type: 'setFreeTime', freeTime })}
-          />
+        <div className="flex flex-col gap-5">
+          {planControls}
+          {/* The sheet has no close button of its own, and reduced motion has no swipe. */}
+          <button type="button" onClick={() => setPlanOpen(false)} className={DONE_CLASS}>
+            Done
+          </button>
         </div>
-        <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-medium">Duration</h3>
-          <SegmentedControl
-            label="Duration"
-            options={DURATION_OPTIONS}
-            value={inputs.duration}
-            onChange={(duration) => changeStored({ duration }, { type: 'setDuration', duration })}
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-medium">Activity</h3>
-          <SegmentedControl
-            label="Activity"
-            options={ACTIVITY_OPTIONS}
-            value={inputs.activity}
-            onChange={(activity) => changeStored({ activity }, { type: 'setActivity', activity })}
-          />
-        </div>
-      </section>
+      </Sheet>
+      <CitiesSheet
+        open={citiesOpen}
+        onClose={() => setCitiesOpen(false)}
+        place={place}
+        onPlace={choosePlace}
+        returnFocusRef={citiesReturn}
+      />
     </div>
   );
 }

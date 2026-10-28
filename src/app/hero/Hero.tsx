@@ -137,7 +137,8 @@ export function Hero({
           aria-hidden="true"
           className="hero-scrim pointer-events-none absolute -inset-x-4 -inset-y-6"
         />
-        <div className="relative flex w-full flex-col items-center gap-2">
+        {/* A size container: the big time is capped by this width as well as by the viewport. */}
+        <div className="@container relative flex w-full flex-col items-center gap-2">
           <h1 className="m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">
             {HERO_H1}
           </h1>
@@ -153,7 +154,9 @@ export function Hero({
           </p>
           <p
             data-hero-time
-            className={`tabular m-0 text-[length:min(16vw,104px)] font-extralight leading-none tracking-[-0.02em] ${
+            // "15:00–16:00" is about 5.5em wide in SF Pro and 6em in Inter: 16cqi keeps it on one
+            // line in the hero's own width (a 320 px phone, the desktop column), where 16vw would not.
+            className={`tabular m-0 whitespace-nowrap text-[length:min(16vw,104px,16cqi)] font-extralight leading-none tracking-[-0.02em] ${
               state.kind === 'loading' ? 'motion-safe:animate-pulse' : ''
             }`}
           >

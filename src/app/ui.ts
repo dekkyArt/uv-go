@@ -14,6 +14,12 @@ export const KEEP_DETAILS_ATTR = 'data-keep-hour-details';
 /** Width in px of one cell of the Hourly strip (hour or sun event). */
 export const CELL_W = 56;
 
+/** Height in px of one row of the Your free time table. */
+export const ROW_H = 44;
+
+/** A score at or above this fills the whole bar of the Your free time table. */
+export const SCORE_BAR_MAX = 8;
+
 /** Shown when the browser can't give a position (denied, timed out or unavailable). */
 export const GEO_ERROR = "Can't get your location. Search a city instead.";
 
@@ -56,6 +62,9 @@ export const FACTORS: readonly Factor[] = ['uv', 'rain', 'heat', 'cold', 'wind']
 export function verdictLabel(verdict: Verdict): string {
   return rules.verdictLabels[verdict];
 }
+
+/** Short verdict for table rows; the full text goes in `verdictLabel`. */
+export const VERDICT_SHORT: Record<Verdict, string> = { green: 'Good', yellow: 'OK', red: 'Avoid' };
 
 /** Full class names so Tailwind can see them. */
 export const VERDICT_TEXT_CLASS: Record<Verdict, string> = {

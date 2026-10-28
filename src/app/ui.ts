@@ -8,6 +8,9 @@ export function formatHour(hour: number): string {
   return `${pad(hour)}:00`;
 }
 
+/** Shown when the browser can't give a position (denied, timed out or unavailable). */
+export const GEO_ERROR = "Can't get your location. Search a city instead.";
+
 export const DAY_OPTIONS = [
   { value: 'today', label: 'Today' },
   { value: 'tomorrow', label: 'Tomorrow' },

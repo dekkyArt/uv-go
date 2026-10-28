@@ -2,15 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { formatPlace } from '../../data/geocoding';
 import { requestPosition, yourLocationPlace } from '../../data/geolocation';
 import type { Place } from '../../data/types';
-import { BUTTON_CLASS } from '../ui';
+import { BUTTON_CLASS, GEO_ERROR } from '../ui';
 import { CitySearch } from './CitySearch';
 
 interface Props {
   place: Place | null;
   onPlace(p: Place): void;
 }
-
-const GEO_ERROR = "Can't get your location. Search a city instead.";
 
 export function LocationPicker({ place, onPlace }: Props) {
   const [editing, setEditing] = useState(false);

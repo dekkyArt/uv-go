@@ -154,10 +154,7 @@ function Placeholder() {
           // The hero's fixed pre-content height (spec 9), with its scrim under the H1.
           className="relative flex h-[300px] w-full flex-col items-center justify-center px-4 py-6 text-center text-text lg:items-start lg:text-left [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]"
         >
-          <div
-            aria-hidden="true"
-            className="hero-scrim pointer-events-none"
-          />
+          <div aria-hidden="true" className="hero-scrim pointer-events-none" />
           <h1 className="relative m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">
             {HERO_H1}
           </h1>

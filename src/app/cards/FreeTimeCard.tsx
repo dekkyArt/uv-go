@@ -38,7 +38,8 @@ const RAIN_SHOWN_FROM = 30;
  */
 const PAST_FADE = 'opacity-45';
 
-const CELL = 'px-1 align-middle first:pl-0 last:pr-0';
+// Horizontal padding is set per cell, one utility each, so no two utilities compete.
+const CELL = 'align-middle';
 
 function Row({ row, intro }: { row: FreeTimeRow; intro: boolean }) {
   const { hour } = row;
@@ -54,7 +55,7 @@ function Row({ row, intro }: { row: FreeTimeRow; intro: boolean }) {
       style={{ height: ROW_H }}
       className={hour.isPast ? 'text-text-muted' : 'text-text'}
     >
-      <td className={CELL}>
+      <td className={`${CELL} pr-1`}>
         <span
           className={`block text-[15px] leading-5 tabular-nums ${row.best ? 'font-semibold' : 'font-normal'}`}
         >
@@ -66,7 +67,7 @@ function Row({ row, intro }: { row: FreeTimeRow; intro: boolean }) {
           </span>
         )}
       </td>
-      <td className={CELL}>
+      <td className={`${CELL} px-1`}>
         <div className="flex flex-col items-center">
           <WeatherIcon
             name={weatherIcon(hour.weatherCode, hour.cloudCover, hour.isDay)}
@@ -91,7 +92,7 @@ function Row({ row, intro }: { row: FreeTimeRow; intro: boolean }) {
           <ScoreBar fill={row.fill} now={row.now} intro={intro} delay={0} className={fade} />
         )}
       </td>
-      <td className={CELL}>
+      <td className={`${CELL} pl-1`}>
         {verdict ? (
           <>
             <span

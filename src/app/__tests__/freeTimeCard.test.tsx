@@ -162,6 +162,10 @@ describe('FreeTimeCard', () => {
     const cell = within(rowOf(14)).getByText('UV 10');
     expect(cell).toHaveClass('whitespace-nowrap');
     expect(cell).toHaveClass('px-0');
+    expect(cell).not.toHaveClass('px-1');
+    const scoreCell = rowOf(14).querySelector('[data-score-bar]')!.closest('td')!;
+    expect(scoreCell).toHaveClass('px-2');
+    expect(scoreCell).not.toHaveClass('px-1');
   });
 
   it('labels the rows of the best window and bolds their time', () => {

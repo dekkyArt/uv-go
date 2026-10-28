@@ -66,7 +66,7 @@ export function Hero({
   if (state.kind === 'no-place') {
     below = (
       <>
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
           <button
             type="button"
             onClick={onUseLocation}
@@ -116,7 +116,7 @@ export function Hero({
   } else {
     below = (
       <>
-        <p className="m-0 flex items-center justify-center gap-2 text-xl font-medium leading-7">
+        <p className="m-0 flex items-center justify-center gap-2 text-xl font-medium leading-7 lg:justify-start">
           <span
             aria-hidden="true"
             data-verdict={state.best.verdict}
@@ -131,14 +131,14 @@ export function Hero({
   }
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="relative flex min-h-[300px] w-full flex-col items-center justify-center gap-2 px-4 py-6 text-center text-text [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]">
+    <div className="flex flex-col items-center gap-3 lg:items-start">
+      <div className="relative flex min-h-[300px] w-full flex-col items-center justify-center gap-2 px-4 py-6 text-center text-text lg:items-start lg:text-left [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]">
         <div
           aria-hidden="true"
           className="hero-scrim pointer-events-none absolute -inset-x-4 -inset-y-6"
         />
         {/* A size container: the big time is capped by this width as well as by the viewport. */}
-        <div className="@container relative flex w-full flex-col items-center gap-2">
+        <div className="@container relative flex w-full flex-col items-center gap-2 lg:items-start">
           <h1 className="m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">
             {HERO_H1}
           </h1>

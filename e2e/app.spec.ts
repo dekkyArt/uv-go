@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { mockApis, searchLisbon } from './mocks';
+import { expect, test, type Browser, type Page } from '@playwright/test';
+import { STORED_LISBON, mockApis, searchLisbon } from './mocks';
 
 const VERDICT = /Good|OK with protection|Not recommended/;
 const TIME_RANGE = /^\d{2}:00–\d{2}:00$/;
@@ -22,6 +22,35 @@ async function expectOneLine(page: Page) {
 function windowHours(label: string): number {
   const [start, end] = label.split('–').map((t) => Number(t.slice(0, 2)));
   return end - start;
+}
+
+const DESKTOP = { width: 1280, height: 800 };
+
+/** Page top of How it works and the H1's left edge, once the fonts have settled. */
+async function layoutMarks(page: Page): Promise<{ how: number; h1Left: number }> {
+  await page.evaluate(() => document.fonts.ready);
+  return page.evaluate(() => ({
+    how: document.querySelector('#how-it-works')!.getBoundingClientRect().top + window.scrollY,
+    h1Left: document.querySelector('h1')!.getBoundingClientRect().left,
+  }));
+}
+
+/**
+ * The server placeholder as the browser paints it before hydration: the app's scripts are
+ * blocked, the inline reserveLayout script still runs.
+ */
+async function placeholderMarks(browser: Browser, storage: Record<string, unknown>) {
+  const context = await browser.newContext({ viewport: DESKTOP });
+  await context.addInitScript((items) => {
+    for (const [key, value] of Object.entries(items))
+      window.localStorage.setItem(key, JSON.stringify(value));
+  }, storage);
+  const page = await context.newPage();
+  await page.route(/\.js$/, (route) => route.abort());
+  await page.goto('/');
+  const marks = await layoutMarks(page);
+  await context.close();
+  return marks;
 }
 
 test.describe('UV GO smoke', () => {
@@ -75,6 +104,41 @@ test.describe('UV GO smoke', () => {
     await plan.getByRole('radio', { name: '3 h' }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     expect(windowHours(await heroTime(page).innerText())).toBe(3);
+  });
+
+  test('desktop first visit: nothing below the app moves when it mounts', async ({
+    page,
+    browser,
+  }) => {
+    const before = await placeholderMarks(browser, {});
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/');
+    await expect(page.getByRole('region', { name: 'Plan' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Find a city' })).toBeVisible();
+    const after = await layoutMarks(page);
+    expect(Math.abs(after.how - before.how)).toBeLessThanOrEqual(2);
+    // The hero is left-aligned on desktop, in the placeholder too: the H1 does not slide sideways.
+    expect(Math.abs(after.h1Left - before.h1Left)).toBeLessThanOrEqual(1);
+  });
+
+  test('desktop with a stored place: nothing below the app moves from placeholder to result', async ({
+    page,
+    browser,
+  }) => {
+    const storage = { 'uvgo:location': STORED_LISBON };
+    const before = await placeholderMarks(browser, storage);
+    await page.setViewportSize(DESKTOP);
+    await page.addInitScript((place) => {
+      window.localStorage.setItem('uvgo:location', JSON.stringify(place));
+    }, STORED_LISBON);
+    await page.goto('/');
+    await expect(heroTime(page)).toHaveText(TIME_RANGE);
+    await expect(page.getByRole('region', { name: 'What to take' })).toBeVisible();
+    const after = await layoutMarks(page);
+    expect(Math.abs(after.how - before.how)).toBeLessThanOrEqual(2);
+    // Left-aligned: the big time starts where the H1 does.
+    const timeLeft = await heroTime(page).evaluate((el) => el.getBoundingClientRect().left);
+    expect(Math.abs(timeLeft - after.h1Left)).toBeLessThanOrEqual(1);
   });
 
   test('320 px with a very long city name: no horizontal scroll', async ({ page }) => {

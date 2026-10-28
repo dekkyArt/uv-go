@@ -74,7 +74,17 @@ const LAYOUT_CLASS =
 const HERO_COLUMN_CLASS = 'lg:sticky lg:top-24';
 const PANEL_CLASS = 'flex min-w-0 flex-col gap-3 lg:gap-6';
 const SPLIT_CLASS = 'flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6';
-const SIDE_CLASS = 'flex min-w-0 flex-col gap-3 lg:gap-6';
+/**
+ * What to take and Plan. On desktop it always takes the right half, even without Your free time
+ * (no place, error), and it reserves the Plan card plus one row of tiles, so the tiles arriving
+ * with a result do not move what is below. PLAN_CARD_H is the Plan card in the 310 px half column
+ * (measured: 70 px of GlassCard chrome without a subtitle, 352 px of PlanControls); a tile row is
+ * a square tile of (310 − 12) / 2 = 149 px. 422 + 24 + 149 = 595. Three or more tiles (two rows)
+ * still grow it.
+ */
+const PLAN_CARD_H_CLASS = 'h-[422px]';
+const SIDE_COLUMN_LG = 'lg:col-start-2 lg:min-h-[595px] lg:gap-6';
+const SIDE_CLASS = `flex min-w-0 flex-col gap-3 ${SIDE_COLUMN_LG}`;
 
 /** Room under the content for the fixed toolbar (spec 3.4). */
 const BOTTOM_SPACE: CSSProperties = {
@@ -92,32 +102,36 @@ const FREE_TIME_CHROME_H = 2 + 16 + 20 + 18 + 2 * 16;
 const freeTimeSkeletonHeight = (rows: number | string) =>
   `calc(${rows} * ${ROW_H}px + ${FREE_TIME_CHROME_H}px)`;
 
-function HourlySkeleton() {
+function HourlySkeleton({ className = '' }: { className?: string }) {
   return (
     <div
       aria-busy="true"
       data-skeleton=""
-      className="glass"
+      className={`glass ${className}`.trim()}
       style={{ height: HOURLY_SKELETON_H }}
     />
   );
 }
 
-function FreeTimeSkeleton({ rows }: { rows: number | string }) {
+function FreeTimeSkeleton({ rows, className = '' }: { rows: number | string; className?: string }) {
   return (
     <div
       aria-busy="true"
       data-skeleton=""
-      className="glass"
+      className={`glass ${className}`.trim()}
       style={{ height: freeTimeSkeletonHeight(rows) }}
     />
   );
 }
 
+/** Shown only once a place is stored (<html data-has-place>); the variant is more specific. */
+const WITH_PLACE = 'hidden [[data-has-place]_&]:block';
+
 /**
  * Server render and hydration (spec 9): the hero with its H1 (the LCP text, the same as the app's)
  * and, when a place is stored (<html data-has-place>, set by reserveLayout before first paint),
- * the Hourly and Your free time skeletons at their final heights, so nothing below moves.
+ * the Hourly and Your free time skeletons at their final heights, so nothing below moves. On
+ * desktop the Plan card is on the page in every state, so its column is always reserved.
  */
 function Placeholder() {
   return (
@@ -125,7 +139,7 @@ function Placeholder() {
       <div className={HERO_COLUMN_CLASS}>
         <div
           // The hero's fixed pre-content height (spec 9), with its scrim under the H1.
-          className="relative flex h-[300px] w-full flex-col items-center justify-center px-4 py-6 text-center text-text [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]"
+          className="relative flex h-[300px] w-full flex-col items-center justify-center px-4 py-6 text-center text-text lg:items-start lg:text-left [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]"
         >
           <div
             aria-hidden="true"
@@ -136,11 +150,14 @@ function Placeholder() {
           </h1>
         </div>
       </div>
-      {/* Hidden on a first visit; the data-has-place variant is more specific, so it wins. */}
-      <div className="hidden min-w-0 flex-col gap-3 lg:gap-6 [[data-has-place]_&]:flex">
-        <HourlySkeleton />
+      {/* A first visit on a phone shows no cards; desktop always has the Plan column. */}
+      <div className="hidden min-w-0 flex-col gap-3 lg:flex lg:gap-6 [[data-has-place]_&]:flex">
+        <HourlySkeleton className={WITH_PLACE} />
         <div className={SPLIT_CLASS}>
-          <FreeTimeSkeleton rows="var(--free-rows, 6)" />
+          <FreeTimeSkeleton rows="var(--free-rows, 6)" className={WITH_PLACE} />
+          <div className={`hidden min-w-0 flex-col lg:flex ${SIDE_COLUMN_LG}`}>
+            <div aria-busy="true" data-skeleton="" className={`glass ${PLAN_CARD_H_CLASS}`} />
+          </div>
         </div>
       </div>
     </div>

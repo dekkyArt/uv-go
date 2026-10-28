@@ -19,6 +19,16 @@ const LISBON_GEOCODING = {
   ],
 };
 
+/** Lisbon as the app stores it in localStorage (`uvgo:location`). */
+export const STORED_LISBON = {
+  id: 2267057,
+  name: 'Lisbon',
+  admin1: 'Lisbon',
+  country: 'Portugal',
+  lat: 38.72,
+  lon: -9.14,
+};
+
 /** 2026-10-27 10:00 in Lisbon (UTC+0), the day the fixture covers. */
 export const FIXED_NOW = new Date('2026-10-27T10:00:00Z');
 

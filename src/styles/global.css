@@ -420,19 +420,28 @@ html[data-sky-live]::before {
   }
 }
 
-/* The page shrinks back while a bottom sheet is open (see Sheet.tsx); the sheet itself sits outside [data-page]. */
-html[data-sheet-open] [data-page] {
-  transform: scale(0.94);
-  border-radius: 16px;
+/*
+ * The page shrinks back while a bottom sheet is open (see Sheet.tsx); the sheet itself sits outside
+ * [data-page]. The transition lives on the base rule so closing animates back as smoothly as
+ * opening. Only transform and clip-path move (rounded corners come from clip-path).
+ */
+[data-page] {
+  clip-path: inset(0 round 0);
   transition:
     transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    border-radius 0.45s;
+    clip-path 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-sheet-open] [data-page] {
+  transform: scale(0.94);
+  clip-path: inset(0 round 16px);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-page],
   html[data-sheet-open] [data-page] {
     transform: none;
-    border-radius: 0;
+    clip-path: none;
     transition: none;
   }
 }

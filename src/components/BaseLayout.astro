@@ -44,17 +44,19 @@ const ogImageUrl = new URL(ogImage, siteConfig.site).href;
       noindex={noindex}
     />
   </head>
-  <body class="flex min-h-screen flex-col font-sans text-text antialiased">
-    <a
-      href="#main"
-      class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2"
-    >
-      Skip to content
-    </a>
-    <Header />
-    <main id="main" class="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
-      <slot />
-    </main>
-    <Footer />
+  <body class="font-sans text-text antialiased">
+    <div data-page class="flex min-h-screen flex-col">
+      <a
+        href="#main"
+        class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2"
+      >
+        Skip to content
+      </a>
+      <Header />
+      <main id="main" class="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+        <slot />
+      </main>
+      <Footer />
+    </div>
   </body>
 </html>

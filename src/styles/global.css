@@ -420,6 +420,23 @@ html[data-sky-live]::before {
   }
 }
 
+/* The page shrinks back while a bottom sheet is open (see Sheet.tsx); the sheet itself sits outside [data-page]. */
+html[data-sheet-open] [data-page] {
+  transform: scale(0.94);
+  border-radius: 16px;
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 0.45s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-sheet-open] [data-page] {
+    transform: none;
+    border-radius: 0;
+    transition: none;
+  }
+}
+
 /*
  * Article prose (MDX content on the three article pages). Plain tokens only: text and links sit on
  * the `.sky-panel` that wraps the article, so the sky-panel contrast table above covers them.

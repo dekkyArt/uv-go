@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { ScoredHour } from '../../domain/types';
-import { KEEP_DETAILS_ATTR } from './HourStrip';
-import { FACTORS, FACTOR_LABELS, formatHour, verdictLabel } from '../ui';
+import { FACTORS, FACTOR_LABELS, KEEP_DETAILS_ATTR, formatHour, verdictLabel } from '../ui';
 
 interface Props {
   hour: ScoredHour;
@@ -58,7 +57,7 @@ export function HourDetails({ hour, onClose }: Props) {
     <section
       {...{ [KEEP_DETAILS_ATTR]: '' }}
       aria-label={`Details for ${time}`}
-      className="rounded-2xl border border-border bg-surface p-4"
+      className="glass p-4"
     >
       <div className="flex items-start justify-between gap-2">
         <div>

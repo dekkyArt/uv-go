@@ -17,10 +17,13 @@ import { roundHalfUp } from '../../domain/scoring';
 import type { ScoredHour, TimeWindow } from '../../domain/types';
 import { firstResult } from '../../motion/choreography';
 import { durations, ease, springs } from '../../motion/tokens';
-import { HOUR_STRIP_MIN_H_CLASS, VERDICT_FILL_CLASS, formatHour, verdictLabel } from '../ui';
-
-/** Marks UI that must not count as an "outside tap" for HourDetails. */
-export const KEEP_DETAILS_ATTR = 'data-keep-hour-details';
+import {
+  HOUR_STRIP_MIN_H_CLASS,
+  KEEP_DETAILS_ATTR,
+  VERDICT_FILL_CLASS,
+  formatHour,
+  verdictLabel,
+} from '../ui';
 
 interface Props {
   hours: ScoredHour[];

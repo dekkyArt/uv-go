@@ -8,6 +8,12 @@ export function formatHour(hour: number): string {
   return `${pad(hour)}:00`;
 }
 
+/** Marks UI that must not count as an "outside tap" for HourDetails. */
+export const KEEP_DETAILS_ATTR = 'data-keep-hour-details';
+
+/** Width in px of one cell of the Hourly strip (hour or sun event). */
+export const CELL_W = 56;
+
 /** Shown when the browser can't give a position (denied, timed out or unavailable). */
 export const GEO_ERROR = "Can't get your location. Search a city instead.";
 

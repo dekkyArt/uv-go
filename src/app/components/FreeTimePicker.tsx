@@ -115,7 +115,7 @@ export function FreeTimePicker({ value, onChange }: Props) {
           style={{ touchAction: 'none' }}
           className="relative h-11 cursor-pointer select-none"
         >
-          <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-surface-strong" />
+          <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-white/15" />
           {/* Full-width bar scaled from its left edge and shifted to `start`: transform only. */}
           <m.div
             aria-hidden="true"
@@ -123,7 +123,7 @@ export function FreeTimePicker({ value, onChange }: Props) {
             animate={{ x: pct(start), scaleX: (end - start) / HOURS_PER_DAY }}
             transition={springs.snappy}
             style={{ transformOrigin: 'left' }}
-            className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-text-muted"
+            className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-white/70"
           />
           {(['start', 'end'] as const).map((handle) => {
             const hour = handle === 'start' ? start : end;
@@ -148,7 +148,7 @@ export function FreeTimePicker({ value, onChange }: Props) {
                   onKeyDown={(e) => onKeyDown(e, handle)}
                   className="pointer-events-auto absolute top-0 -left-[22px] flex size-11 items-center justify-center rounded-full"
                 >
-                  <span className="size-5 rounded-full border-2 border-text bg-surface shadow" />
+                  <span className="size-[22px] rounded-full bg-white shadow-[0_1px_4px_rgb(0_0_0/0.35)]" />
                 </div>
               </m.div>
             );

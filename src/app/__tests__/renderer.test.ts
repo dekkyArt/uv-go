@@ -4,6 +4,7 @@ import { BASE_CLOUD_SPEED, skyUniforms, type SkyUniforms } from '../../domain/sk
 import {
   createRenderer,
   flashLevel,
+  meanFrameMs,
   nextFlashDelay,
   nextQuality,
   smoothStep,
@@ -58,6 +59,13 @@ describe('nextQuality', () => {
     expect(nextQuality(first, 25)).toEqual({ scale: 0.35, octaves: 2, fps: 30 });
   });
 
+  it('shrugs off one stall but steps down on sustained slow frames', () => {
+    const stalled = [...Array<number>(59).fill(16.7), 300];
+    expect(nextQuality(full, meanFrameMs(stalled))).toBe(full);
+    const slow = Array<number>(60).fill(25);
+    expect(nextQuality(full, meanFrameMs(slow))).toEqual({ scale: 0.35, octaves: 4, fps: 60 });
+  });
+
   it('keeps quality on fast frames and never goes back up', () => {
     expect(nextQuality(full, 10)).toBe(full);
     const low: Quality = { scale: 0.35, octaves: 2, fps: 30 };
@@ -101,13 +109,19 @@ describe('shader sources', () => {
 /** A WebGL context stand-in: every call succeeds; draws and uniform writes are recorded. */
 function fakeGl(patch: Record<string, unknown> = {}) {
   const draws: Record<string, number>[] = [];
+  const deleted: string[] = [];
   let frame: Record<string, number> = {};
+  const set = (name: string, v: number) => (frame[name] = v);
   const gl: Record<string, unknown> = {
     getUniformLocation: (_: unknown, name: string) => name,
     getShaderParameter: () => true,
     getProgramParameter: () => true,
-    uniform1f: (name: string, v: number) => (frame[name] = v),
-    uniform1i: (name: string, v: number) => (frame[name] = v),
+    deleteShader: () => deleted.push('shader'),
+    deleteProgram: () => deleted.push('program'),
+    uniform1f: set,
+    uniform1i: set,
+    uniform2f: set,
+    uniform3f: set,
     drawArrays: () => {
       draws.push(frame);
       frame = {};
@@ -117,7 +131,7 @@ function fakeGl(patch: Record<string, unknown> = {}) {
   const proxy = new Proxy(gl, {
     get: (target, key) => (key in target ? target[key as string] : () => ({})),
   });
-  return { gl: proxy, draws };
+  return { gl: proxy, draws, deleted };
 }
 
 function fakeCanvas(gl: unknown) {
@@ -139,9 +153,39 @@ describe('createRenderer', () => {
 
   it('returns null and warns once when the shader does not compile', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const { gl } = fakeGl({ getShaderParameter: () => false, getShaderInfoLog: () => 'ERROR' });
+    const { gl, deleted } = fakeGl({
+      getShaderParameter: () => false,
+      getShaderInfoLog: () => 'ERROR',
+    });
     expect(createRenderer(fakeCanvas(gl), { reducedMotion: false, onLost() {} })).toBeNull();
     expect(warn).toHaveBeenCalledTimes(1);
+    expect(deleted.sort()).toEqual(['program', 'shader', 'shader']);
+  });
+
+  it('returns null, warns once and frees the program when it does not link', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { gl, deleted } = fakeGl({ getProgramParameter: () => false });
+    expect(createRenderer(fakeCanvas(gl), { reducedMotion: false, onLost() {} })).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(deleted).toContain('program');
+  });
+
+  it('uploads every SkyUniforms field except thunder on each draw', () => {
+    const { gl, draws } = fakeGl();
+    const sky = createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} })!;
+    sky.setTarget(A);
+    sky.start();
+    sky.setTarget(B);
+    const expected = Object.keys(A)
+      .filter((k) => k !== 'thunder')
+      .map(uniformName);
+    expect(draws).toHaveLength(2);
+    for (const draw of draws) {
+      for (const name of [...expected, 'uTime', 'uResolution', 'uFlash', 'uOctaves']) {
+        expect(draw, name).toHaveProperty(name);
+      }
+    }
+    sky.destroy();
   });
 
   it('under reduced motion draws one still frame per target, without particles or a loop', () => {

@@ -155,14 +155,15 @@ void main() {
   }
 
   // 3. Sun: disc and core glow go to \`light\`, the only colour allowed past the cap, and only in
-  // the sun zone: the disc fades out over the last 3% above the zone line, the glow over 10%.
+  // the sun zone: the disc fades out over 3% and the glow over 10%, both ending 1% above the zone
+  // line, so the bilinear upscale of the canvas cannot carry any of it below the line.
   // The wide bloom and a faint 22-degree halo with a rainbow rim stay in the sky.
   vec2 sun = vec2(uSunPos.x * aspect, uSunPos.y);
   float d = length(p - sun);
   vec3 sunCol = vec3(1.0, 0.93, 0.8);
-  float inZone = 1.0 - smoothstep(uSunZone - 0.03, uSunZone, uv.y);
+  float inZone = 1.0 - smoothstep(uSunZone - 0.04, uSunZone - 0.01, uv.y);
   vec3 light = sunCol * (smoothstep(0.032, 0.026, d) * min(1.0, uSunIntensity * 4.0) * inZone
-    + exp(-d * 7.0) * 0.5 * uSunIntensity * (1.0 - smoothstep(uSunZone - 0.1, uSunZone, uv.y)));
+    + exp(-d * 7.0) * 0.5 * uSunIntensity * (1.0 - smoothstep(uSunZone - 0.11, uSunZone - 0.01, uv.y)));
   col += sunCol * exp(-d * 2.0) * 0.12 * uSunIntensity;
   float ring = (d - 0.22) / 0.018;
   vec3 rainbow = 0.6 + 0.4 * cos(6.2832 * ((d - 0.22) / 0.04 + vec3(0.0, 0.33, 0.67)));

@@ -61,32 +61,46 @@ export function nextQuality(q: Quality, avgFrameMs: number): Quality {
 /** Seconds until the next lightning flash: 6–14. */
 export const nextFlashDelay = (rand: () => number): number => 6 + 8 * rand();
 
+/**
+ * Mean frame interval for the quality check. Each interval counts at most MAX_DT_S, so one stall
+ * (GC, hydration) cannot drag a fast device down for good; sustained slowness still shows.
+ */
+export const meanFrameMs = (intervals: readonly number[]): number =>
+  intervals.reduce((sum, ms) => sum + Math.min(ms, MAX_DT_S * 1000), 0) / intervals.length;
+
 /** Flash brightness `age` seconds into a pulse: 0 → 1 → 0 over 0.3 s. */
 export const flashLevel = (age: number): number =>
   age > 0 && age < FLASH_S ? Math.sin((Math.PI * age) / FLASH_S) : 0;
 
 function program(gl: WebGLRenderingContext): WebGLProgram | string {
-  const shader = (type: number, src: string) => {
-    const s = gl.createShader(type);
-    if (!s) return null;
+  const vs = gl.createShader(gl.VERTEX_SHADER);
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  const prog = gl.createProgram();
+  const fail = (why: string) => {
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+    gl.deleteProgram(prog);
+    return why;
+  };
+  if (!vs || !fs || !prog) return fail('could not create the program');
+  for (const [s, src] of [
+    [vs, VERTEX_SRC],
+    [fs, FRAGMENT_SRC],
+  ] as const) {
     gl.shaderSource(s, src);
     gl.compileShader(s);
-    return s;
-  };
-  const vs = shader(gl.VERTEX_SHADER, VERTEX_SRC);
-  const fs = shader(gl.FRAGMENT_SHADER, FRAGMENT_SRC);
-  const prog = gl.createProgram();
-  if (!vs || !fs || !prog) return 'could not create the program';
-  for (const s of [vs, fs]) {
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) return `compile: ${gl.getShaderInfoLog(s)}`;
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+      return fail(`compile: ${gl.getShaderInfoLog(s)}`);
   }
   gl.attachShader(prog, vs);
   gl.attachShader(prog, fs);
   gl.bindAttribLocation(prog, 0, 'aPos');
   gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS))
+    return fail(`link: ${gl.getProgramInfoLog(prog)}`);
+  // Flagged for deletion: freed together with the program.
   gl.deleteShader(vs);
   gl.deleteShader(fs);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return `link: ${gl.getProgramInfoLog(prog)}`;
   return prog;
 }
 
@@ -208,7 +222,7 @@ export function createRenderer(
     frameMs.push(ms);
     if (frameMs.length > FRAME_WINDOW) frameMs.shift();
     if (frameMs.length < FRAME_WINDOW) return;
-    const next = nextQuality(quality, frameMs.reduce((a, b) => a + b) / FRAME_WINDOW);
+    const next = nextQuality(quality, meanFrameMs(frameMs));
     if (next !== quality) {
       quality = next;
       frameMs = [];

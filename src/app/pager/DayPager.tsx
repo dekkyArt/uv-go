@@ -84,10 +84,17 @@ function animateTo(
 ): Stoppable {
   let controls: Stoppable | null = null;
   let stopped = false;
-  void import('../../motion/features').then(({ animate }) => {
-    if (stopped) return;
-    controls = animate(value, to, { ...transition, onComplete });
-  });
+  void import('../../motion/features')
+    .then(({ animate }) => {
+      if (stopped) return;
+      controls = animate(value, to, { ...transition, onComplete });
+    })
+    .catch(() => {
+      // The features chunk did not load: snap to the end so nothing waits on this forever.
+      if (stopped) return;
+      value.set(to);
+      onComplete?.();
+    });
   return {
     stop() {
       stopped = true;
@@ -131,6 +138,9 @@ export function DayPager({ day, onDay, enabled, progress, className, children }:
   /** The x the incoming page starts from, once the day has changed after a swipe. */
   const entering = useRef<number | null>(null);
   const swiped = useRef(false);
+  const clickGuard = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** The day as last rendered, for animation callbacks that outlive a render. */
+  const dayRef = useRef(day);
 
   useEffect(
     () =>
@@ -145,6 +155,7 @@ export function DayPager({ day, onDay, enabled, progress, className, children }:
     () => () => {
       running.current?.stop();
       progressMotion.current?.stop();
+      if (clickGuard.current !== null) clearTimeout(clickGuard.current);
     },
     [],
   );
@@ -159,18 +170,25 @@ export function DayPager({ day, onDay, enabled, progress, className, children }:
     x.set(0);
   }, [enabled, x]);
 
-  // After a swipe the day has changed under the off-screen content: bring the new page in.
-  useLayoutEffect(() => {
-    const from = entering.current;
-    if (from === null) return;
-    entering.current = null;
+  /** The new page arrives from `from`, the off-screen side the old one left towards. */
+  function bringIn(from: number, forDay: Inputs['day']) {
     drive.current = null;
-    progress.set(progressOf(day));
+    progress.set(progressOf(forDay));
     x.set(from);
     running.current = animateTo(x, 0, springs.sheet, () => {
       busy.current = false;
     });
-  }, [day, x, progress]);
+  }
+
+  // After a swipe the day has changed under the off-screen content: bring the new page in.
+  useLayoutEffect(() => {
+    dayRef.current = day;
+    const from = entering.current;
+    if (from === null) return;
+    entering.current = null;
+    bringIn(from, day);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day]);
 
   // The day changed from outside (dots, arrow keys, auto-switch): the progress follows.
   useEffect(() => {
@@ -194,8 +212,8 @@ export function DayPager({ day, onDay, enabled, progress, className, children }:
   }, [day, reduced, opacity]);
 
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
-    swiped.current = false;
     if (e.pointerType === 'mouse' || busy.current || gesture.current) return;
+    swiped.current = false;
     if (e.target instanceof Element && e.target.closest('[data-hourly-strip]')) return;
     // A finger on a springing-back page takes it over where it is.
     running.current?.stop();
@@ -253,7 +271,8 @@ export function DayPager({ day, onDay, enabled, progress, className, children }:
     } catch {
       // Nothing was captured.
     }
-    setTimeout(() => {
+    if (clickGuard.current !== null) clearTimeout(clickGuard.current);
+    clickGuard.current = setTimeout(() => {
       swiped.current = false;
     }, CLICK_GUARD_MS);
 
@@ -274,13 +293,20 @@ export function DayPager({ day, onDay, enabled, progress, className, children }:
     // Off to the side it was swiped towards, then the day changes and the next page arrives.
     const dir = next === 'tomorrow' ? -1 : 1;
     running.current = animateTo(x, dir * g.width, { ...EXIT_SPRING, velocity }, () => {
-      entering.current = -dir * g.width;
-      onDay(next);
+      const from = -dir * g.width;
+      // The day may already have moved on its own (dots, auto-switch) during the exit: no render
+      // follows then, so the new page comes in from here.
+      if (dayRef.current === next) {
+        bringIn(from, next);
+      } else {
+        entering.current = from;
+        onDay(next);
+      }
     });
   }
 
   const style: MotionStyle = {
-    ...(enabled ? { x, touchAction: 'pan-y', overflowX: 'clip' } : null),
+    ...(enabled ? { x, touchAction: 'pan-y pinch-zoom', overflowX: 'clip' } : null),
     ...(reduced ? { opacity } : null),
   };
 

@@ -110,7 +110,8 @@ describe('DayPager', () => {
   it('asks for vertical scrolling only when enabled', async () => {
     const { pager } = renderPager();
     expect(pager).toHaveAttribute('data-pager-enabled', 'true');
-    expect(pager.style.touchAction).toBe('pan-y');
+    // Vertical scrolling stays native and pinch-zoom stays available (WCAG 1.4.4).
+    expect(pager.style.touchAction).toBe('pan-y pinch-zoom');
   });
 
   it('follows the content to the new day after a swipe', async () => {
@@ -161,6 +162,23 @@ describe('DayPager', () => {
     await swipe(target, -40);
     fireEvent.click(target);
     expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('comes back to rest when the day changes on its own during the exit', async () => {
+    const onDay = vi.fn();
+    const { pager, progress, rerender } = renderPager({ onDay });
+    await swipe(screen.getByTestId('content'), -40);
+    // The dots (or the auto-switch) get there first, while the page is still sliding off.
+    rerender('tomorrow');
+    // The exit (0.3 s) and the entry (0.45 s) both play out.
+    await act(() => new Promise((r) => setTimeout(r, 1500)));
+    expect(pager.style.transform).toMatch(/^(none)?$/);
+    expect(progress.get()).toBe(1);
+    expect(screen.getByTestId('content')).toHaveTextContent('tomorrow');
+
+    // Not wedged: the next swipe works.
+    await swipe(screen.getByTestId('content'), 40);
+    await waitFor(() => expect(onDay).toHaveBeenCalledWith('today'));
   });
 
   it('moves the content and the progress when the day changes from outside', async () => {

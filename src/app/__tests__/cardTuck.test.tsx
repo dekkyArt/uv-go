@@ -99,6 +99,34 @@ describe('GlassCard tuck', () => {
     await waitFor(() => expect(clip(container)).toBe('inset(56px 0 0 0 round 22px)'));
   });
 
+  it('leaves no clip on the body when tucking turns off while mounted', async () => {
+    fakeLayout({ value: -400 });
+    const { container, rerender } = render(card(true));
+    await waitFor(() => expect(clip(container)).toBe('inset(300px 0 0 0 round 22px)'));
+
+    rerender(card(false));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(body(container).getAttribute('style') ?? '').not.toContain('clip-path');
+  });
+
+  it('disconnects the size observer on cleanup', () => {
+    const disconnect = vi.fn();
+    class FakeObserver {
+      observe = vi.fn();
+      disconnect = disconnect;
+    }
+    vi.stubGlobal('ResizeObserver', FakeObserver);
+    try {
+      fakeLayout({ value: 500 });
+      const { unmount } = render(card(true));
+      expect(disconnect).not.toHaveBeenCalled();
+      unmount();
+      expect(disconnect).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('stops listening when it unmounts', () => {
     const top = { value: 500 };
     fakeLayout(top);

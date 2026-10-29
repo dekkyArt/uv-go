@@ -25,7 +25,7 @@ const clipFor = (inset: number) => `inset(${inset}px 0 0 0 round ${RADIUS}px)`;
 /**
  * The `clip-path` of a card body, bound to the page scroll. Rects are read in the scroll
  * callback itself and written to a MotionValue, so scrolling re-renders nothing. Disabled
- * (desktop, no pinned bar), it subscribes to nothing.
+ * (desktop, no pinned bar), it measures and listens to nothing, and leaves no clip on the body.
  */
 export function useCardTuck(
   cardRef: RefObject<HTMLElement | null>,
@@ -63,6 +63,9 @@ export function useCardTuck(
     return () => {
       off();
       observer?.disconnect();
+      // Motion leaves its last render on the node when the style prop goes away.
+      clipPath.set(clipFor(0));
+      body.style.clipPath = '';
     };
   }, [cardRef, enabled, scrollY, clipPath]);
 

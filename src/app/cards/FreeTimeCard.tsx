@@ -29,6 +29,8 @@ interface Props {
   intro: boolean;
   /** Place in the card order, for the intro stagger. */
   index: number;
+  /** The pinned hero bar is on screen: the body slides under it. */
+  tuck?: boolean;
 }
 
 /** Rain below this share is not worth a line. */
@@ -138,12 +140,14 @@ export function FreeTimeCard({
   activity,
   intro,
   index,
+  tuck,
 }: Props) {
   const rows = freeTimeRows(hours, freeTime, best, nowHour);
   return (
     <GlassCard
       intro={intro}
       index={index}
+      tuck={tuck}
       title="Your free time"
       subtitle={`${formatHour(freeTime.start)}–${formatHour(freeTime.end)} · ${activityLabel(activity)} · ${durationLabel(duration)}`}
     >

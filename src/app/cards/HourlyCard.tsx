@@ -23,6 +23,8 @@ interface Props {
   intro: boolean;
   /** Place in the card order, for the intro stagger. */
   index: number;
+  /** The pinned hero bar is on screen: the body slides under it. */
+  tuck?: boolean;
 }
 
 const SUBTITLES: Record<Metric, string> = {
@@ -57,6 +59,7 @@ export function HourlyCard({
   onSelect,
   intro,
   index,
+  tuck,
 }: Props) {
   const reduced = useReducedMotion() ?? false;
   const play = intro && !reduced;
@@ -145,6 +148,7 @@ export function HourlyCard({
     <GlassCard
       intro={intro}
       index={index}
+      tuck={tuck}
       layout
       title="Hourly"
       subtitle={SUBTITLES[metric]}

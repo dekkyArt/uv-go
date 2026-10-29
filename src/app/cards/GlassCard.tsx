@@ -1,7 +1,9 @@
 import { m, useReducedMotion } from 'motion/react';
-import { type ReactNode, type Ref, useId } from 'react';
+import { type ReactNode, type Ref, useId, useImperativeHandle, useRef } from 'react';
 import { cardDelay } from '../../motion/choreography';
 import { durations, springs } from '../../motion/tokens';
+import { CARD_TUCK_CLIP } from '../ui';
+import { useCardTuck } from './useCardTuck';
 
 interface GlassCardProps {
   title: string;
@@ -19,6 +21,8 @@ interface GlassCardProps {
    * must not stretch on the way needs `layout` as well.
    */
   layout?: boolean;
+  /** The pinned hero bar is on screen: the body slides under it (spec 5.4). */
+  tuck?: boolean;
 }
 
 const RADIUS = 22;
@@ -35,14 +39,20 @@ export function GlassCard({
   intro = false,
   index = 0,
   layout = false,
+  tuck = false,
 }: GlassCardProps) {
   const titleId = `card-${useId().replace(/:/g, '')}`;
   const reduced = useReducedMotion() ?? false;
   const play = intro && !reduced;
   const animateLayout = layout && !reduced;
+  const tucking = tuck && CARD_TUCK_CLIP;
+  const ownRef = useRef<HTMLElement | null>(null);
+  const clipPath = useCardTuck(ownRef, tucking);
+  // The caller's ref and the tuck's own both point at the section.
+  useImperativeHandle(cardRef, () => ownRef.current as HTMLElement);
   return (
     <m.section
-      ref={cardRef}
+      ref={ownRef}
       aria-labelledby={titleId}
       className={className ? `glass ${className}` : 'glass'}
       // The radius is repeated inline so the layout animation can keep the corners round.
@@ -78,7 +88,13 @@ export function GlassCard({
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </m.header>
-      <m.div data-card-body layout={animateLayout} transition={springs.smooth} className="p-4">
+      <m.div
+        data-card-body
+        layout={animateLayout}
+        transition={springs.smooth}
+        className="p-4"
+        style={tucking ? { clipPath } : undefined}
+      >
         {children}
       </m.div>
     </m.section>

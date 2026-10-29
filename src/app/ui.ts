@@ -28,6 +28,12 @@ export const DAY_OPTIONS = [
   { value: 'tomorrow', label: 'Tomorrow' },
 ] as const;
 
+/**
+ * Card bodies slide under the pinned hero bar by a scroll-bound `clip-path` (spec 5.4). Turn off if
+ * scrolling measures below 50 fps on a device: only the sticky headers are left.
+ */
+export const CARD_TUCK_CLIP = true;
+
 /** Height in px the bottom toolbar occupies: 48 px buttons plus 12 px above and below. */
 export const TOOLBAR_H = 72;
 

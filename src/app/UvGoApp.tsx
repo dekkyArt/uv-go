@@ -281,6 +281,9 @@ function App() {
     />
   );
 
+  // The sticky card headers sit below the pinned bar, which exists on a phone with a result.
+  const barShown = !isDesktop && hero.kind === 'result';
+
   // Cards follow the hero's state (spec 4.8): skeletons while loading, nothing without a place or
   // after an error, What to take only with a result.
   let hourlyCard = null;
@@ -301,6 +304,7 @@ function App() {
         onSelect={(hour) => dispatch({ type: 'selectHour', hour })}
         intro={playIntro}
         index={0}
+        tuck={barShown}
       />
     );
     freeTimeCard = (
@@ -313,6 +317,7 @@ function App() {
         activity={inputs.activity}
         intro={playIntro}
         index={1}
+        tuck={barShown}
       />
     );
     if (best !== null) {
@@ -327,8 +332,6 @@ function App() {
     }
   }
 
-  // The sticky card headers sit below the pinned bar, which exists on a phone with a result.
-  const barShown = !isDesktop && hero.kind === 'result';
   const rootStyle = {
     ...BOTTOM_SPACE,
     '--hero-collapsed-h': `${barShown ? COLLAPSED_H : 0}px`,

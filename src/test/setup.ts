@@ -25,6 +25,9 @@ if (typeof window !== 'undefined') {
     pendingFrames.delete(handle);
     realClearTimeout(handle);
   };
+  // jsdom has no canvas: answer like a browser without WebGL instead of logging "Not
+  // implemented". The live sky then keeps the CSS sky; tests that need a context stub their own.
+  HTMLCanvasElement.prototype.getContext = () => null;
   // A frame still queued when the file ends (layout projection after the last unmount) would run
   // after jsdom is torn down and throw "document is not defined" outside any test.
   afterAll(() => {

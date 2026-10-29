@@ -6,7 +6,7 @@
 //             Astro island entries (component-url / renderer-url) and every
 //             chunk they import statically.
 //   lazy    = chunks reachable only through dynamic import() (lazy domMax
-//             features, lazy SkyLayer).
+//             features, lazy SkyCanvas).
 // Only the initial JS is gated (130,000 B for `/`, 2,000 B for other pages, gzip). The lazy and
 // total columns are informational and not budgeted. Exits 1 when initial JS overruns.
 import { gzipSync } from 'node:zlib';

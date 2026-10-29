@@ -26,6 +26,22 @@ function windowHours(label: string): number {
 
 const DESKTOP = { width: 1280, height: 800 };
 
+/**
+ * Warnings and errors that concern the sky. Headless Chromium composites in software and reads
+ * the WebGL canvas back every frame, which its GL driver reports as a performance message; that
+ * comes from the test browser, not from the page, and is left out.
+ */
+function skyConsole(page: Page): string[] {
+  const seen: string[] = [];
+  page.on('console', (msg) => {
+    if (msg.type() !== 'warning' && msg.type() !== 'error') return;
+    const text = msg.text();
+    if (/GL Driver Message .*GPU stall due to ReadPixels/.test(text)) return;
+    if (/sky|webgl|shader/i.test(text)) seen.push(text);
+  });
+  return seen;
+}
+
 /** Page top of How it works and the H1's left edge, once the fonts have settled. */
 async function layoutMarks(page: Page): Promise<{ how: number; h1Left: number }> {
   await page.evaluate(() => document.fonts.ready);
@@ -183,6 +199,33 @@ test.describe('UV GO smoke', () => {
       expect(box.right).toBeLessThanOrEqual(320);
       expect(box.scrollWidth).toBeLessThanOrEqual(box.width);
     }
+  });
+
+  test('the live sky draws with WebGL and stays quiet in the console', async ({ page }) => {
+    const noise = skyConsole(page);
+    await page.goto('/');
+    await searchLisbon(page);
+    await expect(heroTime(page)).toHaveText(TIME_RANGE);
+
+    const sky = page.locator('canvas.sky-canvas');
+    await expect(sky).toHaveAttribute('data-ready', '');
+    await expect(page.locator('html')).toHaveAttribute('data-sky-live', '');
+    expect(await sky.evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
+    // The glass is tinted from the live sky.
+    expect(
+      await page.evaluate(() => document.documentElement.style.getPropertyValue('--glass-rgb')),
+    ).not.toBe('');
+    expect(noise).toEqual([]);
+  });
+
+  test('reduced motion: the sky draws one still frame', async ({ page }) => {
+    const noise = skyConsole(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    await searchLisbon(page);
+    await expect(heroTime(page)).toHaveText(TIME_RANGE);
+    await expect(page.locator('canvas.sky-canvas')).toHaveAttribute('data-ready', '');
+    expect(noise).toEqual([]);
   });
 
   test('geolocation denied shows the fallback message', async ({ browser }) => {

@@ -38,20 +38,25 @@ function useDeviceClock(): DeviceClock {
   return clock;
 }
 
+type Day = AppState['inputs']['day'];
+
+/** `result` and `selectedHour` belong to the active day; the other day goes by the clock alone. */
 function refFor(
   state: AppState,
   result: EvaluationResult | null,
   now: NowLocal | null,
   device: DeviceClock,
+  which: Day = state.inputs.day,
 ): SkyRef {
   const forecast = state.forecast.status === 'success' ? state.forecast.forecast : null;
-  const day = forecast?.days[state.inputs.day === 'today' ? 0 : 1] ?? null;
+  const day = forecast?.days[which === 'today' ? 0 : 1] ?? null;
   if (day === null) return { refHour: device.hour, day: null, deviceFallback: true };
 
+  const active = which === state.inputs.day;
   let refHour: number;
-  if (state.selectedHour !== null) refHour = state.selectedHour;
-  else if (result?.best) refHour = result.best.startHour;
-  else if (state.inputs.day === 'today' && now !== null) refHour = now.hour;
+  if (active && state.selectedHour !== null) refHour = state.selectedHour;
+  else if (active && result?.best) refHour = result.best.startHour;
+  else if (which === 'today' && now !== null) refHour = now.hour;
   else refHour = TOMORROW_REF_HOUR;
   return { refHour, day, deviceFallback: false };
 }
@@ -69,16 +74,10 @@ export function useSkyRef(
 }
 
 /**
- * Sky for the page: the forecast hour's sky, or (no forecast) the article sky of the device time.
+ * Sky for one day: the forecast hour's sky, or (no forecast) the article sky of the device time.
  * That fallback phase is the one SkyScript puts on <html>, so the live layer takes over unchanged.
  */
-export function useSky(
-  state: AppState,
-  result: EvaluationResult | null,
-  now: NowLocal | null,
-): SkyState {
-  const device = useDeviceClock();
-  const { refHour, day, deviceFallback } = refFor(state, result, now, device);
+function useDaySky({ refHour, day, deviceFallback }: SkyRef, device: DeviceClock): SkyState {
   return useMemo(() => {
     if (!deviceFallback && day !== null) return skyState(refHour, day);
     const { sunrise, sunset } = skyConfig.articleFallback;
@@ -92,4 +91,19 @@ export function useSky(
       sunPosition: sunPosition(minutes, sunrise, sunset, true),
     };
   }, [refHour, day, deviceFallback, device.hour, device.minute]);
+}
+
+/**
+ * The skies of Today and Tomorrow, so the live sky can follow a swipe between them. The active
+ * day's sky follows its selected hour and best window; the other day's, its clock hour (spec 9.3).
+ */
+export function useSkyPair(
+  state: AppState,
+  result: EvaluationResult | null,
+  now: NowLocal | null,
+): { today: SkyState; tomorrow: SkyState } {
+  const device = useDeviceClock();
+  const today = useDaySky(refFor(state, result, now, device, 'today'), device);
+  const tomorrow = useDaySky(refFor(state, result, now, device, 'tomorrow'), device);
+  return useMemo(() => ({ today, tomorrow }), [today, tomorrow]);
 }

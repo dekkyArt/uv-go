@@ -33,7 +33,7 @@ import { useGeolocate } from './hooks/useGeolocate';
 import { useIsDesktop } from './hooks/useIsDesktop';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useNow } from './hooks/useNow';
-import { useSky } from './hooks/useSkyRef';
+import { useSkyPair } from './hooks/useSkyRef';
 import { DayPager } from './pager/DayPager';
 import { CitiesSheet } from './sheet/CitiesSheet';
 import { Sheet } from './sheet/Sheet';
@@ -43,8 +43,8 @@ import { DAY_OPTIONS, DAY_PANEL_ID, ROW_H, TOOLBAR_H, verdictLabel } from './ui'
 
 type StoredInputs = Pick<Inputs, 'freeTime' | 'duration' | 'activity'>;
 
-/** The live sky is its own chunk: the CSS phase gradient paints first, the animated layer follows. */
-const SkyLayer = lazy(() => import('./components/SkyLayer'));
+/** The live sky is its own chunk: the CSS phase gradient paints first, the WebGL sky follows. */
+const SkyCanvas = lazy(() => import('./sky/SkyCanvas'));
 
 const noopSubscribe = () => () => {};
 
@@ -231,7 +231,7 @@ function App() {
 
   // The first-result choreography plays once per place and day; input changes only recalculate.
   const reduced = useReducedMotion() ?? false;
-  const sky = useSky(state, evaluation, now);
+  const sky = useSkyPair(state, evaluation, now);
   const introKey =
     place === null || evaluation === null
       ? null
@@ -349,7 +349,12 @@ function App() {
     <div className={LAYOUT_CLASS} style={rootStyle}>
       {/* Fixed and behind everything: not a grid item, so it takes no part in the layout. */}
       <Suspense fallback={null}>
-        <SkyLayer sky={sky} reducedMotion={reduced} />
+        <SkyCanvas
+          today={sky.today}
+          tomorrow={sky.tomorrow}
+          progress={dayProgress}
+          reducedMotion={reduced}
+        />
       </Suspense>
 
       <p aria-live="polite" className="sr-only">

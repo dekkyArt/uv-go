@@ -162,12 +162,12 @@ void main() {
   float d = length(p - sun);
   vec3 sunCol = vec3(1.0, 0.93, 0.8);
   float inZone = 1.0 - smoothstep(uSunZone - 0.04, uSunZone - 0.01, uv.y);
-  vec3 light = sunCol * (smoothstep(0.032, 0.026, d) * min(1.0, uSunIntensity * 4.0) * inZone
-    + exp(-d * 7.0) * 0.5 * uSunIntensity * (1.0 - smoothstep(uSunZone - 0.11, uSunZone - 0.01, uv.y)));
-  col += sunCol * exp(-d * 2.0) * 0.12 * uSunIntensity;
+  vec3 light = sunCol * (smoothstep(0.036, 0.016, d) * min(1.0, uSunIntensity * 4.0) * inZone
+    + exp(-d * 14.0) * 0.75 * uSunIntensity * (1.0 - smoothstep(uSunZone - 0.11, uSunZone - 0.01, uv.y)));
+  col += sunCol * exp(-d * 3.0) * 0.22 * uSunIntensity;
   float ring = (d - 0.22) / 0.018;
   vec3 rainbow = 0.6 + 0.4 * cos(6.2832 * ((d - 0.22) / 0.04 + vec3(0.0, 0.33, 0.67)));
-  col += rainbow * exp(-ring * ring) * 0.05 * uSunIntensity;
+  col += rainbow * exp(-ring * ring) * 0.07 * uSunIntensity;
 
   // 3. Moon: a soft, slightly mottled disc with a cool glow.
   float md = length(p - MOON * vec2(aspect, 1.0));
@@ -177,15 +177,19 @@ void main() {
   // 4. Clouds: domain-warped fbm drifting with the wind, lit up to the cap from the sun side,
   // darkened by uCloudDark at their thick cores, brightened by lightning. They hide the sun.
   if (uCloudCover > 0.001) {
-    HI vec2 cp = p * vec2(1.5, 3.0) + vec2(uDrift * 2.0, 0.0);
+    // A heavy cover greys the whole sky first, so its gaps are never a saturated blue.
+    col = mix(col, vec3(dot(col, vec3(0.299, 0.587, 0.114))) * vec3(0.94, 0.98, 1.08),
+      uCloudCover * uCloudCover * 0.6);
+    HI vec2 cp = p * vec2(1.2, 3.6) + vec2(uDrift * 2.0, 0.0);
     float n = fbm(cp + 0.6 * fbm(cp + vec2(0.0, uDrift)));
-    // n is roughly normal around 0.5 (sd 0.1): this edge makes the covered share ~ uCloudCover.
-    float edge = mix(0.6, 0.22, uCloudCover);
-    float density = smoothstep(edge, edge + 0.16, n);
+    // n is roughly normal around 0.5: this edge makes the covered share ~ uCloudCover.
+    float edge = mix(0.6, 0.14, uCloudCover);
+    // Light cover stays thin and see-through; heavy cover closes up.
+    float density = smoothstep(edge, edge + 0.2, n) * mix(0.65, 1.0, uCloudCover);
     float core = smoothstep(edge, edge + 0.35, n);
-    vec3 lit = mix(vec3(0.2, 0.23, 0.3), capGrey * vec3(0.98, 1.0, 1.04), day);
+    vec3 lit = mix(vec3(0.2, 0.23, 0.3), capGrey * vec3(0.95, 1.0, 1.08), day);
     vec3 cloud = mix(lit, lit * 0.42, uCloudDark * (0.4 + 0.6 * core));
-    cloud = mix(cloud, col, 0.18);
+    cloud = mix(cloud, col, 0.3);
     cloud += vec3(1.0, 0.88, 0.7) * exp(-d * 3.5) * uSunIntensity * (1.0 - core) * 0.35;
     cloud += vec3(0.85, 0.88, 1.0) * uFlash * (0.5 + 0.5 * n);
     col = mix(col, cloud, density);

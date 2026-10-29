@@ -1,5 +1,7 @@
+import { m } from 'motion/react';
 import { useRef, type KeyboardEvent } from 'react';
 import type { Inputs } from '../../domain/types';
+import { springs } from '../../motion/tokens';
 import { DAY_OPTIONS } from '../ui';
 
 interface Props {
@@ -9,7 +11,10 @@ interface Props {
   panelId: string;
 }
 
-/** Two dots (Today / Tomorrow) as a tablist. Each tab is a 44 px target around an 8 px dot. */
+/**
+ * Two dots (Today / Tomorrow) as a tablist. Each tab is a 44 px target around an 8 px dot; the
+ * selected one is a 16 px pill that slides from one tab to the other.
+ */
 export function DayDots({ day, onDay, panelId }: Props) {
   const tabs = useRef(new Map<Inputs['day'], HTMLButtonElement>());
 
@@ -47,10 +52,16 @@ export function DayDots({ day, onDay, panelId }: Props) {
             onClick={() => onDay(o.value)}
             className="flex size-11 items-center justify-center rounded-full"
           >
-            <span
-              aria-hidden="true"
-              className={`block size-2 rounded-full ${selected ? 'bg-white' : 'bg-white/40'}`}
-            />
+            {selected ? (
+              <m.span
+                aria-hidden="true"
+                layoutId="day-dot"
+                transition={springs.snappy}
+                className="block h-2 w-4 rounded-full bg-white"
+              />
+            ) : (
+              <span aria-hidden="true" className="block size-2 rounded-full bg-white/40" />
+            )}
           </button>
         );
       })}

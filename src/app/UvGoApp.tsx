@@ -10,7 +10,7 @@ import {
   type CSSProperties,
   type RefObject,
 } from 'react';
-import { useReducedMotion } from 'motion/react';
+import { useMotionValue, useReducedMotion } from 'motion/react';
 import { loadInputs, loadPlace, saveInputs, savePlace } from '../data/storage';
 import type { Place } from '../data/types';
 import { evaluate } from '../domain/evaluate';
@@ -31,8 +31,10 @@ import { useFirstResult } from './hooks/useFirstResult';
 import { useForecastLoader } from './hooks/useForecastLoader';
 import { useGeolocate } from './hooks/useGeolocate';
 import { useIsDesktop } from './hooks/useIsDesktop';
+import { useMediaQuery } from './hooks/useMediaQuery';
 import { useNow } from './hooks/useNow';
 import { useSky } from './hooks/useSkyRef';
+import { DayPager } from './pager/DayPager';
 import { CitiesSheet } from './sheet/CitiesSheet';
 import { Sheet } from './sheet/Sheet';
 import { initialState, isForecastStale, reducer } from './state';
@@ -74,6 +76,8 @@ export default function UvGoApp() {
  */
 const LAYOUT_CLASS =
   'flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(320px,4fr)_8fr] lg:items-start lg:gap-6';
+/** The pager takes the whole row and lays out the hero and the day panel just as the root would. */
+const PAGER_CLASS = `${LAYOUT_CLASS} lg:col-span-full`;
 const HERO_COLUMN_CLASS = 'lg:sticky lg:top-24';
 const PANEL_CLASS = 'flex min-w-0 flex-col gap-3 lg:gap-6';
 const SPLIT_CLASS = 'flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6';
@@ -238,6 +242,10 @@ function App() {
   const isDesktop = useIsDesktop();
   // On a phone the hero folds into a pinned bar as the page scrolls; on desktop it stays put.
   const collapse = useHeroCollapse(!isDesktop);
+  // Touch devices swipe between the days; 0 is Today, 1 is Tomorrow (the sky reads it).
+  const coarsePointer = useMediaQuery('(pointer: coarse)');
+  const swipeEnabled = coarsePointer && !reduced && !isDesktop;
+  const dayProgress = useMotionValue(inputs.day === 'tomorrow' ? 1 : 0);
   const [planOpen, setPlanOpen] = useState(false);
   if (isDesktop && planOpen) setPlanOpen(false);
   const [citiesOpen, setCitiesOpen] = useState(false);
@@ -348,21 +356,45 @@ function App() {
         {announcement}
       </p>
 
-      <div className={HERO_COLUMN_CLASS}>
-        <Hero
-          state={hero}
-          locating={locating}
-          geoError={geoError}
-          onUseLocation={locate}
-          onFindCity={() => openCities(true)}
-          onRetry={() => dispatch({ type: 'retry' })}
-          onShowTomorrow={() => dispatch({ type: 'setDay', day: 'tomorrow' })}
-          notice={state.autoSwitchNotice}
-          intro={playIntro}
-          collapse={collapse}
-          findCityRef={findCityRef}
-        />
-      </div>
+      <DayPager
+        day={inputs.day}
+        onDay={(day) => dispatch({ type: 'setDay', day })}
+        enabled={swipeEnabled}
+        progress={dayProgress}
+        className={PAGER_CLASS}
+      >
+        <div className={HERO_COLUMN_CLASS}>
+          <Hero
+            state={hero}
+            locating={locating}
+            geoError={geoError}
+            onUseLocation={locate}
+            onFindCity={() => openCities(true)}
+            onRetry={() => dispatch({ type: 'retry' })}
+            onShowTomorrow={() => dispatch({ type: 'setDay', day: 'tomorrow' })}
+            notice={state.autoSwitchNotice}
+            intro={playIntro}
+            collapse={collapse}
+            findCityRef={findCityRef}
+          />
+        </div>
+        <div id={DAY_PANEL_ID} role="tabpanel" aria-label={dayLabel} className={PANEL_CLASS}>
+          {hourlyCard}
+          {(freeTimeCard !== null || takeTiles !== null || isDesktop) && (
+            <div className={SPLIT_CLASS}>
+              {freeTimeCard}
+              {(takeTiles !== null || isDesktop) && (
+                <div className={SIDE_CLASS}>
+                  {takeTiles}
+                  {isDesktop && <GlassCard title="Plan">{planControls}</GlassCard>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </DayPager>
+
+      {/* Fixed, so it stays out of the pager: a transformed ancestor would re-anchor it. */}
       {barShown && hero.kind === 'result' && (
         <CollapsedBar
           place={placeTitle(hero.place).name}
@@ -371,21 +403,6 @@ function App() {
           opacity={collapse.barOpacity}
         />
       )}
-
-      <div id={DAY_PANEL_ID} role="tabpanel" aria-label={dayLabel} className={PANEL_CLASS}>
-        {hourlyCard}
-        {(freeTimeCard !== null || takeTiles !== null || isDesktop) && (
-          <div className={SPLIT_CLASS}>
-            {freeTimeCard}
-            {(takeTiles !== null || isDesktop) && (
-              <div className={SIDE_CLASS}>
-                {takeTiles}
-                {isDesktop && <GlassCard title="Plan">{planControls}</GlassCard>}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
       <Toolbar
         day={inputs.day}

@@ -164,6 +164,8 @@ export function HourlyCard({
       <m.div
         ref={scroller}
         {...{ [KEEP_DETAILS_ATTR]: '' }}
+        // The day pager leaves a gesture that starts on the strip to the strip.
+        data-hourly-strip=""
         layout={!reduced}
         transition={springs.smooth}
         className="-mx-4 snap-x snap-mandatory scroll-px-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"

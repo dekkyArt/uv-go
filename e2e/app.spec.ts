@@ -62,7 +62,8 @@ test.describe('UV GO smoke', () => {
     await page.goto('/');
     await searchLisbon(page);
 
-    await expect(page.getByText('Lisbon', { exact: true })).toBeVisible();
+    // The hero's title; the pinned bar (aria-hidden) repeats the name in a span.
+    await expect(page.locator('p', { hasText: /^Lisbon$/ })).toBeVisible();
     await expect(heroTime(page)).toHaveText(TIME_RANGE);
     await expect(page.getByText(VERDICT).first()).toBeVisible();
     const before = await heroTime(page).innerText();

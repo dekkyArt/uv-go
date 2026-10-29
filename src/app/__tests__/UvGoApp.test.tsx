@@ -229,7 +229,7 @@ describe('UvGoApp', () => {
     expect(await screen.findByText('09:00–17:00 · Active · 3 h')).toBeInTheDocument();
     expect(heroTime()?.textContent).toMatch(/^\d{2}:00–\d{2}:00$/);
     expect(windowHours(heroTime()!.textContent!)).toBe(3);
-    expect(screen.getByText('Lisbon')).toBeInTheDocument();
+    expect(screen.getByText('Lisbon', { selector: 'p' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Find a city' })).not.toBeInTheDocument();
   });
 
@@ -350,6 +350,40 @@ describe('UvGoApp', () => {
       vi.advanceTimersByTime(3 * 60_000);
     });
     expect(forecastCalls()).toHaveLength(2);
+  });
+
+  describe('hero collapse', () => {
+    const bar = () => document.querySelector('[data-collapsed-bar]');
+    const rootVar = () =>
+      (document.querySelector('[data-page] > div') as HTMLElement).style.getPropertyValue(
+        '--hero-collapsed-h',
+      );
+
+    it('phone: a pinned bar with the result, and the sticky headers sit below it', async () => {
+      mockMatchMedia(false);
+      storePlace();
+      renderApp();
+      await findHeroTime('18:00–19:00');
+      expect(bar()).toHaveTextContent('Lisbon · 18:00–19:00 | Good');
+      expect(bar()).toHaveAttribute('aria-hidden', 'true');
+      expect(rootVar()).toBe('56px');
+    });
+
+    it('phone: no bar without a result', () => {
+      mockMatchMedia(false);
+      renderApp();
+      expect(bar()).toBeNull();
+      expect(rootVar()).toBe('0px');
+    });
+
+    it('desktop: no bar and no offset', async () => {
+      mockMatchMedia(true);
+      storePlace();
+      renderApp();
+      await findHeroTime('18:00–19:00');
+      expect(bar()).toBeNull();
+      expect(rootVar()).toBe('0px');
+    });
   });
 
   describe('desktop', () => {

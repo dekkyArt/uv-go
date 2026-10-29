@@ -38,3 +38,22 @@ for (const path of PAGES) {
     ).toEqual([]);
   });
 }
+
+test('no serious or critical a11y violations with the hero folded into the pinned bar', async ({
+  page,
+}) => {
+  await mockApis(page);
+  await page.goto('/');
+  await searchLisbon(page);
+  await expect(page.locator('[data-hero-time]')).toHaveText(/^\d{2}:00–\d{2}:00$/);
+  await settleAnimations(page);
+
+  await page.evaluate(() => window.scrollTo(0, 200));
+  const bar = page.locator('[data-collapsed-bar]');
+  await expect(bar).toHaveCSS('opacity', '1');
+  await expect(bar).toHaveText(/^Lisbon · \d{2}:00–\d{2}:00 \| (Good|OK|Avoid)$/);
+
+  const { violations } = await new AxeBuilder({ page }).analyze();
+  const blocking = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+  expect(blocking.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) }))).toEqual([]);
+});

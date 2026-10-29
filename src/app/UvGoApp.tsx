@@ -23,7 +23,10 @@ import { HourlyCard } from './cards/HourlyCard';
 import { PlanControls } from './cards/PlanControls';
 import { TakeTiles } from './cards/TakeTiles';
 import { HERO_H1, Hero } from './hero/Hero';
+import { CollapsedBar } from './hero/CollapsedBar';
 import { heroState } from './hero/heroState';
+import { placeTitle } from './hero/heroText';
+import { COLLAPSED_H, useHeroCollapse } from './hero/useHeroCollapse';
 import { useFirstResult } from './hooks/useFirstResult';
 import { useForecastLoader } from './hooks/useForecastLoader';
 import { useGeolocate } from './hooks/useGeolocate';
@@ -233,6 +236,8 @@ function App() {
 
   // The Plan sheet exists only below 1024 px; past it the Plan card is on the page instead.
   const isDesktop = useIsDesktop();
+  // On a phone the hero folds into a pinned bar as the page scrolls; on desktop it stays put.
+  const collapse = useHeroCollapse(!isDesktop);
   const [planOpen, setPlanOpen] = useState(false);
   if (isDesktop && planOpen) setPlanOpen(false);
   const [citiesOpen, setCitiesOpen] = useState(false);
@@ -322,8 +327,15 @@ function App() {
     }
   }
 
+  // The sticky card headers sit below the pinned bar, which exists on a phone with a result.
+  const barShown = !isDesktop && hero.kind === 'result';
+  const rootStyle = {
+    ...BOTTOM_SPACE,
+    '--hero-collapsed-h': `${barShown ? COLLAPSED_H : 0}px`,
+  } as CSSProperties;
+
   return (
-    <div className={LAYOUT_CLASS} style={BOTTOM_SPACE}>
+    <div className={LAYOUT_CLASS} style={rootStyle}>
       {/* Fixed and behind everything: not a grid item, so it takes no part in the layout. */}
       <Suspense fallback={null}>
         <SkyLayer sky={sky} reducedMotion={reduced} />
@@ -344,9 +356,18 @@ function App() {
           onShowTomorrow={() => dispatch({ type: 'setDay', day: 'tomorrow' })}
           notice={state.autoSwitchNotice}
           intro={playIntro}
+          collapse={collapse}
           findCityRef={findCityRef}
         />
       </div>
+      {barShown && hero.kind === 'result' && (
+        <CollapsedBar
+          place={placeTitle(hero.place).name}
+          label={hero.best.label}
+          verdict={hero.best.verdict}
+          opacity={collapse.barOpacity}
+        />
+      )}
 
       <div id={DAY_PANEL_ID} role="tabpanel" aria-label={dayLabel} className={PANEL_CLASS}>
         {hourlyCard}

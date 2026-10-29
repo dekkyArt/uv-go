@@ -1,4 +1,4 @@
-import { m, useReducedMotion, type TargetAndTransition } from 'motion/react';
+import { m, useReducedMotion, useTransform, type TargetAndTransition } from 'motion/react';
 import type { ReactNode, Ref } from 'react';
 import type { Place } from '../../data/types';
 import type { DurationMin, EmptyReason, TimeWindow } from '../../domain/types';
@@ -8,6 +8,7 @@ import { durations, springs } from '../../motion/tokens';
 import { BUTTON_CLASS, durationLabel, GEO_ERROR, VERDICT_FILL_CLASS, verdictLabel } from '../ui';
 import { NumericRoll } from '../components/NumericRoll';
 import { placeTitle } from './heroText';
+import type { HeroCollapse } from './useHeroCollapse';
 
 export const HERO_H1 = 'Know the best time to go outside';
 
@@ -38,6 +39,8 @@ interface HeroProps {
   notice: boolean;
   /** The first-result choreography is playing: the best time and the verdict come in. */
   intro: boolean;
+  /** Scroll-bound values that fold the result into the pinned bar; absent, nothing folds. */
+  collapse?: HeroCollapse;
   findCityRef?: Ref<HTMLButtonElement>;
 }
 
@@ -92,12 +95,17 @@ export function Hero({
   onShowTomorrow,
   notice,
   intro,
+  collapse,
   findCityRef,
 }: HeroProps) {
   const reduced = useReducedMotion() ?? false;
   const play = intro && !reduced && state.kind === 'result';
   const press = usePress();
   const title = state.kind === 'no-place' ? null : placeTitle(state.place);
+  // Only a result folds: the other states carry buttons that must stay on the page.
+  const fold = state.kind === 'result' ? collapse : undefined;
+  // The scrim goes with the hero: once the bar has taken over, no empty dark box is left behind.
+  const scrimOpacity = useTransform(() => 1 - (fold?.barOpacity.get() ?? 0));
   const bigTime =
     state.kind === 'result' ? state.best.label : state.kind === 'empty' ? '—' : '--:--';
 
@@ -162,23 +170,30 @@ export function Hero({
   } else {
     below = (
       <>
-        <m.p
-          initial={play ? HIDDEN : false}
-          animate={play ? comeIn(firstResult.heroIn + firstResult.verdictLag) : REST}
-          className="m-0 flex items-center justify-center gap-2 text-xl font-medium leading-7 lg:justify-start"
-        >
-          <span
-            aria-hidden="true"
-            data-verdict={state.best.verdict}
-            className={`size-2.5 shrink-0 rounded-full ${VERDICT_FILL_CLASS[state.best.verdict]}`}
-          />
-          <span>{`${verdictLabel(state.best.verdict)} · ${durationLabel(state.duration)}`}</span>
-        </m.p>
-        {state.reason ? <p className={SECONDARY_LINE}>{state.reason}</p> : null}
+        {/* The intro animates the line's own opacity, so the scroll fade goes on a wrapper. */}
+        <m.div style={{ opacity: fold?.eyebrowOpacity }}>
+          <m.p
+            initial={play ? HIDDEN : false}
+            animate={play ? comeIn(firstResult.heroIn + firstResult.verdictLag) : REST}
+            className="m-0 flex items-center justify-center gap-2 text-xl font-medium leading-7 lg:justify-start"
+          >
+            <span
+              aria-hidden="true"
+              data-verdict={state.best.verdict}
+              className={`size-2.5 shrink-0 rounded-full ${VERDICT_FILL_CLASS[state.best.verdict]}`}
+            />
+            <span>{`${verdictLabel(state.best.verdict)} · ${durationLabel(state.duration)}`}</span>
+          </m.p>
+        </m.div>
+        {state.reason ? (
+          <m.p style={{ opacity: fold?.detailsOpacity }} className={SECONDARY_LINE}>
+            {state.reason}
+          </m.p>
+        ) : null}
         {state.nowLine ? (
-          <p className={SECONDARY_LINE}>
+          <m.p style={{ opacity: fold?.detailsOpacity }} className={SECONDARY_LINE}>
             <NumericRoll value={state.nowLine} />
-          </p>
+          </m.p>
         ) : null}
       </>
     );
@@ -187,12 +202,19 @@ export function Hero({
   return (
     <div className="flex flex-col items-center gap-3 lg:items-start">
       <div className="relative flex min-h-[300px] w-full flex-col items-center justify-center gap-2 px-4 py-6 text-center text-text lg:items-start lg:text-left [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]">
-        <div aria-hidden="true" className="hero-scrim pointer-events-none" />
+        <m.div
+          aria-hidden="true"
+          style={{ opacity: scrimOpacity }}
+          className="hero-scrim pointer-events-none"
+        />
         {/* A size container: the big time is capped by this width as well as by the viewport. */}
         <div className="@container relative flex w-full flex-col items-center gap-2 lg:items-start">
-          <h1 className="m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">
+          <m.h1
+            style={{ opacity: fold?.eyebrowOpacity }}
+            className="m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]"
+          >
             {HERO_H1}
-          </h1>
+          </m.h1>
           <p className="m-0 max-w-full break-words text-[32px] font-normal leading-10 lg:text-[40px] lg:leading-[48px]">
             {title ? (
               <>
@@ -203,23 +225,30 @@ export function Hero({
               'Choose a place'
             )}
           </p>
-          <m.p
-            data-hero-time
-            initial={play ? HIDDEN : false}
-            animate={
-              play
-                ? comeIn(firstResult.heroIn)
-                : state.kind === 'loading' && !reduced
-                  ? PULSE
-                  : REST
-            }
-            // "15:00–16:00" is about 5.5em wide in SF Pro and 6em in Inter: 16cqi keeps it on one
-            // line in the hero's own width (a 320 px phone, the desktop column), where 16vw would not.
-            className="tabular m-0 whitespace-nowrap text-[length:min(16vw,104px,16cqi)] font-extralight leading-none tracking-[-0.02em]"
+          {/* The scroll transform lives here: the intro animates the time's own y. */}
+          <m.div
+            data-hero-collapse
+            style={{ scale: fold?.timeScale, y: fold?.timeY }}
+            className="origin-top"
           >
-            {/* A fresh roll per kind: "--:--" turning into the first result is the intro's job. */}
-            <NumericRoll key={state.kind} value={bigTime} />
-          </m.p>
+            <m.p
+              data-hero-time
+              initial={play ? HIDDEN : false}
+              animate={
+                play
+                  ? comeIn(firstResult.heroIn)
+                  : state.kind === 'loading' && !reduced
+                    ? PULSE
+                    : REST
+              }
+              // "15:00–16:00" is about 5.5em wide in SF Pro and 6em in Inter: 16cqi keeps it on one
+              // line in the hero's own width (a 320 px phone, the desktop column), where 16vw would not.
+              className="tabular m-0 whitespace-nowrap text-[length:min(16vw,104px,16cqi)] font-extralight leading-none tracking-[-0.02em]"
+            >
+              {/* A fresh roll per kind: "--:--" turning into the first result is the intro's job. */}
+              <NumericRoll key={state.kind} value={bigTime} />
+            </m.p>
+          </m.div>
           {below}
         </div>
       </div>

@@ -223,9 +223,29 @@ html[data-sky-phase='golden']::before {
 html[data-sky-phase='dusk']::before {
   background-image: var(--sky-dusk);
 }
-html[data-sky-live]::before {
+html[data-sky-live]::before,
+html[data-sky-live]::after {
   visibility: hidden;
   transition: visibility 0s linear 400ms;
+}
+
+/*
+ * The sun's glow for the static sky (pages without the app have no WebGL sun). It is confined to
+ * the top 18vh, the sun zone, and the radial gradient reaches transparent exactly at the bottom
+ * of that box (centre 8vh + vertical radius 10vh), so there is no hard edge. Its peak is 0.22,
+ * not the 0.35 a plain glow would take: the phase gradients are already near MAX_SKY_LUMA, and
+ * at 0.35 the glow pushed the morning, day and golden sky over it, which breaks the glass AA
+ * proof for an article card that reaches into the zone on a short phone.
+ * src/test/staticSky.test.ts checks the glow over every phase's gradient across the whole zone.
+ */
+html::after {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 18vh;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 45vw 10vh at 70% 8vh, rgb(255 236 180 / 0.22), transparent);
 }
 
 /*
@@ -253,7 +273,8 @@ html[data-sky-live]::before {
   .sky-panel {
     transition-duration: 150ms;
   }
-  html[data-sky-live]::before {
+  html[data-sky-live]::before,
+  html[data-sky-live]::after {
     transition-delay: 150ms;
   }
 }
@@ -286,7 +307,7 @@ html[data-sheet-open] [data-page] {
 
 /*
  * Article prose (MDX content on the three article pages). Plain tokens only: text and links sit on
- * the `.sky-panel` that wraps the article, so the sky-panel contrast table above covers them.
+ * the `.glass` card that wraps the article, so the glass contrast proof above covers them.
  */
 @layer components {
   .article-prose {
@@ -321,8 +342,9 @@ html[data-sheet-open] [data-page] {
     margin-top: 0.375rem;
   }
   .article-prose a {
-    color: var(--color-focus);
+    color: var(--color-text);
     text-decoration: underline;
+    text-decoration-color: rgb(255 255 255 / 0.6);
     text-underline-offset: 2px;
   }
   .article-prose strong {

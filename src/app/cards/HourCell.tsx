@@ -1,6 +1,7 @@
 import { m } from 'motion/react';
 import { forwardRef } from 'react';
 import { usePress } from '../../motion/press';
+import { NumericRoll } from '../components/NumericRoll';
 import { WeatherIcon } from '../icons/weather/Icon';
 import { weatherIcon } from '../icons/weather/weatherIcon';
 import type { ScoredHour } from '../../domain/types';
@@ -56,7 +57,7 @@ export const HourCell = forwardRef<HTMLButtonElement, HourCellProps>(function Ho
         className={hour.isPast ? `size-7 ${PAST_FADE}` : undefined}
       />
       <span aria-hidden="true" className="text-[17px] font-medium leading-6 tabular-nums">
-        {metricValue(hour, metric)}
+        <NumericRoll value={metricValue(hour, metric)} />
       </span>
       <span
         aria-hidden="true"

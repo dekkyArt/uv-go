@@ -6,6 +6,7 @@ import { firstResult } from '../../motion/choreography';
 import { usePress } from '../../motion/press';
 import { durations, springs } from '../../motion/tokens';
 import { BUTTON_CLASS, durationLabel, GEO_ERROR, VERDICT_FILL_CLASS, verdictLabel } from '../ui';
+import { NumericRoll } from '../components/NumericRoll';
 import { placeTitle } from './heroText';
 
 export const HERO_H1 = 'Know the best time to go outside';
@@ -174,7 +175,11 @@ export function Hero({
           <span>{`${verdictLabel(state.best.verdict)} · ${durationLabel(state.duration)}`}</span>
         </m.p>
         {state.reason ? <p className={SECONDARY_LINE}>{state.reason}</p> : null}
-        {state.nowLine ? <p className={`${SECONDARY_LINE}`}>{state.nowLine}</p> : null}
+        {state.nowLine ? (
+          <p className={SECONDARY_LINE}>
+            <NumericRoll value={state.nowLine} />
+          </p>
+        ) : null}
       </>
     );
   }
@@ -212,7 +217,8 @@ export function Hero({
             // line in the hero's own width (a 320 px phone, the desktop column), where 16vw would not.
             className="tabular m-0 whitespace-nowrap text-[length:min(16vw,104px,16cqi)] font-extralight leading-none tracking-[-0.02em]"
           >
-            {bigTime}
+            {/* A fresh roll per kind: "--:--" turning into the first result is the intro's job. */}
+            <NumericRoll key={state.kind} value={bigTime} />
           </m.p>
           {below}
         </div>

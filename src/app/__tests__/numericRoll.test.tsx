@@ -92,6 +92,14 @@ describe('NumericRoll', () => {
     expect(container).toHaveTextContent(/^17:00–18:00$/);
   });
 
+  it('rolls every character in when the string grows, new slots included', () => {
+    const { container, rerender } = renderRoll('9');
+    rerenderRoll(rerender, '10');
+    const slots = [...rolling(container)];
+    expect(slots.map((el) => el.dataset.char)).toEqual(['1', '0']);
+    for (const el of slots) expect(el.style.opacity).toBe('0');
+  });
+
   it('enters from below when the value grows and from above when it shrinks', () => {
     const up = renderRoll('13:00');
     rerenderRoll(up.rerender, '15:00');

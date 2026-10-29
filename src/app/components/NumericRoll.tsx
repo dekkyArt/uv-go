@@ -8,6 +8,8 @@ const BLUR = 'blur(4px)';
 const ROLL_DURATION = 0.35;
 /** Neighbouring changed characters start this much later, one after another. */
 const NEIGHBOUR_LAG = 0.03;
+/** ...but the cascade stops growing after this many, so a long line does not trail. */
+const MAX_LAGGED = 6;
 
 export interface RollPart {
   char: string;
@@ -16,8 +18,10 @@ export interface RollPart {
 
 /** Splits `next` into characters and marks those that differ from `prev` at the same position. */
 export function rollParts(prev: string, next: string): RollPart[] {
-  const sameLength = prev.length === next.length;
-  return [...next].map((char, i) => ({ char, changed: !sameLength || prev[i] !== char }));
+  const before = Array.from(prev);
+  const after = Array.from(next);
+  const sameLength = before.length === after.length;
+  return after.map((char, i) => ({ char, changed: !sameLength || before[i] !== char }));
 }
 
 const firstNumber = (s: string): number | null => {
@@ -96,7 +100,7 @@ export function NumericRoll({ value, className }: NumericRollProps) {
       <span className="sr-only">{value}</span>
       {parts.map(({ char, changed }, i) => {
         const roll = prev !== null && changed;
-        const delay = roll ? order++ * NEIGHBOUR_LAG : 0;
+        const delay = roll ? Math.min(order++, MAX_LAGGED) * NEIGHBOUR_LAG : 0;
         const custom: RollCustom = { dir, delay, reduced };
         return (
           // Padding and a negative margin of the same size give the clip some air above and
@@ -106,7 +110,7 @@ export function NumericRoll({ value, className }: NumericRollProps) {
             aria-hidden="true"
             className="relative -my-[0.1em] inline-block overflow-hidden whitespace-pre py-[0.1em] align-top"
           >
-            <AnimatePresence mode="popLayout" initial={false} custom={custom}>
+            <AnimatePresence mode="popLayout" custom={custom}>
               <m.span
                 key={`${i}-${char}`}
                 custom={custom}

@@ -145,3 +145,18 @@ test('phone: the sun gives up its light in the sun zone once the pinned bar is i
   await expect(page.locator('[data-collapsed-bar]')).toBeVisible();
   await expect.poll(() => sunZoneLuma(page)).toBeLessThanOrEqual(0.3 + 1 / 255);
 });
+
+test('phone: focus scrolls clear of the pinned bar and the tallest stuck header', async ({
+  page,
+}) => {
+  await openLisbon(page, { width: 390, height: 844 });
+  const headers = await page
+    .locator('#day-panel [data-card-header]')
+    .evaluateAll((els) => els.map((el) => (el as HTMLElement).offsetHeight));
+  const padding = await page.evaluate(() =>
+    parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop),
+  );
+  // 56 px of bar plus STUCK_HEADER_H, which has to cover the tallest header.
+  expect(padding).toBe(120);
+  expect(Math.max(...headers)).toBeLessThanOrEqual(padding - 56);
+});

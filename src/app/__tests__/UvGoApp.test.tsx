@@ -369,6 +369,23 @@ describe('UvGoApp', () => {
       expect(rootVar()).toBe('56px');
     });
 
+    it('phone: focus scrolls clear of the bar, a stuck header and the toolbar', async () => {
+      mockMatchMedia(false);
+      storePlace();
+      const { unmount } = renderApp();
+      const html = document.documentElement.style;
+      expect(html.getPropertyValue('scroll-padding-top')).toBe('');
+      expect(html.getPropertyValue('scroll-padding-bottom')).toBe(
+        'calc(72px + env(safe-area-inset-bottom))',
+      );
+      await findHeroTime('18:00–19:00');
+      // 56 px of bar and the 64 px Hourly header.
+      expect(html.getPropertyValue('scroll-padding-top')).toBe('120px');
+      unmount();
+      expect(html.getPropertyValue('scroll-padding-top')).toBe('');
+      expect(html.getPropertyValue('scroll-padding-bottom')).toBe('');
+    });
+
     it('phone: the bar and the toolbar sit outside the page, and go inert under a sheet', async () => {
       mockMatchMedia(false);
       storePlace();
@@ -401,6 +418,7 @@ describe('UvGoApp', () => {
       await findHeroTime('18:00–19:00');
       expect(bar()).toBeNull();
       expect(rootVar()).toBe('0px');
+      expect(document.documentElement.style.getPropertyValue('scroll-padding-top')).toBe('');
     });
   });
 

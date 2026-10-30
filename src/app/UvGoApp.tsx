@@ -46,6 +46,7 @@ import {
   DAY_PANEL_ID,
   ROW_H,
   SHEET_BUTTON_CLASS,
+  STUCK_HEADER_H,
   TOOLBAR_H,
   verdictLabel,
 } from './ui';
@@ -326,6 +327,18 @@ function App() {
 
   // The sticky card headers sit below the pinned bar, which exists on a phone with a result.
   const barShown = !isDesktop && hero.kind === 'result';
+
+  // A focused control never ends up under the fixed layers (WCAG 2.4.11): not under the
+  // toolbar, and not under the pinned bar or a card header stuck below it.
+  useEffect(() => {
+    const html = document.documentElement.style;
+    html.setProperty('scroll-padding-top', barShown ? `${COLLAPSED_H + STUCK_HEADER_H}px` : '');
+    html.setProperty('scroll-padding-bottom', `calc(${TOOLBAR_H}px + env(safe-area-inset-bottom))`);
+    return () => {
+      html.removeProperty('scroll-padding-top');
+      html.removeProperty('scroll-padding-bottom');
+    };
+  }, [barShown]);
 
   // Cards follow the hero's state (spec 4.8): skeletons while loading, nothing without a place or
   // after an error, What to take only with a result.

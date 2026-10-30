@@ -37,6 +37,9 @@ export const CARD_TUCK_CLIP = true;
 /** Height in px the bottom toolbar occupies: 48 px buttons plus 12 px above and below. */
 export const TOOLBAR_H = 72;
 
+/** Height in px of the tallest card header stuck under the pinned bar (Hourly, with its switch). */
+export const STUCK_HEADER_H = 64;
+
 /** The Today/Tomorrow tabpanel, which the day dots control. */
 export const DAY_PANEL_ID = 'day-panel';
 

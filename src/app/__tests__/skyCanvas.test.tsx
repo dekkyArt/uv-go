@@ -39,6 +39,7 @@ function fakeRenderers(): Fake[] {
   vi.mocked(createRenderer).mockImplementation((_canvas, opts) => {
     const fake: Fake = {
       setTarget: vi.fn(),
+      setTopCap: vi.fn(),
       start: vi.fn(),
       stop: vi.fn(),
       destroy: vi.fn(),
@@ -185,6 +186,43 @@ describe('SkyCanvas', () => {
     expect(lastTarget(renderer)).toEqual(skyUniforms(TOMORROW));
     act(() => progress.set(-0.05));
     expect(lastTarget(renderer)).toEqual(skyUniforms(TODAY));
+  });
+
+  it('caps the sun zone as far as the pinned bar is shown', async () => {
+    const made = fakeRenderers();
+    const topCap = motionValue(0);
+    render(
+      <SkyCanvas
+        today={TODAY}
+        tomorrow={TOMORROW}
+        progress={motionValue(0)}
+        topCap={topCap}
+        reducedMotion={false}
+      />,
+    );
+    await startSky();
+    const setTopCap = vi.mocked(made[0].setTopCap);
+    expect(setTopCap).toHaveBeenLastCalledWith(0);
+    act(() => topCap.set(0.5));
+    expect(setTopCap).toHaveBeenLastCalledWith(0.5);
+    act(() => topCap.set(1));
+    expect(setTopCap).toHaveBeenLastCalledWith(1);
+  });
+
+  it('hands a renderer that starts late the top cap it missed', async () => {
+    const made = fakeRenderers();
+    const topCap = motionValue(1);
+    render(
+      <SkyCanvas
+        today={TODAY}
+        tomorrow={TOMORROW}
+        progress={motionValue(0)}
+        topCap={topCap}
+        reducedMotion={false}
+      />,
+    );
+    await startSky();
+    expect(made[0].setTopCap).toHaveBeenLastCalledWith(1);
   });
 
   it('retargets when a day sky changes', async () => {

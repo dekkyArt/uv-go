@@ -252,6 +252,7 @@ function App() {
   const coarsePointer = useMediaQuery('(pointer: coarse)');
   const swipeEnabled = coarsePointer && !reduced && !isDesktop;
   const dayProgress = useMotionValue(inputs.day === 'tomorrow' ? 1 : 0);
+  const noTopCap = useMotionValue(0);
   const [planOpen, setPlanOpen] = useState(false);
   if (isDesktop && planOpen) setPlanOpen(false);
   const [citiesOpen, setCitiesOpen] = useState(false);
@@ -363,6 +364,8 @@ function App() {
               today={sky.today}
               tomorrow={sky.tomorrow}
               progress={dayProgress}
+              // The bar and the titles stuck under it sit in the sun zone: no sun past the cap there.
+              topCap={barShown ? collapse.barOpacity : noTopCap}
               reducedMotion={reduced}
             />
           </Suspense>

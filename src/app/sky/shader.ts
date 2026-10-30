@@ -52,6 +52,9 @@ uniform float uHeat;
 uniform float uFlash;
 uniform float uMaxLuma;
 uniform float uSunZone;
+// 0 to 1: how far the pinned bar is shown. It sits in the sun zone with the card titles stuck under
+// it, so as it comes in the sun zone gives up its light and takes the cap like the rest.
+uniform float uTopCap;
 uniform int uOctaves;
 
 HI float hash(HI vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -227,15 +230,17 @@ void main() {
   vec3 lin = toLinear(col);
   float x = dot(lin, LUMA) / cap;
   if (x > KNEE) col = toSrgb(lin * (KNEE + (1.0 - KNEE) * (1.0 - exp((KNEE - x) / (1.0 - KNEE)))) / x);
-  col += light;
+  col += light * (1.0 - uTopCap);
 
   // 10. Brightness clamp, the last colour step and the guarantee the glass relies on: below the
-  // sun zone, scale in linear light so the WCAG luminance of the output is at most uMaxLuma
-  // (minus headroom for 8-bit rounding and mediump error). By now it only catches rounding.
-  if (uv.y > uSunZone) {
+  // sun zone, and in it as far as uTopCap goes, scale in linear light so the WCAG luminance of the
+  // output is at most uMaxLuma (minus headroom for 8-bit rounding and mediump error). By now it
+  // only catches rounding.
+  float capped = max(step(uSunZone, uv.y), uTopCap);
+  if (capped > 0.0) {
     col = clamp(col, 0.0, 1.0);
     lin = toLinear(col);
-    col = toSrgb(lin * min(1.0, cap / max(dot(lin, LUMA), 1e-4)));
+    col = mix(col, toSrgb(lin * min(1.0, cap / max(dot(lin, LUMA), 1e-4))), capped);
   }
   gl_FragColor = vec4(col, 1.0);
 }

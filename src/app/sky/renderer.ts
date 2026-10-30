@@ -5,6 +5,11 @@ export type Quality = { scale: 0.5 | 0.35; octaves: 4 | 2; fps: 60 | 30 };
 
 export interface SkyRenderer {
   setTarget(u: SkyUniforms): void;
+  /**
+   * How far the pinned bar is shown, 0 to 1 (`uTopCap`). Applied at once, not eased like the
+   * target: the sun zone must be capped by the time the bar is there.
+   */
+  setTopCap(v: number): void;
   start(): void;
   stop(): void;
   destroy(): void;
@@ -146,11 +151,13 @@ export function createRenderer(
     sunPos: at('uSunPos'),
     flash: at('uFlash'),
     octaves: at('uOctaves'),
+    topCap: at('uTopCap'),
   };
   const scalarLocs = SCALARS.map((k) => [k, at(uniformName(k))] as const);
 
   let target: SkyUniforms | null = null;
   let cur: SkyUniforms | null = null;
+  let topCap = 0;
   let quality: Quality = { scale: 0.5, octaves: 4, fps: 60 };
   let running = false;
   let lost = false;
@@ -189,6 +196,7 @@ export function createRenderer(
     for (const [k, l] of scalarLocs) gl.uniform1f(l, motion || !PARTICLES.has(k) ? u[k] : 0);
     gl.uniform1f(loc.flash, motion ? flashLevel(flashAge) : 0);
     gl.uniform1i(loc.octaves, quality.octaves);
+    gl.uniform1f(loc.topCap, topCap);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 
@@ -268,6 +276,12 @@ export function createRenderer(
       if (lost || destroyed) return;
       target = u;
       if (running && opts.reducedMotion) still();
+    },
+    setTopCap(v) {
+      const next = Math.min(1, Math.max(0, v));
+      if (next === topCap) return;
+      topCap = next;
+      if (running && opts.reducedMotion && !lost && !destroyed) still();
     },
     start() {
       if (running || lost || destroyed) return;

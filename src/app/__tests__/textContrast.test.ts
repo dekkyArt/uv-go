@@ -2,10 +2,9 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { contrastRatio, hexToRgb, over, type Rgb } from '../../domain/contrast';
-import { glassFor, WORST_BACKGROUNDS, type Glass } from '../../domain/glass';
-import type { SkyPhase, WeatherGroup } from '../../domain/sky';
-import { glassTint, skyUniforms, WEATHER_TABLE } from '../../domain/skyUniforms';
-import { SKY_PALETTE, TEXT_SECONDARY_ALPHA } from '../../domain/skyPalette';
+import { WORST_BACKGROUNDS } from '../../domain/glass';
+import { TEXT_SECONDARY_ALPHA } from '../../domain/skyPalette';
+import { GLASSES } from '../../test/glasses';
 import {
   BUTTON_CLASS,
   CTA_CLASS,
@@ -80,23 +79,6 @@ function pick(classes: string, kind: 'bg' | 'text', variant = ''): Paint {
 
 const text = (classes: string, variant = '') => pick(classes, 'text', variant) as Layer;
 const bg = (classes: string, variant = '') => pick(classes, 'bg', variant);
-
-/** Every glass the page can show: the CSS one per phase, the live one per phase and weather. */
-const PHASES = Object.keys(SKY_PALETTE) as SkyPhase[];
-const WEATHERS = Object.keys(WEATHER_TABLE) as WeatherGroup[];
-const GLASSES: Glass[] = [
-  ...PHASES.map((phase) => {
-    const { top, bottom } = SKY_PALETTE[phase];
-    return glassFor(over(hexToRgb(top), 0.5, hexToRgb(bottom)));
-  }),
-  ...PHASES.flatMap((phase) =>
-    WEATHERS.map((weather) =>
-      glassTint(
-        skyUniforms({ phase, weather, uvGlow: 1, heat: false, wind: false, sunPosition: 0.5 }),
-      ),
-    ),
-  ),
-];
 
 /** The flat black of the hero scrim (heroContrast.test.ts proves the scrim itself). */
 const SCRIM_ALPHA = Number(

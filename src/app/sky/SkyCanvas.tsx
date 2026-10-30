@@ -9,6 +9,8 @@ interface Props {
   tomorrow: SkyState;
   /** The pager's position: 0 is Today, 1 is Tomorrow. */
   progress: MotionValue<number>;
+  /** How far the pinned bar is shown, 0 to 1: the sun zone is capped under it. Absent: 0. */
+  topCap?: MotionValue<number>;
   reducedMotion: boolean;
 }
 
@@ -40,11 +42,12 @@ function releasePage() {
  * day it settles on. It starts when the page is idle and fades in over the CSS backdrop after its
  * first frame. Without WebGL, or when the context is lost, the canvas goes and the CSS sky stays.
  */
-export default function SkyCanvas({ today, tomorrow, progress, reducedMotion }: Props) {
+export default function SkyCanvas({ today, tomorrow, progress, topCap, reducedMotion }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<SkyRenderer | null>(null);
-  /** Sends the current target to the renderer; replaced whenever the inputs change. */
+  /** Send the current target and top cap to the renderer; replaced whenever the inputs change. */
   const pushRef = useRef<() => void>(() => {});
+  const pushCapRef = useRef<() => void>(() => {});
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -71,6 +74,13 @@ export default function SkyCanvas({ today, tomorrow, progress, reducedMotion }: 
   }, [from, to, progress]);
 
   useEffect(() => {
+    const push = () => rendererRef.current?.setTopCap(topCap?.get() ?? 0);
+    pushCapRef.current = push;
+    push();
+    return topCap?.on('change', push);
+  }, [topCap]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     let renderer: SkyRenderer | null = null;
@@ -91,6 +101,7 @@ export default function SkyCanvas({ today, tomorrow, progress, reducedMotion }: 
       }
       rendererRef.current = renderer;
       pushRef.current();
+      pushCapRef.current();
       renderer.start();
       // The renderer's first frame is queued ahead of this one (or, reduced, already drawn).
       frame = requestAnimationFrame(() => {

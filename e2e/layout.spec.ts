@@ -102,3 +102,46 @@ test('phone: the pager does not clip the hero scrim; the page clips at the viewp
   expect(scrim.right).toBeCloseTo(390, 0);
   expect(pageOverflowX).toBe('clip');
 });
+
+/** Highest WCAG luminance in the sun zone (top 18 %) of the sky alone, with the page hidden. */
+async function sunZoneLuma(page: Page): Promise<number> {
+  const hide = await page.addStyleTag({
+    content: '[data-page], [data-collapsed-bar], nav[aria-label="App"] { visibility: hidden }',
+  });
+  const shot = await page.screenshot({
+    clip: { x: 0, y: 0, width: 390, height: Math.floor(844 * 0.18) },
+  });
+  await hide.evaluate((el) => el.remove());
+  return page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(0, 0, img.width, img.height).data;
+    const ch = (v: number) => {
+      const x = v / 255;
+      return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+    };
+    let max = 0;
+    for (let i = 0; i < d.length; i += 4)
+      max = Math.max(max, 0.2126 * ch(d[i]) + 0.7152 * ch(d[i + 1]) + 0.0722 * ch(d[i + 2]));
+    return max;
+  }, shot.toString('base64'));
+}
+
+test('phone: the sun gives up its light in the sun zone once the pinned bar is in', async ({
+  page,
+}) => {
+  await openLisbon(page, { width: 390, height: 844 });
+  await expect(page.locator('canvas.sky-canvas[data-ready]')).toHaveCount(1);
+  // At the top of the page the sun shines past the cap (spec 6.4)...
+  await expect.poll(() => sunZoneLuma(page)).toBeGreaterThan(0.3);
+  // ...and under the bar the zone holds MAX_SKY_LUMA (0.3) like the rest of the sky.
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await expect(page.locator('[data-collapsed-bar]')).toBeVisible();
+  await expect.poll(() => sunZoneLuma(page)).toBeLessThanOrEqual(0.3 + 1 / 255);
+});

@@ -94,7 +94,7 @@ describe('shader sources', () => {
       expect(FRAGMENT_SRC).toMatch(new RegExp(`uniform [^;]*\\b${uniformName(key)};`));
     }
     expect(FRAGMENT_SRC).not.toMatch(/\buThunder\b/);
-    for (const name of ['uTime', 'uResolution', 'uFlash', 'uOctaves']) {
+    for (const name of ['uTime', 'uResolution', 'uFlash', 'uOctaves', 'uTopCap']) {
       expect(FRAGMENT_SRC).toMatch(new RegExp(`uniform [^;]*\\b${name};`));
     }
   });
@@ -181,7 +181,7 @@ describe('createRenderer', () => {
       .map(uniformName);
     expect(draws).toHaveLength(2);
     for (const draw of draws) {
-      for (const name of [...expected, 'uTime', 'uResolution', 'uFlash', 'uOctaves']) {
+      for (const name of [...expected, 'uTime', 'uResolution', 'uFlash', 'uOctaves', 'uTopCap']) {
         expect(draw, name).toHaveProperty(name);
       }
     }
@@ -205,6 +205,23 @@ describe('createRenderer', () => {
     expect(draws[1].uCloudCover).toBeCloseTo(B.cloudCover);
     expect(raf).not.toHaveBeenCalled();
     expect(canvas.width).toBe(195);
+    sky.destroy();
+  });
+
+  it('sets the top cap at once, clamped, and redraws a still frame for it', () => {
+    const { gl, draws } = fakeGl();
+    const sky = createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} })!;
+    sky.setTarget(A);
+    sky.start();
+    expect(draws.at(-1)!.uTopCap).toBe(0);
+    sky.setTopCap(0.4);
+    expect(draws).toHaveLength(2);
+    expect(draws.at(-1)!.uTopCap).toBe(0.4);
+    sky.setTopCap(1.3);
+    expect(draws.at(-1)!.uTopCap).toBe(1);
+    // The same value again draws nothing new.
+    sky.setTopCap(1);
+    expect(draws).toHaveLength(3);
     sky.destroy();
   });
 

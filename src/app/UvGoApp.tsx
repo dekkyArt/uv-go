@@ -11,6 +11,7 @@ import {
   type RefObject,
 } from 'react';
 import { useMotionValue, useReducedMotion } from 'motion/react';
+import { createPortal } from 'react-dom';
 import { loadInputs, loadPlace, saveInputs, savePlace } from '../data/storage';
 import type { Place } from '../data/types';
 import { evaluate } from '../domain/evaluate';
@@ -22,6 +23,7 @@ import { CELL_H } from './cards/HourCell';
 import { HourlyCard } from './cards/HourlyCard';
 import { PlanControls } from './cards/PlanControls';
 import { TakeTiles } from './cards/TakeTiles';
+import { fixedLayers } from './fixedLayers';
 import { HERO_H1, Hero } from './hero/Hero';
 import { CollapsedBar } from './hero/CollapsedBar';
 import { heroState } from './hero/heroState';
@@ -249,6 +251,7 @@ function App() {
   const [planOpen, setPlanOpen] = useState(false);
   if (isDesktop && planOpen) setPlanOpen(false);
   const [citiesOpen, setCitiesOpen] = useState(false);
+  const [layers] = useState(fixedLayers);
 
   const planRef = useRef<HTMLButtonElement>(null);
   const citiesRef = useRef<HTMLButtonElement>(null);
@@ -347,15 +350,38 @@ function App() {
 
   return (
     <div className={LAYOUT_CLASS} style={rootStyle}>
-      {/* Fixed and behind everything: not a grid item, so it takes no part in the layout. */}
-      <Suspense fallback={null}>
-        <SkyCanvas
-          today={sky.today}
-          tomorrow={sky.tomorrow}
-          progress={dayProgress}
-          reducedMotion={reduced}
-        />
-      </Suspense>
+      {/* The fixed layers stay outside the page, which scales under an open sheet. */}
+      {createPortal(
+        <>
+          {/* Behind everything. */}
+          <Suspense fallback={null}>
+            <SkyCanvas
+              today={sky.today}
+              tomorrow={sky.tomorrow}
+              progress={dayProgress}
+              reducedMotion={reduced}
+            />
+          </Suspense>
+          {barShown && hero.kind === 'result' && (
+            <CollapsedBar
+              place={placeTitle(hero.place).name}
+              label={hero.best.label}
+              verdict={hero.best.verdict}
+              opacity={collapse.barOpacity}
+            />
+          )}
+          <Toolbar
+            day={inputs.day}
+            onDay={(day) => dispatch({ type: 'setDay', day })}
+            panelId={DAY_PANEL_ID}
+            onPlan={isDesktop ? undefined : () => setPlanOpen(true)}
+            onCities={() => openCities(false)}
+            planRef={planRef}
+            citiesRef={citiesRef}
+          />
+        </>,
+        layers,
+      )}
 
       <p aria-live="polite" className="sr-only">
         {announcement}
@@ -398,26 +424,6 @@ function App() {
           )}
         </div>
       </DayPager>
-
-      {/* Fixed, so it stays out of the pager: a transformed ancestor would re-anchor it. */}
-      {barShown && hero.kind === 'result' && (
-        <CollapsedBar
-          place={placeTitle(hero.place).name}
-          label={hero.best.label}
-          verdict={hero.best.verdict}
-          opacity={collapse.barOpacity}
-        />
-      )}
-
-      <Toolbar
-        day={inputs.day}
-        onDay={(day) => dispatch({ type: 'setDay', day })}
-        panelId={DAY_PANEL_ID}
-        onPlan={isDesktop ? undefined : () => setPlanOpen(true)}
-        onCities={() => openCities(false)}
-        planRef={planRef}
-        citiesRef={citiesRef}
-      />
 
       <Sheet
         open={planOpen}

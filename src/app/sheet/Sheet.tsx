@@ -20,9 +20,10 @@ const CLOSE_DISTANCE_RATIO = 0.3;
 const CLOSE_VELOCITY = 500;
 
 /**
- * Bottom sheet. While open the page wrapper `[data-page]` is `inert` (which also keeps focus
- * inside the dialog) and `html[data-sheet-open]` scales it down; both are lifted on close and
- * on unmount.
+ * Bottom sheet. While open the page wrapper `[data-page]` and the fixed layers next to it
+ * (`[data-fixed-layers]`: sky, pinned bar, toolbar) are `inert`, which also keeps focus inside the
+ * dialog, and `html[data-sheet-open]` scales the page down around the middle of the viewport;
+ * both are lifted on close and on unmount.
  */
 export function Sheet({ open, onClose, title, size, returnFocusRef, children }: Props) {
   const reduced = useReducedMotion() ?? false;
@@ -38,8 +39,13 @@ export function Sheet({ open, onClose, title, size, returnFocusRef, children }: 
 
   useEffect(() => {
     if (!open) return;
-    const page = document.querySelector<HTMLElement>('[data-page]');
-    page?.setAttribute('inert', '');
+    const blocked = [...document.querySelectorAll<HTMLElement>('[data-page], [data-fixed-layers]')];
+    for (const el of blocked) el.setAttribute('inert', '');
+    // The page shrinks towards the middle of what is on screen, not of the whole document. The
+    // origin stays after closing, so the page grows back from the same point.
+    document
+      .querySelector<HTMLElement>('[data-page]')
+      ?.style.setProperty('--page-origin-y', `${window.scrollY + window.innerHeight / 2}px`);
     document.documentElement.setAttribute('data-sheet-open', '');
 
     const panel = panelRef.current;
@@ -55,7 +61,7 @@ export function Sheet({ open, onClose, title, size, returnFocusRef, children }: 
 
     return () => {
       document.removeEventListener('keydown', onKeyDown);
-      page?.removeAttribute('inert');
+      for (const el of blocked) el.removeAttribute('inert');
       document.documentElement.removeAttribute('data-sheet-open');
       latest.current.returnFocusRef.current?.focus();
     };

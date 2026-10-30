@@ -53,6 +53,28 @@ describe('Sheet', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'First action' }));
   });
 
+  it('inerts the fixed layers next to the page as well, and lifts it on close', () => {
+    const layers = document.createElement('div');
+    layers.setAttribute('data-fixed-layers', '');
+    document.body.appendChild(layers);
+    const returnFocusRef = createRef<HTMLElement>();
+    const { rerender } = render(<Harness returnFocusRef={returnFocusRef} />);
+    expect(layers).toHaveAttribute('inert');
+
+    rerender(<Harness returnFocusRef={returnFocusRef} open={false} />);
+    expect(layers).not.toHaveAttribute('inert');
+  });
+
+  it('scales the page around the middle of the viewport, wherever it is scrolled', () => {
+    vi.spyOn(window, 'scrollY', 'get').mockReturnValue(600);
+    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(844);
+    render(<Harness returnFocusRef={createRef<HTMLElement>()} />);
+    expect(
+      document.querySelector<HTMLElement>('[data-page]')!.style.getPropertyValue('--page-origin-y'),
+    ).toBe(`${600 + 844 / 2}px`);
+    vi.restoreAllMocks();
+  });
+
   it('portals into document.body outside [data-page]', () => {
     const returnFocusRef = createRef<HTMLElement>();
     render(<Harness returnFocusRef={returnFocusRef} />);

@@ -369,6 +369,24 @@ describe('UvGoApp', () => {
       expect(rootVar()).toBe('56px');
     });
 
+    it('phone: the bar and the toolbar sit outside the page, and go inert under a sheet', async () => {
+      mockMatchMedia(false);
+      storePlace();
+      const user = userEvent.setup();
+      const { page } = renderApp();
+      await findHeroTime('18:00–19:00');
+      const toolbar = screen.getByRole('navigation', { name: 'App' });
+      const layers = toolbar.closest('[data-fixed-layers]');
+      expect(layers).not.toBeNull();
+      expect(page.contains(toolbar)).toBe(false);
+      expect(layers).toContainElement(bar() as HTMLElement);
+
+      await user.click(screen.getByRole('button', { name: 'Plan' }));
+      await screen.findByRole('dialog', { name: 'Plan' });
+      expect(layers).toHaveAttribute('inert');
+      expect(page).toHaveAttribute('inert');
+    });
+
     it('phone: no bar without a result', () => {
       mockMatchMedia(false);
       renderApp();

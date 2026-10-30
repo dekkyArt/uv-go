@@ -380,7 +380,7 @@ describe('UvGoApp', () => {
       );
       await findHeroTime('18:00–19:00');
       // 56 px of bar and the 64 px Hourly header.
-      expect(html.getPropertyValue('scroll-padding-top')).toBe('120px');
+      await waitFor(() => expect(html.getPropertyValue('scroll-padding-top')).toBe('120px'));
       unmount();
       expect(html.getPropertyValue('scroll-padding-top')).toBe('');
       expect(html.getPropertyValue('scroll-padding-bottom')).toBe('');

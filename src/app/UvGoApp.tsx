@@ -14,6 +14,7 @@ import { loadInputs, loadPlace, saveInputs, savePlace } from '../data/storage';
 import type { Place } from '../data/types';
 import { evaluate } from '../domain/evaluate';
 import type { Inputs } from '../domain/types';
+import { useFeaturesFailed } from '../motion/featuresFailed';
 import { MotionProvider } from '../motion/MotionProvider';
 import { FreeTimeCard } from './cards/FreeTimeCard';
 import { GlassCard } from './cards/GlassCard';
@@ -263,7 +264,11 @@ function App() {
     place === null || evaluation === null
       ? null
       : `${place.id}:${place.lat},${place.lon}:${inputs.day}`;
-  const { playIntro } = useFirstResult(introKey, reduced);
+  const { playIntro: introRun } = useFirstResult(introKey, reduced);
+  // Without the motion features nothing would leave its intro values: no intro, and the page
+  // remounts below at rest.
+  const motionFailed = useFeaturesFailed();
+  const playIntro = introRun && !motionFailed;
 
   // The Plan sheet exists only below 1024 px; past it the Plan card is on the page instead.
   const isDesktop = useIsDesktop();
@@ -417,6 +422,7 @@ function App() {
       </p>
 
       <DayPager
+        key={motionFailed ? 'at-rest' : 'live'}
         day={inputs.day}
         onDay={(day) => dispatch({ type: 'setDay', day })}
         enabled={swipeEnabled}

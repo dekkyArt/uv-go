@@ -1,6 +1,7 @@
 import { AnimatePresence, m, useDragControls, useReducedMotion } from 'motion/react';
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
+import { useFeaturesFailed } from '../../motion/featuresFailed';
 import { durations, springs } from '../../motion/tokens';
 
 interface Props {
@@ -27,6 +28,8 @@ const CLOSE_VELOCITY = 500;
  */
 export function Sheet({ open, onClose, title, size, returnFocusRef, children }: Props) {
   const reduced = useReducedMotion() ?? false;
+  // Without the motion features the sheet and its backdrop open in place (and close at once).
+  const motionFailed = useFeaturesFailed();
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
@@ -82,7 +85,7 @@ export function Sheet({ open, onClose, title, size, returnFocusRef, children }: 
               aria-hidden="true"
               className="fixed inset-0 z-40"
               style={{ background: 'rgb(0 0 0 / 0.35)' }}
-              initial={{ opacity: 0 }}
+              initial={motionFailed ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={reduced ? fade : { duration: durations.base }}
@@ -102,7 +105,7 @@ export function Sheet({ open, onClose, title, size, returnFocusRef, children }: 
                 paddingBottom: 'env(safe-area-inset-bottom)',
                 ...(size === 'tall' ? { height: '92dvh' } : { maxHeight: '92dvh' }),
               }}
-              initial={reduced ? { opacity: 0 } : { y: '100%' }}
+              initial={motionFailed ? false : reduced ? { opacity: 0 } : { y: '100%' }}
               animate={reduced ? { opacity: 1 } : { y: 0 }}
               exit={reduced ? { opacity: 0 } : { y: '100%' }}
               transition={reduced ? fade : springs.sheet}

@@ -2,6 +2,7 @@ import { m, useReducedMotion } from 'motion/react';
 import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { DayForecast, ScoredHour, TimeWindow } from '../../domain/types';
 import { firstResult } from '../../motion/choreography';
+import { useFeaturesFailed } from '../../motion/featuresFailed';
 import { durations, springs } from '../../motion/tokens';
 import { HourDetails } from '../components/HourDetails';
 import { CELL_W, FREE_BAND_CLASS, KEEP_DETAILS_ATTR } from '../ui';
@@ -62,6 +63,7 @@ export function HourlyCard({
   tuck,
 }: Props) {
   const reduced = useReducedMotion() ?? false;
+  const motionFailed = useFeaturesFailed();
   const play = intro && !reduced;
   const [metric, setMetric] = useState<Metric>('uv');
   // The hour that holds focus inside the strip; null while focus is elsewhere.
@@ -105,17 +107,24 @@ export function HourlyCard({
     // A finger or wheel on the strip takes over at once.
     el.addEventListener('pointerdown', release);
     el.addEventListener('wheel', release, { passive: true });
-    void import('../../motion/features').then(({ animate }) => {
-      if (released) return;
-      scroll = animate(0, target.left, {
-        ...springs.smooth,
-        delay: firstResult.hourScroll,
-        onUpdate: (left) => {
-          el.scrollLeft = left;
-        },
-        onComplete: release,
+    void import('../../motion/features')
+      .then(({ animate }) => {
+        if (released) return;
+        scroll = animate(0, target.left, {
+          ...springs.smooth,
+          delay: firstResult.hourScroll,
+          onUpdate: (left) => {
+            el.scrollLeft = left;
+          },
+          onComplete: release,
+        });
+      })
+      .catch(() => {
+        // The features chunk did not load: jump to "Now" instead of scrolling there.
+        if (released) return;
+        el.scrollLeft = target.left;
+        release();
       });
-    });
     return release;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day.date]);
@@ -242,7 +251,7 @@ export function HourlyCard({
       {selected && (
         <m.div
           layout={!reduced}
-          initial={{ opacity: 0 }}
+          initial={motionFailed ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={reduced ? { duration: durations.fast } : springs.smooth}
           className="mt-4"

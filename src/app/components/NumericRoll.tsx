@@ -1,5 +1,6 @@
 import { AnimatePresence, m, useReducedMotion, type Variants } from 'motion/react';
 import { useState } from 'react';
+import { useFeaturesFailed } from '../../motion/featuresFailed';
 import { durations, springs } from '../../motion/tokens';
 
 /** How far a digit travels, how blurred it gets, and the settle time of the spring (spec 5.5). */
@@ -82,6 +83,8 @@ interface NumericRollProps {
  */
 export function NumericRoll({ value, className }: NumericRollProps) {
   const reduced = useReducedMotion() ?? false;
+  // Without the motion features a rolled-in character would stay at its blurred start.
+  const still = useFeaturesFailed();
   // The previous value, derived while rendering so it survives a strict-mode double render.
   const [track, setTrack] = useState<{ value: string; prev: string | null }>({
     value,
@@ -99,7 +102,7 @@ export function NumericRoll({ value, className }: NumericRollProps) {
           bare span is prohibited. The characters below only draw it, from data-char. */}
       <span className="sr-only">{value}</span>
       {parts.map(({ char, changed }, i) => {
-        const roll = prev !== null && changed;
+        const roll = prev !== null && changed && !still;
         const delay = roll ? Math.min(order++, MAX_LAGGED) * NEIGHBOUR_LAG : 0;
         const custom: RollCustom = { dir, delay, reduced };
         return (

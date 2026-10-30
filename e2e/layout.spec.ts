@@ -44,7 +44,7 @@ test('a sheet opened mid-page leaves the sky, the pinned bar and the toolbar whe
   const after = await Promise.all(layers.map((s) => rectOf(page, s)));
   for (const [i, selector] of layers.entries()) expect(after[i], selector).toEqual(before[i]);
   // The page shrinks around what is on screen: the point at the middle of the viewport stays put.
-  const middle = await page.locator('[data-page]').evaluate((el) => {
+  const middle = await page.locator('[data-page]').evaluate((el: HTMLElement) => {
     const r = el.getBoundingClientRect();
     return r.top + ((window.scrollY + window.innerHeight / 2) / el.offsetHeight) * r.height;
   });

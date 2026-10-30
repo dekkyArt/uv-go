@@ -125,13 +125,11 @@ html[data-sky-phase='dusk'] {
 }
 
 /*
- * The one material: dark, sky-tinted glass. `.sky-panel` is the old name, kept as an alias so
- * existing markup picks up the new look. The tint and opacity come from html[data-sky-phase], or
- * inline on <html> from the live sky (SkyCanvas) while it draws.
+ * The one material: dark, sky-tinted glass. The tint and opacity come from html[data-sky-phase],
+ * or inline on <html> from the live sky (SkyCanvas) while it draws.
  */
 @layer components {
-  .glass,
-  .sky-panel {
+  .glass {
     background: rgb(var(--glass-rgb) / var(--glass-alpha));
     backdrop-filter: blur(24px) saturate(1.5);
     border: 1px solid rgb(255 255 255 / 0.14);
@@ -263,8 +261,7 @@ html::after {
 /* Reduced motion (spec 5.7): a crossfade of 150 ms at most. */
 @media (prefers-reduced-motion: reduce) {
   .sky-canvas,
-  .glass,
-  .sky-panel {
+  .glass {
     transition-duration: 150ms;
   }
   html[data-sky-live]::before,

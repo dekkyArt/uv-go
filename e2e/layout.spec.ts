@@ -111,7 +111,7 @@ async function sunZoneLuma(page: Page): Promise<number> {
   const shot = await page.screenshot({
     clip: { x: 0, y: 0, width: 390, height: Math.floor(844 * 0.18) },
   });
-  await hide.evaluate((el) => el.remove());
+  await hide.evaluate((el: Element) => el.remove());
   return page.evaluate(async (b64) => {
     const img = new Image();
     img.src = `data:image/png;base64,${b64}`;

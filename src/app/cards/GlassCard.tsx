@@ -28,7 +28,11 @@ interface GlassCardProps {
 const RADIUS = 22;
 const REST = { opacity: 1, y: 0 };
 
-/** Shared shell of the content cards: glass material, sticky title row, padded body. */
+/**
+ * Shared shell of the content cards: glass material, title row, padded body. The title row sticks
+ * under the pinned bar only while it is there (`tuck`): elsewhere it has no background of its own
+ * to hide the rows scrolling under it.
+ */
 export function GlassCard({
   title,
   subtitle,
@@ -76,7 +80,7 @@ export function GlassCard({
         data-card-header
         layout={animateLayout}
         transition={springs.smooth}
-        className="sticky top-[var(--hero-collapsed-h,0px)] z-10 flex items-start justify-between gap-3 px-4 pt-4"
+        className={`${tuck ? 'sticky top-[var(--hero-collapsed-h,0px)] z-10 ' : ''}flex items-start justify-between gap-3 px-4 pt-4`}
       >
         <div className="min-w-0">
           <h2 id={titleId} className="m-0 text-[15px] font-semibold leading-5 text-text">

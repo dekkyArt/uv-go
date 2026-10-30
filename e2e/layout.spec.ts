@@ -52,3 +52,25 @@ test('a sheet opened mid-page leaves the sky, the pinned bar and the toolbar whe
   // Everything behind the sheet is out of reach, the toolbar included.
   await expect(page.locator('[data-fixed-layers]')).toHaveAttribute('inert', '');
 });
+
+test('desktop: the card titles scroll with their cards instead of sitting on the rows', async ({
+  page,
+}) => {
+  await openLisbon(page, { width: 1280, height: 800 });
+  const headers = page.locator('#day-panel [data-card-header]');
+  await expect(headers.first()).toBeVisible();
+  for (const position of await headers.evaluateAll((els) =>
+    els.map((el) => getComputedStyle(el).position),
+  ))
+    expect(position).not.toBe('sticky');
+
+  // Scrolled until the Hourly and Your free time tops have passed the top of the viewport.
+  await page.evaluate(() => window.scrollTo(0, 400));
+  const overlaps = await headers.evaluateAll((els) =>
+    els.map((el) => {
+      const body = el.parentElement!.querySelector('[data-card-body]')!;
+      return el.getBoundingClientRect().bottom - body.getBoundingClientRect().top;
+    }),
+  );
+  for (const overlap of overlaps) expect(overlap).toBeLessThanOrEqual(0);
+});

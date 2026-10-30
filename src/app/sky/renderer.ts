@@ -77,7 +77,13 @@ export const meanFrameMs = (intervals: readonly number[]): number =>
 export const flashLevel = (age: number): number =>
   age > 0 && age < FLASH_S ? Math.sin((Math.PI * age) / FLASH_S) : 0;
 
-function program(gl: WebGLRenderingContext): WebGLProgram | string {
+/**
+ * Builds the program without blocking the main thread. Asking for a compile or link status waits
+ * for the GPU to finish, which took close to a second on a software GPU, so the status is only
+ * read once the work is done: KHR_parallel_shader_compile says when without waiting; without it,
+ * the status is read a frame later, after the GPU process has had that frame to work.
+ */
+async function program(gl: WebGLRenderingContext): Promise<WebGLProgram | string> {
   const vs = gl.createShader(gl.VERTEX_SHADER);
   const fs = gl.createShader(gl.FRAGMENT_SHADER);
   const prog = gl.createProgram();
@@ -88,19 +94,30 @@ function program(gl: WebGLRenderingContext): WebGLProgram | string {
     return why;
   };
   if (!vs || !fs || !prog) return fail('could not create the program');
-  for (const [s, src] of [
+  const shaders = [
     [vs, VERTEX_SRC],
     [fs, FRAGMENT_SRC],
-  ] as const) {
+  ] as const;
+  for (const [s, src] of shaders) {
     gl.shaderSource(s, src);
     gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
-      return fail(`compile: ${gl.getShaderInfoLog(s)}`);
   }
   gl.attachShader(prog, vs);
   gl.attachShader(prog, fs);
   gl.bindAttribLocation(prog, 0, 'aPos');
   gl.linkProgram(prog);
+
+  const parallel = gl.getExtension('KHR_parallel_shader_compile');
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+  if (parallel) {
+    while (!gl.getProgramParameter(prog, parallel.COMPLETION_STATUS_KHR)) await nextFrame();
+  } else {
+    await nextFrame();
+  }
+
+  for (const [s] of shaders)
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+      return fail(`compile: ${gl.getShaderInfoLog(s)}`);
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS))
     return fail(`link: ${gl.getProgramInfoLog(prog)}`);
   // Flagged for deletion: freed together with the program.
@@ -110,13 +127,13 @@ function program(gl: WebGLRenderingContext): WebGLProgram | string {
 }
 
 /**
- * Draws the sky into `canvas` at a fraction of its CSS size. Returns null (after one
- * `console.warn`) when there is no WebGL or the shader fails to build.
+ * Draws the sky into `canvas` at a fraction of its CSS size. Resolves once the shader is built,
+ * to null (after one `console.warn`) when there is no WebGL or the shader fails to build.
  */
-export function createRenderer(
+export async function createRenderer(
   canvas: HTMLCanvasElement,
   opts: { reducedMotion: boolean; onLost(): void },
-): SkyRenderer | null {
+): Promise<SkyRenderer | null> {
   const context = canvas.getContext('webgl', {
     alpha: false,
     antialias: false,
@@ -129,7 +146,7 @@ export function createRenderer(
     return null;
   }
   const gl = context;
-  const prog = program(gl);
+  const prog = await program(gl);
   if (typeof prog === 'string') {
     console.warn(`Sky: shader failed, keeping the CSS sky. ${prog}`);
     return null;

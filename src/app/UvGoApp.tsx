@@ -1,6 +1,4 @@
 import {
-  lazy,
-  Suspense,
   useEffect,
   useMemo,
   useReducer,
@@ -38,6 +36,7 @@ import { useNow } from './hooks/useNow';
 import { useSkyPair } from './hooks/useSkyRef';
 import { DayPager } from './pager/DayPager';
 import { CitiesSheet } from './sheet/CitiesSheet';
+import { whenIdle } from './sky/whenIdle';
 import { Sheet } from './sheet/Sheet';
 import { initialState, isForecastStale, reducer } from './state';
 import { Toolbar } from './toolbar/Toolbar';
@@ -52,8 +51,30 @@ import {
 
 type StoredInputs = Pick<Inputs, 'freeTime' | 'duration' | 'activity'>;
 
-/** The live sky is its own chunk: the CSS phase gradient paints first, the WebGL sky follows. */
-const SkyCanvas = lazy(() => import('./sky/SkyCanvas'));
+type SkyCanvasModule = typeof import('./sky/SkyCanvas');
+
+/**
+ * The live sky is its own chunk, fetched once the page is idle: the CSS phase gradient paints
+ * first, the WebGL sky follows. Without the chunk (offline, a failed deploy) the CSS sky stays.
+ */
+function useIdleSkyCanvas(): SkyCanvasModule | null {
+  const [chunk, setChunk] = useState<SkyCanvasModule | null>(null);
+  useEffect(() => {
+    let live = true;
+    const cancel = whenIdle(() => {
+      import('./sky/SkyCanvas')
+        .then((m) => {
+          if (live) setChunk(m);
+        })
+        .catch(() => {});
+    });
+    return () => {
+      live = false;
+      cancel();
+    };
+  }, []);
+  return chunk;
+}
 
 const noopSubscribe = () => () => {};
 
@@ -257,6 +278,7 @@ function App() {
   if (isDesktop && planOpen) setPlanOpen(false);
   const [citiesOpen, setCitiesOpen] = useState(false);
   const [layers] = useState(fixedLayers);
+  const skyChunk = useIdleSkyCanvas();
 
   const planRef = useRef<HTMLButtonElement>(null);
   const citiesRef = useRef<HTMLButtonElement>(null);
@@ -359,8 +381,8 @@ function App() {
       {createPortal(
         <>
           {/* Behind everything. */}
-          <Suspense fallback={null}>
-            <SkyCanvas
+          {skyChunk && (
+            <skyChunk.default
               today={sky.today}
               tomorrow={sky.tomorrow}
               progress={dayProgress}
@@ -368,7 +390,7 @@ function App() {
               topCap={barShown ? collapse.barOpacity : noTopCap}
               reducedMotion={reduced}
             />
-          </Suspense>
+          )}
           {barShown && hero.kind === 'result' && (
             <CollapsedBar
               place={placeTitle(hero.place).name}

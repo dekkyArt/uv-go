@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SkyState } from '../../domain/sky';
 import { glassTint, mixUniforms, skyUniforms } from '../../domain/skyUniforms';
 import { createRenderer, type SkyRenderer } from './renderer';
+import { whenIdle } from './whenIdle';
 
 interface Props {
   today: SkyState;
@@ -12,19 +13,6 @@ interface Props {
   /** How far the pinned bar is shown, 0 to 1: the sun zone is capped under it. Absent: 0. */
   topCap?: MotionValue<number>;
   reducedMotion: boolean;
-}
-
-/** Where the browser has no idle callback, the sky starts this long after mounting (spec 6.7). */
-const IDLE_FALLBACK_MS = 200;
-
-/** Runs `fn` once the page is idle, so the shader stays out of LCP and TBT. Returns a cancel. */
-function whenIdle(fn: () => void): () => void {
-  if (typeof requestIdleCallback === 'function') {
-    const id = requestIdleCallback(fn);
-    return () => cancelIdleCallback(id);
-  }
-  const id = setTimeout(fn, IDLE_FALLBACK_MS);
-  return () => clearTimeout(id);
 }
 
 const root = () => document.documentElement;
@@ -39,8 +27,8 @@ function releasePage() {
 /**
  * The live sky (spec 6): a fixed WebGL canvas behind the page. It draws the blend of Today's and
  * Tomorrow's sky at the pager's position, so the sky follows a swipe, and tints the glass from the
- * day it settles on. It starts when the page is idle and fades in over the CSS backdrop after its
- * first frame. Without WebGL, or when the context is lost, the canvas goes and the CSS sky stays.
+ * day it settles on. It starts when the page is idle, builds its shader without blocking, and
+ * fades in over the CSS backdrop after its first frame. Without WebGL, or when the context is lost, the canvas goes and the CSS sky stays.
  */
 export default function SkyCanvas({ today, tomorrow, progress, topCap, reducedMotion }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -85,6 +73,7 @@ export default function SkyCanvas({ today, tomorrow, progress, topCap, reducedMo
     if (!canvas) return;
     let renderer: SkyRenderer | null = null;
     let frame = 0;
+    let disposed = false;
     const drop = () => {
       renderer?.destroy();
       renderer = null;
@@ -94,22 +83,29 @@ export default function SkyCanvas({ today, tomorrow, progress, topCap, reducedMo
       setFailed(true);
     };
     const cancelIdle = whenIdle(() => {
-      renderer = createRenderer(canvas, { reducedMotion, onLost: drop });
-      if (!renderer) {
-        drop();
-        return;
-      }
-      rendererRef.current = renderer;
-      pushRef.current();
-      pushCapRef.current();
-      renderer.start();
-      // The renderer's first frame is queued ahead of this one (or, reduced, already drawn).
-      frame = requestAnimationFrame(() => {
-        root().dataset.skyLive = '';
-        setReady(true);
+      void createRenderer(canvas, { reducedMotion, onLost: drop }).then((made) => {
+        if (disposed) {
+          made?.destroy();
+          return;
+        }
+        renderer = made;
+        if (!renderer) {
+          drop();
+          return;
+        }
+        rendererRef.current = renderer;
+        pushRef.current();
+        pushCapRef.current();
+        renderer.start();
+        // The renderer's first frame is queued ahead of this one (or, reduced, already drawn).
+        frame = requestAnimationFrame(() => {
+          root().dataset.skyLive = '';
+          setReady(true);
+        });
       });
     });
     return () => {
+      disposed = true;
       cancelIdle();
       cancelAnimationFrame(frame);
       renderer?.destroy();

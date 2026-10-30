@@ -99,6 +99,11 @@ describe('shader sources', () => {
     }
   });
 
+  it('ships without its comments (stripped at build time, astro.config.mjs)', () => {
+    expect(FRAGMENT_SRC).not.toContain('//');
+    expect(FRAGMENT_SRC).toContain('void main()');
+  });
+
   it('is GLSL ES 1.0 at mediump and shares the cloud speed constant', () => {
     expect(FRAGMENT_SRC).toContain('precision mediump float;');
     expect(FRAGMENT_SRC).toContain(`#define BASE_CLOUD_SPEED ${BASE_CLOUD_SPEED}`);
@@ -106,7 +111,13 @@ describe('shader sources', () => {
   });
 });
 
-/** A WebGL context stand-in: every call succeeds; draws and uniform writes are recorded. */
+/** COMPLETION_STATUS_KHR of KHR_parallel_shader_compile. */
+const COMPLETION = 0x91b1;
+
+/**
+ * A WebGL context stand-in: every call succeeds and the shader build is done at once; draws and
+ * uniform writes are recorded.
+ */
 function fakeGl(patch: Record<string, unknown> = {}) {
   const draws: Record<string, number>[] = [];
   const deleted: string[] = [];
@@ -114,6 +125,8 @@ function fakeGl(patch: Record<string, unknown> = {}) {
   const set = (name: string, v: number) => (frame[name] = v);
   const gl: Record<string, unknown> = {
     getUniformLocation: (_: unknown, name: string) => name,
+    getExtension: (name: string) =>
+      name === 'KHR_parallel_shader_compile' ? { COMPLETION_STATUS_KHR: COMPLETION } : null,
     getShaderParameter: () => true,
     getProgramParameter: () => true,
     deleteShader: () => deleted.push('shader'),
@@ -145,34 +158,86 @@ function fakeCanvas(gl: unknown) {
 describe('createRenderer', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('returns null and warns once without WebGL', () => {
+  it('returns null and warns once without WebGL', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    expect(createRenderer(fakeCanvas(null), { reducedMotion: false, onLost() {} })).toBeNull();
+    expect(
+      await createRenderer(fakeCanvas(null), { reducedMotion: false, onLost() {} }),
+    ).toBeNull();
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it('returns null and warns once when the shader does not compile', () => {
+  it('returns null and warns once when the shader does not compile', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { gl, deleted } = fakeGl({
       getShaderParameter: () => false,
       getShaderInfoLog: () => 'ERROR',
     });
-    expect(createRenderer(fakeCanvas(gl), { reducedMotion: false, onLost() {} })).toBeNull();
+    expect(await createRenderer(fakeCanvas(gl), { reducedMotion: false, onLost() {} })).toBeNull();
     expect(warn).toHaveBeenCalledTimes(1);
     expect(deleted.sort()).toEqual(['program', 'shader', 'shader']);
   });
 
-  it('returns null, warns once and frees the program when it does not link', () => {
+  it('returns null, warns once and frees the program when it does not link', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const { gl, deleted } = fakeGl({ getProgramParameter: () => false });
-    expect(createRenderer(fakeCanvas(gl), { reducedMotion: false, onLost() {} })).toBeNull();
+    const { gl, deleted } = fakeGl({
+      getProgramParameter: (_: unknown, pname: unknown) => pname === COMPLETION,
+    });
+    expect(await createRenderer(fakeCanvas(gl), { reducedMotion: false, onLost() {} })).toBeNull();
     expect(warn).toHaveBeenCalledTimes(1);
     expect(deleted).toContain('program');
   });
 
-  it('uploads every SkyUniforms field except thunder on each draw', () => {
+  it('reads the build result only once the GPU says it is done, polling a frame at a time', async () => {
+    const asked: string[] = [];
+    let polls = 0;
+    const { gl } = fakeGl({
+      getProgramParameter: (_: unknown, pname: unknown) => {
+        if (pname === COMPLETION) {
+          asked.push('done?');
+          return ++polls > 2;
+        }
+        asked.push('status');
+        return true;
+      },
+      getShaderParameter: () => {
+        asked.push('status');
+        return true;
+      },
+    });
+    const raf = vi.spyOn(window, 'requestAnimationFrame');
+    const sky = await createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} });
+    expect(sky).not.toBeNull();
+    // Asking for a status blocks until the GPU is done, so it only comes after "done".
+    expect(asked).toEqual(['done?', 'done?', 'done?', 'status', 'status', 'status']);
+    expect(raf).toHaveBeenCalledTimes(2);
+    sky!.destroy();
+  });
+
+  it('without the parallel compile extension, reads the build result a frame later', async () => {
+    const asked: string[] = [];
+    const { gl } = fakeGl({
+      getExtension: () => null,
+      getProgramParameter: () => {
+        asked.push('status');
+        return true;
+      },
+      getShaderParameter: () => {
+        asked.push('status');
+        return true;
+      },
+    });
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      asked.push('frame');
+      return window.setTimeout(() => cb(0), 0);
+    });
+    const sky = await createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} });
+    expect(asked).toEqual(['frame', 'status', 'status', 'status']);
+    sky!.destroy();
+  });
+
+  it('uploads every SkyUniforms field except thunder on each draw', async () => {
     const { gl, draws } = fakeGl();
-    const sky = createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} })!;
+    const sky = (await createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} }))!;
     sky.setTarget(A);
     sky.start();
     sky.setTarget(B);
@@ -188,11 +253,11 @@ describe('createRenderer', () => {
     sky.destroy();
   });
 
-  it('under reduced motion draws one still frame per target, without particles or a loop', () => {
+  it('under reduced motion draws one still frame per target, without particles or a loop', async () => {
     const raf = vi.spyOn(window, 'requestAnimationFrame');
     const { gl, draws } = fakeGl();
     const canvas = fakeCanvas(gl);
-    const sky = createRenderer(canvas, { reducedMotion: true, onLost() {} })!;
+    const sky = (await createRenderer(canvas, { reducedMotion: true, onLost() {} }))!;
     sky.setTarget(RAIN);
     expect(draws).toHaveLength(0);
     sky.start();
@@ -208,9 +273,9 @@ describe('createRenderer', () => {
     sky.destroy();
   });
 
-  it('sets the top cap at once, clamped, and redraws a still frame for it', () => {
+  it('sets the top cap at once, clamped, and redraws a still frame for it', async () => {
     const { gl, draws } = fakeGl();
-    const sky = createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} })!;
+    const sky = (await createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} }))!;
     sky.setTarget(A);
     sky.start();
     expect(draws.at(-1)!.uTopCap).toBe(0);
@@ -225,11 +290,11 @@ describe('createRenderer', () => {
     sky.destroy();
   });
 
-  it('stops and reports a lost context', () => {
+  it('stops and reports a lost context', async () => {
     const onLost = vi.fn();
     const { gl, draws } = fakeGl();
     const canvas = fakeCanvas(gl);
-    const sky = createRenderer(canvas, { reducedMotion: true, onLost })!;
+    const sky = (await createRenderer(canvas, { reducedMotion: true, onLost }))!;
     sky.setTarget(A);
     sky.start();
     canvas.dispatchEvent(new Event('webglcontextlost'));
@@ -241,7 +306,7 @@ describe('createRenderer', () => {
 
   it('animates with particles on when motion is allowed', async () => {
     const { gl, draws } = fakeGl();
-    const sky = createRenderer(fakeCanvas(gl), { reducedMotion: false, onLost() {} })!;
+    const sky = (await createRenderer(fakeCanvas(gl), { reducedMotion: false, onLost() {} }))!;
     sky.setTarget(RAIN);
     sky.start();
     await vi.waitFor(() => expect(draws.length).toBeGreaterThanOrEqual(2));

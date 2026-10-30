@@ -7,6 +7,7 @@ import { glassTint, mixUniforms, skyUniforms } from '../../domain/skyUniforms';
 import { makeForecastJson } from '../../test/forecastJson';
 import SkyCanvas from '../sky/SkyCanvas';
 import { createRenderer, type SkyRenderer } from '../sky/renderer';
+import { IDLE_FALLBACK_MS } from '../sky/whenIdle';
 import UvGoApp from '../UvGoApp';
 
 // The real renderer unless a test swaps in a fake.
@@ -14,9 +15,6 @@ vi.mock('../sky/renderer', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../sky/renderer')>();
   return { ...actual, createRenderer: vi.fn(actual.createRenderer) };
 });
-
-/** SkyCanvas waits this long for the idle callback jsdom does not have. */
-const IDLE_FALLBACK_MS = 200;
 
 const TODAY: SkyState = {
   phase: 'day',
@@ -47,7 +45,7 @@ function fakeRenderers(): Fake[] {
       reducedMotion: opts.reducedMotion,
     };
     made.push(fake);
-    return fake;
+    return Promise.resolve(fake);
   });
   return made;
 }
@@ -281,6 +279,26 @@ describe('live sky in the app', () => {
       moon: 0,
     });
     expect(canvas()).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('fetches the sky chunk only once the page is idle', async () => {
+    vi.setSystemTime(new Date(2026, 9, 27, 13, 0));
+    const made = fakeRenderers();
+    const idle: (() => void)[] = [];
+    vi.stubGlobal('requestIdleCallback', (cb: () => void) => idle.push(cb));
+    vi.stubGlobal('cancelIdleCallback', vi.fn());
+    render(<UvGoApp />);
+    await new Promise((resolve) => setTimeout(resolve, IDLE_FALLBACK_MS * 2));
+    expect(canvas()).toBeNull();
+    expect(idle).toHaveLength(1);
+
+    act(() => idle.shift()!());
+    await waitFor(() => expect(canvas()).not.toBeNull());
+    // The canvas then starts its renderer at the next idle moment.
+    expect(made).toHaveLength(0);
+    act(() => idle.shift()!());
+    await waitFor(() => expect(canvas()).toHaveAttribute('data-ready'));
+    expect(made).toHaveLength(1);
   });
 
   it('follows the best window of the loaded forecast, with its weather', async () => {

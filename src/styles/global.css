@@ -289,6 +289,12 @@ html::after {
  * blurring the sky, which is outside it.
  */
 [data-page] {
+  /*
+   * The day pager slides its content sideways past the gutter: it is cut at the viewport edge
+   * here, not by the pager, whose box is inside the gutter and would cut the hero scrim's
+   * feathered sides. `clip` is not a scroll container, so sticky elements keep working.
+   */
+  overflow-x: clip;
   transform-origin: 50% var(--page-origin-y, 50vh);
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }

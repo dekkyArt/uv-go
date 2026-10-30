@@ -112,6 +112,8 @@ describe('DayPager', () => {
     expect(pager).toHaveAttribute('data-pager-enabled', 'true');
     // Vertical scrolling stays native and pinch-zoom stays available (WCAG 1.4.4).
     expect(pager.style.touchAction).toBe('pan-y pinch-zoom');
+    // The page clips sideways at the viewport edge; a clip here would cut the hero scrim.
+    expect(pager.style.overflowX).toBe('');
   });
 
   it('follows the content to the new day after a swipe', async () => {

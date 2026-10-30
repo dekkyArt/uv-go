@@ -74,3 +74,31 @@ test('desktop: the card titles scroll with their cards instead of sitting on the
   );
   for (const overlap of overlaps) expect(overlap).toBeLessThanOrEqual(0);
 });
+
+test('phone: the pager does not clip the hero scrim; the page clips at the viewport edge', async ({
+  page,
+}) => {
+  await openLisbon(page, { width: 390, height: 844 });
+  await expect(page.locator('[data-pager-enabled="true"]')).toHaveCount(1);
+  const { clippers, scrim, pageOverflowX } = await page.evaluate(() => {
+    const el = document.querySelector('.hero-scrim')!;
+    const page = document.querySelector('[data-page]')!;
+    const clippers: string[] = [];
+    for (let a = el.parentElement; a && a !== page; a = a.parentElement) {
+      const style = getComputedStyle(a);
+      if (style.overflowX !== 'visible' || style.clipPath !== 'none')
+        clippers.push(`${a.tagName}.${a.className}`);
+    }
+    const r = el.getBoundingClientRect();
+    return {
+      clippers,
+      scrim: { left: r.left, right: r.right },
+      pageOverflowX: getComputedStyle(page).overflowX,
+    };
+  });
+  // Nothing between the scrim and the page cuts it, so its 16 px feather reaches the screen edge.
+  expect(clippers).toEqual([]);
+  expect(scrim.left).toBeCloseTo(0, 0);
+  expect(scrim.right).toBeCloseTo(390, 0);
+  expect(pageOverflowX).toBe('clip');
+});

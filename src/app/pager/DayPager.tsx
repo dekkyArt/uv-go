@@ -305,8 +305,10 @@ export function DayPager({ day, onDay, enabled, progress, className, children }:
     });
   }
 
+  // No overflow clip here: it would cut the hero scrim's feathered sides. The page clips sideways
+  // at the viewport edge instead ([data-page] in global.css).
   const style: MotionStyle = {
-    ...(enabled ? { x, touchAction: 'pan-y pinch-zoom', overflowX: 'clip' } : null),
+    ...(enabled ? { x, touchAction: 'pan-y pinch-zoom' } : null),
     ...(reduced ? { opacity } : null),
   };
 

@@ -19,6 +19,10 @@ describe('global.css page scale under a sheet', () => {
     expect(transition).not.toContain('border-radius');
   });
 
+  it('clips sideways at the viewport edge, for the day pager, without breaking sticky', () => {
+    expect(rule(css, '[data-page]')).toMatch(/overflow-x:\s*clip;/);
+  });
+
   it('scales around the middle of the viewport, which the sheet sets', () => {
     expect(rule(css, '[data-page]')).toMatch(
       /transform-origin:\s*50% var\(--page-origin-y, 50vh\);/,

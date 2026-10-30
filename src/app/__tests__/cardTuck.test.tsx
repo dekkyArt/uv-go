@@ -1,6 +1,7 @@
 import { act, render, waitFor } from '@testing-library/react';
+import { LazyMotion } from 'motion/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MotionProvider } from '../../motion/MotionProvider';
+import features from '../../motion/features';
 import { GlassCard } from '../cards/GlassCard';
 import { tuckInset } from '../cards/useCardTuck';
 
@@ -37,13 +38,17 @@ function fakeLayout(top: { value: number }) {
   });
 }
 
+/**
+ * The features are passed in synchronously: with the app's lazy loader the import raced the
+ * scroll under a busy test run, and the clip sometimes missed a step.
+ */
 function card(tuck: boolean) {
   return (
-    <MotionProvider>
+    <LazyMotion features={features} strict>
       <GlassCard title="Hourly" tuck={tuck}>
         <p>x</p>
       </GlassCard>
-    </MotionProvider>
+    </LazyMotion>
   );
 }
 

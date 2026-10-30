@@ -5,7 +5,7 @@ import { NumericRoll } from '../components/NumericRoll';
 import { WeatherIcon } from '../icons/weather/Icon';
 import { weatherIcon } from '../icons/weather/weatherIcon';
 import type { ScoredHour } from '../../domain/types';
-import { CELL_W, VERDICT_FILL_CLASS } from '../ui';
+import { CELL_W, SELECTED_CELL_CLASS, VERDICT_FILL_CLASS } from '../ui';
 import { cellName, metricValue, type Metric, type StripItem } from './stripItems';
 
 /** Fixed cell height, so the best-window outline can be drawn at an exact size. */
@@ -13,7 +13,9 @@ export const CELL_H = 100;
 
 /**
  * Past hours: only the decorative icon and dot fade. The text keeps AA contrast by switching to
- * the secondary colour instead of fading, because axe computes contrast through opacity.
+ * the secondary colour instead of fading, because axe computes contrast through opacity. On a
+ * plate (the free band, the selected hour) it stays white: secondary text holds AA only on bare
+ * glass.
  */
 const PAST_FADE = 'opacity-45';
 
@@ -24,6 +26,8 @@ interface HourCellProps {
   metric: Metric;
   isNow: boolean;
   selected: boolean;
+  /** The hour lies on the free-time band. */
+  onBand: boolean;
   tabbable: boolean;
   onPress(): void;
   onFocus(): void;
@@ -31,10 +35,11 @@ interface HourCellProps {
 
 /** One hour: label, weather icon, metric value and verdict dot. A button that opens the details. */
 export const HourCell = forwardRef<HTMLButtonElement, HourCellProps>(function HourCell(
-  { hour, metric, isNow, selected, tabbable, onPress, onFocus },
+  { hour, metric, isNow, selected, onBand, tabbable, onPress, onFocus },
   ref,
 ) {
   const press = usePress();
+  const muted = hour.isPast && !onBand && !selected;
   return (
     <m.button
       ref={ref}
@@ -47,7 +52,7 @@ export const HourCell = forwardRef<HTMLButtonElement, HourCellProps>(function Ho
       onClick={onPress}
       onFocus={onFocus}
       style={{ width: CELL_W, height: CELL_H }}
-      className={`${CELL_BASE} rounded-2xl ${hour.isPast ? 'text-text-muted' : 'text-text'} ${selected ? 'bg-surface-strong' : ''}`}
+      className={`${CELL_BASE} rounded-2xl ${muted ? 'text-text-muted' : 'text-text'} ${selected ? SELECTED_CELL_CLASS : ''}`}
     >
       <span aria-hidden="true" className="text-[15px] font-semibold leading-5 tabular-nums">
         {isNow ? 'Now' : String(hour.hour).padStart(2, '0')}

@@ -4,7 +4,7 @@ import type { DayForecast, ScoredHour, TimeWindow } from '../../domain/types';
 import { firstResult } from '../../motion/choreography';
 import { durations, springs } from '../../motion/tokens';
 import { HourDetails } from '../components/HourDetails';
-import { CELL_W, KEEP_DETAILS_ATTR } from '../ui';
+import { CELL_W, FREE_BAND_CLASS, KEEP_DETAILS_ATTR } from '../ui';
 import { CELL_H, HourCell, SunCell } from './HourCell';
 import { GlassCard } from './GlassCard';
 import { MetricSwitch } from './MetricSwitch';
@@ -184,7 +184,7 @@ export function HourlyCard({
             <div
               aria-hidden="true"
               data-free-band=""
-              className="pointer-events-none absolute inset-y-0 rounded-2xl bg-white/[0.08]"
+              className={`pointer-events-none absolute inset-y-0 rounded-2xl ${FREE_BAND_CLASS}`}
               style={{ left: freeBand.left, width: freeBand.width }}
             />
           )}
@@ -200,6 +200,7 @@ export function HourlyCard({
                 metric={metric}
                 isNow={item.hour.hour === nowHour}
                 selected={item.hour.hour === selectedHour}
+                onBand={item.hour.hour >= freeTime.start && item.hour.hour < freeTime.end}
                 tabbable={item.hour.hour === tabStop}
                 onPress={() => onSelect(item.hour.hour === selectedHour ? null : item.hour.hour)}
                 onFocus={() => setFocusedHour(item.hour.hour)}

@@ -2,6 +2,7 @@ import { useId, useState, type KeyboardEvent, type RefObject } from 'react';
 import { formatPlace } from '../../data/geocoding';
 import type { Place } from '../../data/types';
 import { useCitySearch } from '../hooks/useCitySearch';
+import { OPTION_ACTIVE_CLASS, SEARCH_INPUT_CLASS } from '../ui';
 
 interface Props {
   onSelect(p: Place): void;
@@ -86,7 +87,7 @@ export function CitySearch({ onSelect, inputRef }: Props) {
           setActive(NONE);
         }}
         onKeyDown={onKeyDown}
-        className="min-h-11 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-base text-white placeholder:text-white/55"
+        className={SEARCH_INPUT_CLASS}
       />
       <ul
         id={listId}
@@ -106,7 +107,7 @@ export function CitySearch({ onSelect, inputRef }: Props) {
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => select(place)}
               className={`flex min-h-11 cursor-pointer items-center px-3 text-sm text-white ${
-                i === activeIndex ? 'bg-white/15' : 'hover:bg-white/15'
+                i === activeIndex ? OPTION_ACTIVE_CLASS : 'hover:bg-white/15'
               }`}
             >
               {formatPlace(place)}

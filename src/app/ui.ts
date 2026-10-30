@@ -75,16 +75,13 @@ export function verdictLabel(verdict: Verdict): string {
   return rules.verdictLabels[verdict];
 }
 
-/** Short verdict for table rows; the full text goes in `verdictLabel`. */
+/**
+ * Short verdict for table rows; the full text goes in `verdictLabel`. Verdict words are white: the
+ * colour is carried by the dot next to them (green and red text fall short of 4.5:1 on glass).
+ */
 export const VERDICT_SHORT: Record<Verdict, string> = { green: 'Good', yellow: 'OK', red: 'Avoid' };
 
 /** Full class names so Tailwind can see them. */
-export const VERDICT_TEXT_CLASS: Record<Verdict, string> = {
-  green: 'text-verdict-green-text',
-  yellow: 'text-verdict-yellow-text',
-  red: 'text-verdict-red-text',
-};
-
 export const VERDICT_FILL_CLASS: Record<Verdict | 'night', string> = {
   green: 'bg-verdict-green',
   yellow: 'bg-verdict-yellow',
@@ -92,5 +89,44 @@ export const VERDICT_FILL_CLASS: Record<Verdict | 'night', string> = {
   night: 'bg-night',
 };
 
+/*
+ * Coloured text and the plates text sits on. White and secondary text on bare glass are proven by
+ * glassFor; src/app/__tests__/textContrast.test.ts proves every pairing below at 4.5:1 over the
+ * worst-case sky. Text on a plate is full white: the secondary colour holds AA only on bare glass.
+ */
+
+/** Chance of rain: the lightest step of the iOS rain blue #64d2ff that holds 4.5:1 on any glass. */
+export const RAIN_TEXT_CLASS = 'text-[#8bddff]';
+
+/** A lighter inset on glass: How it works steps and their numbers, the article TL;DR. */
+export const INSET_CLASS = 'bg-white/8';
+
+/** Under the free hours of the Hourly strip (spec 4.3). */
+export const FREE_BAND_CLASS = 'bg-white/[0.08]';
+
+/** Under the selected hour of the Hourly strip; it can sit on the free band as well. */
+export const SELECTED_CELL_CLASS = 'bg-white/[0.08]';
+
+/** The hero's buttons, on the bare sky over the hero scrim. */
 export const BUTTON_CLASS =
-  'inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-surface-strong px-4 text-sm font-medium text-text hover:bg-surface';
+  'inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-white/[0.06] px-4 text-sm font-medium text-text hover:bg-surface';
+
+/** Full-width buttons inside a sheet. */
+export const SHEET_BUTTON_CLASS =
+  'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/15 bg-white/10 px-4 text-base font-medium text-white hover:bg-white/15 disabled:opacity-60';
+
+/** The city search field in the Cities sheet. */
+export const SEARCH_INPUT_CLASS =
+  'min-h-11 w-full rounded-xl border border-white/15 bg-black/10 px-3 text-base text-white placeholder:text-text-muted';
+
+/** The highlighted option of the city search list (glass inside the sheet's glass). */
+export const OPTION_ACTIVE_CLASS = 'bg-white/15';
+
+/** Segmented control: the selected segment's pill and text, an unselected segment. */
+export const SEGMENT_PILL_CLASS = 'bg-white/90';
+export const SEGMENT_ON_CLASS = 'text-black/85';
+export const SEGMENT_OFF_CLASS = 'text-text hover:bg-white/10';
+
+/** The white pill link of the article and 404 pages, on their glass. */
+export const CTA_CLASS =
+  'inline-flex min-h-11 items-center rounded-full bg-white px-5 font-bold text-black/85 hover:bg-white/90';

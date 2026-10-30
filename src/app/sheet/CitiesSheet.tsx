@@ -3,7 +3,7 @@ import { formatPlace } from '../../data/geocoding';
 import type { Place } from '../../data/types';
 import { CitySearch } from '../components/CitySearch';
 import { useGeolocate } from '../hooks/useGeolocate';
-import { GEO_ERROR } from '../ui';
+import { GEO_ERROR, SHEET_BUTTON_CLASS, VERDICT_FILL_CLASS } from '../ui';
 import { Sheet } from './Sheet';
 
 interface Props {
@@ -13,9 +13,6 @@ interface Props {
   onPlace(p: Place): void;
   returnFocusRef: RefObject<HTMLElement | null>;
 }
-
-const ACTION_CLASS =
-  'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/15 bg-white/10 px-4 text-base font-medium text-white hover:bg-white/15 disabled:opacity-60';
 
 /** Cities sheet: the current place, search, and "Use my location". Picking a place closes it. */
 export function CitiesSheet({ open, onClose, place, onPlace, returnFocusRef }: Props) {
@@ -57,15 +54,24 @@ export function CitiesSheet({ open, onClose, place, onPlace, returnFocusRef }: P
             onClick={locate}
             aria-busy={locating}
             disabled={locating}
-            className={ACTION_CLASS}
+            className={SHEET_BUTTON_CLASS}
           >
             {locating ? 'Locating…' : 'Use my location'}
           </button>
-          <p role="alert" className="text-sm text-verdict-red-text">
-            {geoError ? GEO_ERROR : null}
+          {/* White text: red text falls short of 4.5:1 on the glass, so the dot carries the colour. */}
+          <p role="alert" className="flex items-center gap-2 text-sm text-text">
+            {geoError ? (
+              <>
+                <span
+                  aria-hidden="true"
+                  className={`size-2 shrink-0 rounded-full ${VERDICT_FILL_CLASS.red}`}
+                />
+                {GEO_ERROR}
+              </>
+            ) : null}
           </p>
         </div>
-        <button type="button" onClick={close} className={ACTION_CLASS}>
+        <button type="button" onClick={close} className={SHEET_BUTTON_CLASS}>
           Close
         </button>
       </div>

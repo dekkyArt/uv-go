@@ -4,10 +4,10 @@ import { barDelay } from '../../motion/choreography';
 import { WeatherIcon } from '../icons/weather/Icon';
 import { weatherIcon } from '../icons/weather/weatherIcon';
 import {
+  RAIN_TEXT_CLASS,
   ROW_H,
   VERDICT_FILL_CLASS,
   VERDICT_SHORT,
-  VERDICT_TEXT_CLASS,
   activityLabel,
   durationLabel,
   formatHour,
@@ -80,7 +80,7 @@ function Row({ row, intro, order }: { row: FreeTimeRow; intro: boolean; order: n
           />
           {rain !== null && rain >= RAIN_SHOWN_FROM && (
             <span
-              className={`text-[11px] font-medium leading-3 tabular-nums ${hour.isPast ? 'text-text-muted' : 'text-[#64d2ff]'}`}
+              className={`text-[11px] font-medium leading-3 tabular-nums ${hour.isPast ? 'text-text-muted' : RAIN_TEXT_CLASS}`}
             >
               {rain}%
             </span>
@@ -106,10 +106,8 @@ function Row({ row, intro, order }: { row: FreeTimeRow; intro: boolean; order: n
       <td className={`${CELL} pl-1`}>
         {verdict ? (
           <>
-            <span
-              aria-hidden="true"
-              className={`flex items-center gap-1.5 text-[13px] font-medium ${hour.isPast ? 'text-text-muted' : VERDICT_TEXT_CLASS[verdict]}`}
-            >
+            {/* The word takes the row's white (secondary when past); the dot carries the colour. */}
+            <span aria-hidden="true" className="flex items-center gap-1.5 text-[13px] font-medium">
               <span
                 data-verdict-dot=""
                 className={`size-1.5 shrink-0 rounded-full ${VERDICT_FILL_CLASS[verdict]}${fade && ` ${fade}`}`}

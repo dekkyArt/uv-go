@@ -41,7 +41,14 @@ import { CitiesSheet } from './sheet/CitiesSheet';
 import { Sheet } from './sheet/Sheet';
 import { initialState, isForecastStale, reducer } from './state';
 import { Toolbar } from './toolbar/Toolbar';
-import { DAY_OPTIONS, DAY_PANEL_ID, ROW_H, TOOLBAR_H, verdictLabel } from './ui';
+import {
+  DAY_OPTIONS,
+  DAY_PANEL_ID,
+  ROW_H,
+  SHEET_BUTTON_CLASS,
+  TOOLBAR_H,
+  verdictLabel,
+} from './ui';
 
 type StoredInputs = Pick<Inputs, 'freeTime' | 'duration' | 'activity'>;
 
@@ -182,9 +189,6 @@ function Placeholder() {
     </div>
   );
 }
-
-const DONE_CLASS =
-  'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/15 bg-white/10 px-4 text-base font-medium text-white hover:bg-white/15';
 
 function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () =>
@@ -435,7 +439,7 @@ function App() {
         <div className="flex flex-col gap-5">
           {planControls}
           {/* The sheet has no close button of its own, and reduced motion has no swipe. */}
-          <button type="button" onClick={() => setPlanOpen(false)} className={DONE_CLASS}>
+          <button type="button" onClick={() => setPlanOpen(false)} className={SHEET_BUTTON_CLASS}>
             Done
           </button>
         </div>

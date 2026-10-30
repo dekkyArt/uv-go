@@ -126,6 +126,10 @@ describe('CitiesSheet', () => {
     const { onPlace, onClose } = setup();
     await user.click(screen.getByRole('button', { name: 'Use my location' }));
     expect(await screen.findByText(GEO_ERROR)).toBeInTheDocument();
+    // White text (red falls short of AA on glass); a red dot carries the colour.
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveClass('text-text');
+    expect(alert.querySelector('[aria-hidden="true"]')).toHaveClass('bg-verdict-red');
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('combobox')));
     expect(onPlace).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();

@@ -2,6 +2,7 @@ import { m, useReducedMotion } from 'motion/react';
 import { useId, useRef, type KeyboardEvent } from 'react';
 import { usePress } from '../../motion/press';
 import { springs } from '../../motion/tokens';
+import { SEGMENT_OFF_CLASS, SEGMENT_ON_CLASS, SEGMENT_PILL_CLASS } from '../ui';
 
 interface Props<T extends string | number> {
   label: string;
@@ -54,7 +55,7 @@ export function SegmentedControl<T extends string | number>({
             onKeyDown={(e) => onKeyDown(e, i)}
             {...press}
             className={`relative min-h-11 min-w-11 rounded-full px-4 text-sm font-medium ${
-              checked ? 'text-black/85' : 'text-text hover:bg-white/10'
+              checked ? SEGMENT_ON_CLASS : SEGMENT_OFF_CLASS
             }`}
           >
             {checked && (
@@ -64,7 +65,7 @@ export function SegmentedControl<T extends string | number>({
                 data-segment-indicator=""
                 aria-hidden="true"
                 transition={springs.snappy}
-                className="absolute inset-0 rounded-full bg-white/90"
+                className={`absolute inset-0 rounded-full ${SEGMENT_PILL_CLASS}`}
               />
             )}
             <span className="relative">{option.label}</span>

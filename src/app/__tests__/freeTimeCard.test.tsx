@@ -6,7 +6,7 @@ import type { DayForecast } from '../../domain/types';
 import { MotionProvider } from '../../motion/MotionProvider';
 import { FreeTimeCard } from '../cards/FreeTimeCard';
 import { freeTimeRows } from '../cards/freeTimeRows';
-import { ROW_H } from '../ui';
+import { RAIN_TEXT_CLASS, ROW_H } from '../ui';
 
 const FREE = { start: 13, end: 19 };
 const INPUTS = { day: 'today', freeTime: FREE, duration: 60, activity: 'relaxed' } as const;
@@ -147,7 +147,7 @@ describe('FreeTimeCard', () => {
   it('shows rain only from 30 %, in the rain colour', () => {
     setup(makeDay({ 14: { rainProb: 60 }, 15: { rainProb: 20 } }));
     const wet = within(rowOf(14)).getByText('60%');
-    expect(wet).toHaveClass('text-[#64d2ff]');
+    expect(wet).toHaveClass(RAIN_TEXT_CLASS);
     expect(within(rowOf(15)).queryByText(/%/)).toBeNull();
   });
 

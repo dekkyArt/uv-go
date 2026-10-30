@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { contrastRatio, hexToRgb, luminance, over, type Rgb } from '../domain/contrast';
-import { glassFor, WORST_BACKGROUNDS } from '../domain/glass';
+import { glassFor } from '../domain/glass';
 import type { SkyPhase } from '../domain/sky';
 import { MAX_SKY_LUMA, SKY_PALETTE, TEXT_SECONDARY_ALPHA } from '../domain/skyPalette';
 
@@ -82,25 +82,13 @@ describe('static sky: sun glow on pages without the app', () => {
 
 describe('static sky: the TL;DR plate on the article glass', () => {
   const layout = readFileSync('src/components/ArticleLayout.astro', 'utf8');
-  const plate = /<section aria-labelledby="tldr-heading" class="([^"]*)"[\s\S]*?<\/section>/.exec(
-    layout,
-  );
+  const plate =
+    /<section aria-labelledby="tldr-heading" class=\{`([^`]*)`\}[\s\S]*?<\/section>/.exec(layout);
 
-  it('is a white/8 plate with full-white text only', () => {
+  // The plate itself is proven with the other plates in src/app/__tests__/textContrast.test.ts.
+  it('is the inset plate with full-white text only', () => {
     expect(plate, 'the TL;DR section').not.toBeNull();
-    expect(plate![1]).toContain('bg-white/8');
+    expect(plate![1]).toContain('${INSET_CLASS}');
     expect(plate![0]).not.toContain('text-text-muted');
   });
-
-  it.each(PHASES)(
-    'holds white text at AA on the %s glass over every worst-case backdrop',
-    (phase) => {
-      const { top, bottom } = SKY_PALETTE[phase];
-      const g = glassFor(over(hexToRgb(top), 0.5, hexToRgb(bottom)));
-      for (const behind of WORST_BACKGROUNDS) {
-        const surface = over(WHITE, 0.08, over(g.rgb, g.alpha, behind));
-        expect(contrastRatio(WHITE, surface)).toBeGreaterThanOrEqual(4.5);
-      }
-    },
-  );
 });

@@ -1,6 +1,7 @@
 ---
 // Rule tables are generated from `rules` (spec 6, 11.4): a threshold changed in
 // rules.config.ts changes this page. No number about scoring is typed here.
+import { INSET_CLASS } from '../app/ui';
 import { rules } from '../domain/rules.config';
 import type { ChecklistId } from '../domain/types';
 
@@ -56,15 +57,11 @@ const verdictRows = verdict.bands.map((band, i) => ({
   label: verdictLabels[band.verdict],
 }));
 
+// The verdict words are white, like every other cell: the chip carries the colour.
 const chip = {
   green: 'bg-verdict-green',
   yellow: 'bg-verdict-yellow',
   red: 'bg-verdict-red',
-} as const;
-const toneText = {
-  green: 'text-verdict-green-text',
-  yellow: 'text-verdict-yellow-text',
-  red: 'text-verdict-red-text',
 } as const;
 
 const checklistWhen: Record<ChecklistId, string> = {
@@ -114,16 +111,17 @@ const h3 = 'mt-8 text-[17px] font-semibold text-text';
   </h2>
 
   <ol class="mt-4 grid gap-3 sm:grid-cols-3">
+    {/* The plate lightens the glass, so its text is full white: secondary white would fall under AA. */}
     {steps.map((step, i) => (
-      <li class="rounded-xl bg-white/8 p-4">
+      <li class={`rounded-xl ${INSET_CLASS} p-4`}>
         <span
           aria-hidden="true"
-          class="inline-flex size-8 items-center justify-center rounded-full bg-white/12 text-sm font-semibold text-text"
+          class={`inline-flex size-8 items-center justify-center rounded-full ${INSET_CLASS} text-sm font-semibold text-text`}
         >
           {i + 1}
         </span>
         <h3 class="mt-2 text-[17px] font-semibold text-text">{step.title}</h3>
-        <p class="mt-1 text-text-muted">{step.text}</p>
+        <p class="mt-1 text-text">{step.text}</p>
       </li>
     ))}
   </ol>
@@ -257,7 +255,7 @@ const h3 = 'mt-8 text-[17px] font-semibold text-text';
             <th scope="row" class={rowHead}>
               {row.range}
             </th>
-            <td class={`${td} font-semibold ${toneText[row.tone]}`}>
+            <td class={`${td} font-semibold`}>
               <span class="inline-flex items-center gap-2">
                 <span aria-hidden="true" class={`size-4 shrink-0 rounded-full ${chip[row.tone]}`} />
                 {row.label}

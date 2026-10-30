@@ -6,7 +6,7 @@ import { makeDay } from '../../domain/__tests__/factories';
 import type { DayForecast } from '../../domain/types';
 import { MotionProvider } from '../../motion/MotionProvider';
 import { HourlyCard } from '../cards/HourlyCard';
-import { CELL_W } from '../ui';
+import { CELL_W, SELECTED_CELL_CLASS } from '../ui';
 
 const FREE = { start: 9, end: 17 };
 
@@ -76,7 +76,8 @@ describe('HourlyCard', () => {
       { hour: 12, minute: 0 },
     );
     setup({ hours: scoredHours, nowHour: 12 }, day);
-    const past = hourButton(11);
+    // Before the free time (09:00–17:00), so on bare glass.
+    const past = hourButton(8);
     const current = hourButton(12);
     const texts = (cell: HTMLElement) => [
       ...cell.querySelectorAll(':scope > span:not(.opacity-45)'),
@@ -96,6 +97,24 @@ describe('HourlyCard', () => {
     expect(current).toHaveClass('text-text');
     expect(current).not.toHaveClass('text-text-muted');
     expect(current.querySelectorAll('.opacity-45')).toHaveLength(0);
+  });
+
+  it('keeps past hours white on a plate: the free band or the selected hour', () => {
+    const day = makeDay();
+    const { scoredHours } = evaluate(
+      day,
+      { day: 'today', freeTime: FREE, duration: 60, activity: 'relaxed' },
+      { hour: 12, minute: 0 },
+    );
+    setup({ hours: scoredHours, nowHour: 12, selectedHour: 7 }, day);
+    // 11:00 is past but on the free band; 07:00 is past, off the band, selected.
+    for (const hour of [11, 7]) {
+      expect(hourButton(hour)).toHaveAttribute('data-past');
+      expect(hourButton(hour)).toHaveClass('text-text');
+      expect(hourButton(hour)).not.toHaveClass('text-text-muted');
+      expect(hourButton(hour).querySelector('svg[data-icon]')).toHaveClass('opacity-45');
+    }
+    expect(hourButton(7)).toHaveClass(SELECTED_CELL_CLASS);
   });
 
   describe('keyboard', () => {

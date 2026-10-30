@@ -36,9 +36,6 @@
   --uv-verdict-green: #4cd964;
   --uv-verdict-yellow: #ffd60a;
   --uv-verdict-red: #ff6961;
-  --uv-verdict-green-text: #4cd964;
-  --uv-verdict-yellow-text: #ffd60a;
-  --uv-verdict-red-text: #ff6961;
   --uv-night: #8e9cc9;
 
   /* Glass: the day values until a phase sets its own below. */
@@ -95,9 +92,6 @@ html[data-sky-phase='dusk'] {
   --color-verdict-green: var(--uv-verdict-green);
   --color-verdict-yellow: var(--uv-verdict-yellow);
   --color-verdict-red: var(--uv-verdict-red);
-  --color-verdict-green-text: var(--uv-verdict-green-text);
-  --color-verdict-yellow-text: var(--uv-verdict-yellow-text);
-  --color-verdict-red-text: var(--uv-verdict-red-text);
 
   --color-night: var(--uv-night);
 }

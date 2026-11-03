@@ -10,6 +10,8 @@ interface Props {
 
 const NO_DATA = 'no data';
 
+const ICONS: Record<string, string> = { UV: '☀️', Rain: '💧', 'Feels like': '🌡️', Wind: '💨' };
+
 function value(v: number | null, format: (n: number) => string): string {
   return v === null ? NO_DATA : format(v);
 }
@@ -57,40 +59,45 @@ export function HourDetails({ hour, onClose }: Props) {
     <section
       {...{ [KEEP_DETAILS_ATTR]: '' }}
       aria-label={`Details for ${time}`}
-      className="glass p-4"
+      className="px-1 pt-2 pb-1"
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-lg font-semibold">{time}</h3>
+          <h3 className="text-3xl font-semibold tracking-tight">{time}</h3>
           <p className="text-sm text-text-muted">
-            {hour.verdict === 'night' ? 'Night' : verdictLabel(hour.verdict)}
+            {hour.verdict === 'night' ? '🌙 Night' : verdictLabel(hour.verdict)}
           </p>
         </div>
         <button
           type="button"
           onClick={() => onClose(true)}
           aria-label="Close hour details"
-          className="inline-flex size-11 items-center justify-center rounded-lg text-xl text-text hover:bg-surface-strong"
+          className="-mr-2 -mt-1 inline-flex size-11 items-center justify-center rounded-full text-xl text-text-muted hover:text-text"
         >
           <span aria-hidden="true">×</span>
         </button>
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+      <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-6">
         {rows.map(([label, text]) => (
           <div key={label}>
-            <dt className="text-text-muted">{label}</dt>
-            <dd className="font-medium">{text}</dd>
+            <dt className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-text-muted">
+              <span aria-hidden="true">{ICONS[label]}</span>
+              {label}
+            </dt>
+            <dd className="text-xl font-semibold">{text}</dd>
           </div>
         ))}
       </dl>
-      <h4 className="mt-4 text-sm font-semibold">Points (lower is better)</h4>
-      <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <h4 className="mt-8 text-xs font-medium uppercase tracking-wide text-text-muted">
+        Points (lower is better)
+      </h4>
+      <ul className="mt-3 flex flex-wrap justify-between gap-x-4 gap-y-2 text-sm text-text-muted">
         {FACTORS.map((factor) => (
           <li key={factor}>
             {FACTOR_LABELS[factor]} {hour.points[factor]}
           </li>
         ))}
-        <li className="font-medium">Total {hour.score}</li>
+        <li className="font-semibold text-text">Total {hour.score}</li>
       </ul>
     </section>
   );

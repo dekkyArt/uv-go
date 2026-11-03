@@ -146,6 +146,23 @@ describe('SegmentedControl', () => {
     expect(screen.getByRole('radio', { name: 'Alpha' })).toHaveClass('text-black/85', 'min-h-11');
     expect(screen.getByRole('radio', { name: 'Beta' })).toHaveClass('text-text');
   });
+
+  it('supports proportional segment sizing with non-wrapping labels', () => {
+    render(
+      <SegmentedControl<'a' | 'b'>
+        label="Letter"
+        options={[
+          { value: 'a', label: 'Short' },
+          { value: 'b', label: 'Much longer label' },
+        ]}
+        value="a"
+        onChange={vi.fn()}
+        proportional
+      />,
+    );
+    expect(screen.getByRole('radio', { name: 'Short' })).toHaveClass('flex-auto');
+    expect(screen.getByText('Much longer label')).toHaveClass('whitespace-nowrap');
+  });
 });
 
 describe('FreeTimePicker', () => {

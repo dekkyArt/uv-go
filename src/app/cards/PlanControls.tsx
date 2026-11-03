@@ -38,6 +38,7 @@ export function PlanControls({ inputs, onDay, onFreeTime, onDuration, onActivity
           options={ACTIVITY_OPTIONS}
           value={inputs.activity}
           onChange={onActivity}
+          proportional
         />
       </div>
     </div>

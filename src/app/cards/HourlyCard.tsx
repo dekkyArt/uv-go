@@ -181,7 +181,7 @@ export function HourlyCard({
         data-hourly-strip=""
         layout={!reduced}
         transition={springs.smooth}
-        className="-mx-4 snap-x snap-mandatory scroll-px-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-mx-4 snap-x snap-mandatory scroll-px-4 overflow-x-auto px-4 scrollbar-none [&::-webkit-scrollbar]:hidden [-webkit-mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-16px),transparent)] mask-[linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-16px),transparent)]"
       >
         <div
           role="group"

@@ -9,6 +9,8 @@ interface Props<T extends string | number> {
   options: readonly { value: T; label: string }[];
   value: T;
   onChange(v: T): void;
+  /** When true, segments size proportionally according to content length rather than equal fractions. */
+  proportional?: boolean;
 }
 
 export function SegmentedControl<T extends string | number>({
@@ -16,6 +18,7 @@ export function SegmentedControl<T extends string | number>({
   options,
   value,
   onChange,
+  proportional = false,
 }: Props<T>) {
   const indicatorId = `seg-${useId()}`;
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
@@ -37,7 +40,7 @@ export function SegmentedControl<T extends string | number>({
     <div
       role="radiogroup"
       aria-label={label}
-      className="glass inline-flex flex-wrap gap-1 rounded-full p-1"
+      className="glass flex w-full items-center gap-1 rounded-full p-1"
     >
       {options.map((option, i) => {
         const checked = option.value === value;
@@ -54,7 +57,9 @@ export function SegmentedControl<T extends string | number>({
             onClick={() => onChange(option.value)}
             onKeyDown={(e) => onKeyDown(e, i)}
             {...press}
-            className={`relative min-h-11 min-w-11 rounded-full px-4 text-sm font-medium ${
+            className={`relative flex min-h-11 ${
+              proportional ? 'flex-auto' : 'flex-1 min-w-0'
+            } items-center justify-center rounded-full px-2.5 py-2 text-center text-[13px] font-medium leading-none sm:text-sm ${
               checked ? SEGMENT_ON_CLASS : SEGMENT_OFF_CLASS
             }`}
           >
@@ -65,10 +70,16 @@ export function SegmentedControl<T extends string | number>({
                 data-segment-indicator=""
                 aria-hidden="true"
                 transition={springs.snappy}
-                className={`absolute inset-0 rounded-full ${SEGMENT_PILL_CLASS}`}
+                className={`absolute inset-0 rounded-full shadow-sm ${SEGMENT_PILL_CLASS}`}
               />
             )}
-            <span className="relative">{option.label}</span>
+            <span
+              className={`relative z-10 select-none ${
+                proportional ? 'whitespace-nowrap' : 'truncate'
+              }`}
+            >
+              {option.label}
+            </span>
           </m.button>
         );
       })}

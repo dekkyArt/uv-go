@@ -4,7 +4,7 @@ import {
   cardDelay,
   firstResult,
   labelVisibleAt,
-  tileDelay,
+  chipDelay,
   totalDuration,
 } from '../choreography';
 
@@ -19,9 +19,9 @@ describe('first result choreography', () => {
     expect(totalDuration()).toBeGreaterThanOrEqual(1.0);
   });
 
-  it('covers every step: four cards, five tiles, the bars and the label', () => {
+  it('covers every step: four cards, five chips, the bars and the label', () => {
     expect(totalDuration()).toBeGreaterThanOrEqual(cardDelay(3) + 0.3);
-    expect(totalDuration()).toBeGreaterThanOrEqual(tileDelay(4) + 0.3);
+    expect(totalDuration()).toBeGreaterThanOrEqual(chipDelay(4) + 0.3);
     expect(totalDuration()).toBeGreaterThanOrEqual(barDelay(23) + firstResult.barsDuration);
     expect(totalDuration()).toBeGreaterThanOrEqual(labelVisibleAt());
   });
@@ -33,9 +33,9 @@ describe('first result choreography', () => {
     expect(totalDuration(c)).toBeLessThanOrEqual(Math.max(lastBar, totalDuration()));
   });
 
-  it('staggers the cards and tiles by their index', () => {
+  it('staggers the cards and chips by their index', () => {
     expect(cardDelay(0)).toBeCloseTo(firstResult.cardsIn);
     expect(cardDelay(2)).toBeCloseTo(firstResult.cardsIn + 2 * firstResult.cardStagger);
-    expect(tileDelay(1)).toBeCloseTo(firstResult.tilesIn + firstResult.tileStagger);
+    expect(chipDelay(1)).toBeCloseTo(firstResult.chipsIn + firstResult.chipStagger);
   });
 });

@@ -3,7 +3,7 @@ import { siteConfig } from '../site.config';
 import { TOOLBAR_H } from '../app/ui';
 
 interface Props {
-  /** The page has the fixed bottom toolbar (the home page): leave room for it under the footer. */
+  /** The page has the fixed bottom toolbar (the home page, on a phone): leave room for it under the footer. */
   withToolbar?: boolean;
 }
 
@@ -11,11 +11,12 @@ const { withToolbar = false } = Astro.props;
 const linkClass = 'inline-flex min-h-11 items-center underline underline-offset-2 hover:text-text';
 ---
 
+<!-- The toolbar is a phone's only: desktop keeps the plain padding. -->
 <footer
-  class="px-4 pb-6 pt-8"
+  class:list={['px-4 pb-6 pt-8', withToolbar && 'max-lg:pb-(--toolbar-space)']}
   style={
     withToolbar
-      ? `padding-bottom: calc(${TOOLBAR_H}px + 24px + env(safe-area-inset-bottom))`
+      ? `--toolbar-space: calc(${TOOLBAR_H}px + 24px + env(safe-area-inset-bottom))`
       : undefined
   }
 >

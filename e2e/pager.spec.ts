@@ -25,12 +25,14 @@ test.describe('Today / Tomorrow pager (touch)', () => {
     await expect(page.locator('[data-hero-time]')).toHaveText(/^\d{2}:00–\d{2}:00$/);
   });
 
-  const tab = (page: Page, name: 'Today' | 'Tomorrow') => page.getByRole('tab', { name });
+  /** The Hourly card names the day it shows: "Today, 27 Oct". */
+  const showsDay = (page: Page, name: 'Today' | 'Tomorrow') =>
+    expect(page.locator('#day-panel').getByText(new RegExp(`^${name}, `))).toBeVisible();
 
   test('a swipe to the left shows Tomorrow, a swipe to the right goes back', async ({ page }) => {
-    await expect(tab(page, 'Today')).toHaveAttribute('aria-selected', 'true');
+    await showsDay(page, 'Today');
     await swipe(page, -40);
-    await expect(tab(page, 'Tomorrow')).toHaveAttribute('aria-selected', 'true');
+    await showsDay(page, 'Tomorrow');
     // The page has settled back at rest, without a transform that would re-anchor fixed children.
     await expect
       .poll(() =>
@@ -39,25 +41,15 @@ test.describe('Today / Tomorrow pager (touch)', () => {
       .toBe('none');
 
     await swipe(page, 40);
-    await expect(tab(page, 'Today')).toHaveAttribute('aria-selected', 'true');
+    await showsDay(page, 'Today');
   });
 
   test('a short swipe stays on the day and the page does not scroll sideways', async ({ page }) => {
     await swipe(page, -4);
-    await expect(tab(page, 'Today')).toHaveAttribute('aria-selected', 'true');
+    await showsDay(page, 'Today');
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       390,
     );
-  });
-
-  test('the selected dot is a 16 px pill', async ({ page }) => {
-    const pill = tab(page, 'Today').locator('span');
-    expect((await pill.boundingBox())!.width).toBeCloseTo(16, 0);
-    await tab(page, 'Tomorrow').click();
-    await expect(tab(page, 'Tomorrow')).toHaveAttribute('aria-selected', 'true');
-    await expect
-      .poll(async () => (await tab(page, 'Tomorrow').locator('span').boundingBox())?.width)
-      .toBeCloseTo(16, 0);
   });
 
   test('the pinned bar and the sticky card headers survive the pager', async ({ page }) => {
@@ -66,15 +58,16 @@ test.describe('Today / Tomorrow pager (touch)', () => {
     await expect(bar).toBeVisible();
     const top = await bar.evaluate((el) => el.getBoundingClientRect().top);
     expect(top).toBe(0);
-    // A card's header sticks right under the bar (56 px) while its body is still on screen.
+    // A card's header sticks right under the bar and its pill strip (56 + 44 px) while its body is
+    // still on screen.
     const header = page.locator('#day-panel [data-card-header]').first();
     const stuck = () => header.evaluate((el) => el.getBoundingClientRect().top);
     await page.evaluate(() => window.scrollTo(0, 400));
-    await expect.poll(stuck).toBe(56);
+    await expect.poll(stuck).toBe(100);
 
     await swipe(page, -40);
-    await expect(tab(page, 'Tomorrow')).toHaveAttribute('aria-selected', 'true');
+    await showsDay(page, 'Tomorrow');
     expect(await bar.evaluate((el) => el.getBoundingClientRect().top)).toBe(0);
-    await expect.poll(stuck).toBe(56);
+    await expect.poll(stuck).toBe(100);
   });
 });

@@ -48,20 +48,22 @@ describe('GlassCard', () => {
     expect(ref.current).toBe(card);
   });
 
-  it('sticks its title row only while tucking under the pinned bar', () => {
-    const header = (tuck: boolean) => {
+  it('sticks its title row only while tucking, right under the pinned layers', () => {
+    const header = (tuck: number) => {
       const { container, unmount } = render(
         <GlassCard title="Hourly" tuck={tuck}>
           <p>x</p>
         </GlassCard>,
       );
       const el = container.querySelector<HTMLElement>('[data-card-header]')!;
-      const sticky = el.classList.contains('sticky');
+      const stuck = { sticky: el.classList.contains('sticky'), top: el.style.top };
       unmount();
-      return sticky;
+      return stuck;
     };
     // Desktop (and a phone without the bar): a stuck title would sit on the rows under it.
-    expect(header(false)).toBe(false);
-    expect(header(true)).toBe(true);
+    expect(header(0)).toEqual({ sticky: false, top: '' });
+    // The bar alone, and the bar with the What to take strip under it.
+    expect(header(56)).toEqual({ sticky: true, top: '56px' });
+    expect(header(100)).toEqual({ sticky: true, top: '100px' });
   });
 });

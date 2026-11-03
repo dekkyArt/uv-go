@@ -25,6 +25,7 @@ vi.mock('../ui', async (importOriginal) => {
 const body = (container: HTMLElement) =>
   container.querySelector<HTMLElement>('[data-card-body]') as HTMLElement;
 const clip = (container: HTMLElement) => body(container).style.clipPath;
+const section = (container: HTMLElement) => container.querySelector<HTMLElement>('section')!;
 
 /** Fakes the layout jsdom lacks: the card top is `top.value`, the header is 44 px, the body 300. */
 function fakeLayout(top: { value: number }) {
@@ -42,10 +43,10 @@ function fakeLayout(top: { value: number }) {
  * The features are passed in synchronously: with the app's lazy loader the import raced the
  * scroll under a busy test run, and the clip sometimes missed a step.
  */
-function card(tuck: boolean) {
+function card(tuck: boolean, pinned = 56) {
   return (
     <LazyMotion features={features} strict>
-      <GlassCard title="Hourly" tuck={tuck}>
+      <GlassCard title="Hourly" tuck={tuck ? pinned : 0}>
         <p>x</p>
       </GlassCard>
     </LazyMotion>
@@ -98,6 +99,33 @@ describe('GlassCard tuck', () => {
     await waitFor(() => expect(clip(container)).toBe('inset(300px 0 0 0 round 22px)'));
   });
 
+  it('cuts at the pinned height it is given: the bar and the What to take strip', async () => {
+    fakeLayout({ value: 20 });
+    const { container } = render(card(true, 100));
+    await waitFor(() => expect(clip(container)).toBe('inset(80px 0 0 0 round 22px)'));
+  });
+
+  it('cuts the card itself at the same line, so no glass shows behind the strip', async () => {
+    const top = { value: 500 };
+    fakeLayout(top);
+    const { container } = render(card(true, 100));
+    await waitFor(() => expect(clip(container)).toBe('inset(0px 0 0 0 round 22px)'));
+    expect(section(container).style.clipPath).toBe('none');
+
+    top.value = 20;
+    act(() => scroll.y?.set(480));
+    await waitFor(() =>
+      expect(section(container).style.clipPath).toBe('inset(80px 0 0 0 round 22px)'),
+    );
+
+    // Past the clamp of the body: the title row pushed up by the card's bottom goes under too.
+    top.value = -400;
+    act(() => scroll.y?.set(900));
+    await waitFor(() =>
+      expect(section(container).style.clipPath).toBe('inset(500px 0 0 0 round 22px)'),
+    );
+  });
+
   it('clips right away when the page is restored mid-scroll', async () => {
     fakeLayout({ value: 0 });
     const { container } = render(card(true));
@@ -112,6 +140,7 @@ describe('GlassCard tuck', () => {
     rerender(card(false));
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(body(container).getAttribute('style') ?? '').not.toContain('clip-path');
+    expect(section(container).getAttribute('style') ?? '').not.toContain('clip-path');
   });
 
   it('disconnects the size observer on cleanup', () => {

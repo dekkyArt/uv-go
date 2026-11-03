@@ -1,12 +1,20 @@
-import { m, useReducedMotion, useTransform, type TargetAndTransition } from 'motion/react';
+import { m, useReducedMotion, type TargetAndTransition } from 'motion/react';
 import type { ReactNode, Ref } from 'react';
 import type { Place } from '../../data/types';
 import type { DurationMin, EmptyReason, TimeWindow } from '../../domain/types';
 import { firstResult } from '../../motion/choreography';
 import { usePress } from '../../motion/press';
 import { durations, springs } from '../../motion/tokens';
-import { BUTTON_CLASS, durationLabel, GEO_ERROR, VERDICT_FILL_CLASS, verdictLabel } from '../ui';
+import {
+  BUTTON_CLASS,
+  HERO_PIN_BUTTON_CLASS,
+  durationLabel,
+  GEO_ERROR,
+  VERDICT_FILL_CLASS,
+  verdictLabel,
+} from '../ui';
 import { NumericRoll } from '../components/NumericRoll';
+import { PinEditIcon } from '../icons/PinEditIcon';
 import { placeTitle } from './heroText';
 import type { HeroCollapse } from './useHeroCollapse';
 
@@ -37,12 +45,28 @@ interface HeroProps {
   onShowTomorrow(): void;
   /** The day switched to tomorrow by itself: say so under the hero. */
   notice: boolean;
+  /** What to take, under the answer and above the notice (a reserved row while loading). */
+  take?: ReactNode;
   /** The first-result choreography is playing: the best time and the verdict come in. */
   intro: boolean;
   /** Scroll-bound values that fold the result into the pinned bar; absent, nothing folds. */
   collapse?: HeroCollapse;
   findCityRef?: Ref<HTMLButtonElement>;
+  /**
+   * Opens Cities from a pin next to the place's name (desktop, which has no toolbar). Absent, or
+   * before a place is chosen ("Find a city" is there then), there is no pin.
+   */
+  onCities?: () => void;
+  citiesRef?: Ref<HTMLButtonElement>;
 }
+
+/**
+ * The hero's box, shared with the server placeholder (UvGoApp) so the H1 does not move when the app
+ * arrives. Centred on a phone; on desktop the text starts at the column's edge and top, in line
+ * with the header's logo and the first card, as there is no plate to inset it from.
+ */
+export const HERO_BOX_CLASS =
+  'sky-text flex w-full flex-col items-center justify-center gap-2 px-4 pb-3 pt-6 text-center text-text lg:items-start lg:justify-start lg:p-0 lg:text-left';
 
 const SECONDARY_LINE = 'm-0 max-w-[34ch] text-balance text-[17px] font-medium leading-6';
 
@@ -84,7 +108,10 @@ function emptyText(reason: EmptyReason, duration: DurationMin): string {
   return 'No time left today.';
 }
 
-/** The central answer block, white text straight on the sky over a soft dark scrim. */
+/**
+ * The central answer block: white text straight on the sky, no plate behind it. Each glyph carries
+ * the dark rim of `.sky-text` (global.css), which keeps the small lines legible on any sky.
+ */
 export function Hero({
   state,
   locating,
@@ -94,9 +121,12 @@ export function Hero({
   onRetry,
   onShowTomorrow,
   notice,
+  take,
   intro,
   collapse,
   findCityRef,
+  onCities,
+  citiesRef,
 }: HeroProps) {
   const reduced = useReducedMotion() ?? false;
   const play = intro && !reduced && state.kind === 'result';
@@ -104,8 +134,6 @@ export function Hero({
   const title = state.kind === 'no-place' ? null : placeTitle(state.place);
   // Only a result folds: the other states carry buttons that must stay on the page.
   const fold = state.kind === 'result' ? collapse : undefined;
-  // The scrim goes with the hero: once the bar has taken over, no empty dark box is left behind.
-  const scrimOpacity = useTransform(() => 1 - (fold?.barOpacity.get() ?? 0));
   const bigTime =
     state.kind === 'result' ? state.best.label : state.kind === 'empty' ? '—' : '--:--';
 
@@ -201,30 +229,40 @@ export function Hero({
 
   return (
     <div className="flex flex-col items-center gap-3 lg:items-start">
-      <div className="relative flex min-h-[300px] w-full flex-col items-center justify-center gap-2 px-4 py-6 text-center text-text lg:items-start lg:text-left [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]">
-        <m.div
-          aria-hidden="true"
-          style={{ opacity: scrimOpacity }}
-          className="hero-scrim pointer-events-none"
-        />
+      {/* boot-in: comes in as the boot splash hands over (global.css). */}
+      <div className={`boot-in ${HERO_BOX_CLASS} min-h-[300px] [--boot-i:1]`}>
         {/* A size container: the big time is capped by this width as well as by the viewport. */}
-        <div className="@container relative flex w-full flex-col items-center gap-2 lg:items-start">
+        <div className="@container flex w-full flex-col items-center gap-2 lg:items-start">
           <m.h1
             style={{ opacity: fold?.eyebrowOpacity }}
             className="m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]"
           >
             {HERO_H1}
           </m.h1>
-          <p className="m-0 max-w-full break-words text-[32px] font-normal leading-10 lg:text-[40px] lg:leading-[48px]">
-            {title ? (
-              <>
-                {title.mine && <span aria-hidden="true">➤ </span>}
-                {title.name}
-              </>
-            ) : (
-              'Choose a place'
+          <div className="flex max-w-full items-center gap-3">
+            <p className="m-0 min-w-0 break-words text-[32px] font-normal leading-10 lg:text-[40px] lg:leading-[48px]">
+              {title ? (
+                <>
+                  {title.mine && <span aria-hidden="true">➤ </span>}
+                  {title.name}
+                </>
+              ) : (
+                'Choose a place'
+              )}
+            </p>
+            {title && onCities && (
+              <m.button
+                {...press}
+                ref={citiesRef}
+                type="button"
+                onClick={onCities}
+                className={HERO_PIN_BUTTON_CLASS}
+              >
+                <PinEditIcon />
+                <span className="sr-only">Cities</span>
+              </m.button>
             )}
-          </p>
+          </div>
           {/* The scroll transform lives here: the intro animates the time's own y. */}
           <m.div
             data-hero-collapse
@@ -251,12 +289,14 @@ export function Hero({
           </m.div>
           {below}
         </div>
+        {take ? <div className="mt-2 w-full">{take}</div> : null}
+        {/* No plate: the line sits on the sky with the hero's rim, like the text above it. */}
+        {notice && (
+          <p role="status" className="m-0 max-w-[34ch] text-[15px] font-medium leading-5">
+            Your free time today has passed — showing tomorrow
+          </p>
+        )}
       </div>
-      {notice && (
-        <p role="status" className="glass m-0 px-4 py-2 text-[15px] font-medium leading-5">
-          Your free time today has passed — showing tomorrow
-        </p>
-      )}
     </div>
   );
 }

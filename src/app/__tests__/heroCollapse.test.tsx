@@ -179,10 +179,6 @@ describe('Hero collapse', () => {
     await vi.waitFor(() => expect(wrapper(container).style.transform).toContain('scale(0.38'));
     expect(screen.getByText('UV is low')).toHaveStyle({ opacity: '0' });
     expect(screen.getByRole('heading', { level: 1 })).toHaveStyle({ opacity: '0' });
-    // The scrim leaves with the hero, once the bar has taken over.
-    await vi.waitFor(() =>
-      expect(container.querySelector('.hero-scrim')).toHaveStyle({ opacity: '0' }),
-    );
   });
 
   it('keeps folding with reduced motion', async () => {

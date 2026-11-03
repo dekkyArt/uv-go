@@ -3,6 +3,7 @@
     "superpowers@anthropic-plugin-directory": true,
     "code-review@anthropic-plugin-directory": true,
     "claude-md-management@anthropic-plugin-directory": true,
-    "code-simplifier@anthropic-plugin-directory": true
+    "code-simplifier@anthropic-plugin-directory": true,
+    "frontend-design@anthropic-plugin-directory": true
   }
 }

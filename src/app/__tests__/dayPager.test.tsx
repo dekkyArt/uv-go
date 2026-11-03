@@ -112,7 +112,7 @@ describe('DayPager', () => {
     expect(pager).toHaveAttribute('data-pager-enabled', 'true');
     // Vertical scrolling stays native and pinch-zoom stays available (WCAG 1.4.4).
     expect(pager.style.touchAction).toBe('pan-y pinch-zoom');
-    // The page clips sideways at the viewport edge; a clip here would cut the hero scrim.
+    // The page clips sideways at the viewport edge; a clip here would cut the cards at the gutter.
     expect(pager.style.overflowX).toBe('');
   });
 
@@ -170,7 +170,7 @@ describe('DayPager', () => {
     const onDay = vi.fn();
     const { pager, progress, rerender } = renderPager({ onDay });
     await swipe(screen.getByTestId('content'), -40);
-    // The dots (or the auto-switch) get there first, while the page is still sliding off.
+    // The day switch (or the auto-switch) gets there first, while the page is still sliding off.
     rerender('tomorrow');
     // The exit (0.3 s) and the entry (0.45 s) both play out.
     await act(() => new Promise((r) => setTimeout(r, 1500)));

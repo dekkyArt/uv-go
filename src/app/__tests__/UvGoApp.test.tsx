@@ -122,6 +122,10 @@ function renderApp() {
 
 const heroTime = () => document.querySelector<HTMLElement>('[data-hero-time]');
 
+/** The Today | Tomorrow switch of the Plan card (desktop). */
+const dayRadio = (name: 'Today' | 'Tomorrow') =>
+  within(screen.getByRole('radiogroup', { name: 'Day' })).getByRole('radio', { name });
+
 /** Resolves once the hero shows `label` as the best time. */
 async function findHeroTime(label: string) {
   await waitFor(() => expect(heroTime()).toHaveTextContent(label));
@@ -150,7 +154,7 @@ describe('UvGoApp', () => {
     expect(await screen.findByRole('dialog', { name: 'Cities' })).toBeInTheDocument();
   });
 
-  it('picking Lisbon shows the best time, the hourly strip, the free time table and tiles', async () => {
+  it('picking Lisbon shows the best time, the hourly strip, the free time table and pills', async () => {
     const user = userEvent.setup();
     renderApp();
     await user.click(screen.getByRole('button', { name: 'Find a city' }));
@@ -164,6 +168,13 @@ describe('UvGoApp', () => {
     expect(screen.getByRole('table', { name: 'Your free time, hour by hour' })).toBeInTheDocument();
     const take = screen.getByRole('region', { name: 'What to take' });
     expect(within(take).getAllByRole('listitem').length).toBeGreaterThan(0);
+    // The pills belong to the answer: under the hero, before the day's cards.
+    expect(document.getElementById('day-panel')).not.toContainElement(take);
+    const hourly = screen.getByRole('region', { name: 'Hourly' });
+    expect(take.compareDocumentPosition(hourly) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      heroTime()!.compareDocumentPosition(take) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(JSON.parse(window.localStorage.getItem('uvgo:location') ?? 'null')).toMatchObject({
       name: 'Lisbon',
     });
@@ -205,20 +216,21 @@ describe('UvGoApp', () => {
     });
   });
 
-  it('the Tomorrow tab shows the second day, and the day is not stored', async () => {
+  it('Tomorrow in the Plan card shows the second day, and the day is not stored', async () => {
     // Tomorrow 13:00–18:00 all have UV 5, so the earliest hour wins.
     setForecast(makeForecastJson({ offsetSeconds: 0, hourly: { uv_index: uvSeries({ 42: 5 }) } }));
+    mockMatchMedia(true);
     storePlace();
     const user = userEvent.setup();
     renderApp();
     await findHeroTime('18:00–19:00');
 
-    await user.click(screen.getByRole('tab', { name: 'Tomorrow' }));
+    const plan = screen.getByRole('region', { name: 'Plan' });
+    await user.click(within(plan).getByRole('radio', { name: 'Tomorrow' }));
     await findHeroTime('13:00–14:00');
-    expect(screen.getByRole('tab', { name: 'Tomorrow' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: 'Today' })).toHaveAttribute('aria-selected', 'false');
+    expect(dayRadio('Tomorrow')).toHaveAttribute('aria-checked', 'true');
+    expect(dayRadio('Today')).toHaveAttribute('aria-checked', 'false');
     expect(screen.getByText('Peak UV 5 · Feels 20°')).toBeInTheDocument();
-    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'day-panel');
     expect(window.localStorage.getItem('uvgo:inputs') ?? '').not.toContain('tomorrow');
   });
 
@@ -248,10 +260,13 @@ describe('UvGoApp', () => {
     const busy = document.querySelectorAll('#day-panel [aria-busy="true"]');
     expect(busy.length).toBe(2);
     expect(screen.queryByRole('region', { name: 'What to take' })).not.toBeInTheDocument();
+    // One row of pills is held under the hero, so the cards do not move when they arrive.
+    expect(document.querySelector('[data-take-reserve]')).toBeInTheDocument();
 
     await act(async () => release());
     await findHeroTime('18:00–19:00');
     expect(document.querySelectorAll('#day-panel [aria-busy="true"]')).toHaveLength(0);
+    expect(document.querySelector('[data-take-reserve]')).not.toBeInTheDocument();
   });
 
   it('shows the too-short state, with the cards but without What to take', async () => {
@@ -279,22 +294,23 @@ describe('UvGoApp', () => {
 
   it('auto-switches to Tomorrow when today has passed, and does not repeat after returning', async () => {
     vi.setSystemTime(Date.UTC(2026, 9, 27, 20, 0));
+    mockMatchMedia(true);
     storePlace();
     const user = userEvent.setup();
     renderApp();
     expect(
       await screen.findByText('Your free time today has passed — showing tomorrow'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Tomorrow' })).toHaveAttribute('aria-selected', 'true');
+    expect(dayRadio('Tomorrow')).toHaveAttribute('aria-checked', 'true');
     await findHeroTime('18:00–19:00');
 
-    await user.click(screen.getByRole('tab', { name: 'Today' }));
+    await user.click(dayRadio('Today'));
     expect(await screen.findByText('No time left today.')).toBeInTheDocument();
     expect(screen.queryByText(/showing tomorrow/)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Show tomorrow' }));
     await findHeroTime('18:00–19:00');
-    expect(screen.getByRole('tab', { name: 'Tomorrow' })).toHaveAttribute('aria-selected', 'true');
+    expect(dayRadio('Tomorrow')).toHaveAttribute('aria-checked', 'true');
   });
 
   it('shows the message in the hero when geolocation is denied', async () => {
@@ -354,19 +370,31 @@ describe('UvGoApp', () => {
 
   describe('hero collapse', () => {
     const bar = () => document.querySelector('[data-collapsed-bar]');
-    const rootVar = () =>
-      (document.querySelector('[data-page] > div') as HTMLElement).style.getPropertyValue(
-        '--hero-collapsed-h',
-      );
+    const strip = () => document.querySelector('[data-take-strip]');
+    /** Where the Hourly title row sticks: right under the pinned layers, '' when it does not. */
+    const headerTop = () =>
+      screen
+        .getByRole('region', { name: 'Hourly' })
+        .querySelector<HTMLElement>('[data-card-header]')!.style.top;
 
-    it('phone: a pinned bar with the result, and the sticky headers sit below it', async () => {
+    it('phone: a pinned bar with the result, the pill strip under it, the headers below both', async () => {
       mockMatchMedia(false);
       storePlace();
       renderApp();
       await findHeroTime('18:00–19:00');
       expect(bar()).toHaveTextContent('Lisbon · 18:00–19:00 | Good');
       expect(bar()).toHaveAttribute('aria-hidden', 'true');
-      expect(rootVar()).toBe('56px');
+      // The strip is a copy for the eye: the list on the page is the one that is read out.
+      expect(strip()).toHaveAttribute('aria-hidden', 'true');
+      expect(strip()?.parentElement).toBe(bar()?.parentElement);
+      expect(
+        within(strip() as HTMLElement).getAllByRole('listitem', { hidden: true }),
+      ).toHaveLength(
+        within(screen.getByRole('region', { name: 'What to take' })).getAllByRole('listitem')
+          .length,
+      );
+      // 56 px of bar and 44 px of strip.
+      expect(headerTop()).toBe('100px');
     });
 
     it('phone: focus scrolls clear of the bar, a stuck header and the toolbar', async () => {
@@ -379,8 +407,8 @@ describe('UvGoApp', () => {
         'calc(72px + env(safe-area-inset-bottom))',
       );
       await findHeroTime('18:00–19:00');
-      // 56 px of bar and the 64 px Hourly header.
-      await waitFor(() => expect(html.getPropertyValue('scroll-padding-top')).toBe('120px'));
+      // 56 px of bar, 44 px of strip and the 72 px Hourly header.
+      await waitFor(() => expect(html.getPropertyValue('scroll-padding-top')).toBe('172px'));
       unmount();
       expect(html.getPropertyValue('scroll-padding-top')).toBe('');
       expect(html.getPropertyValue('scroll-padding-bottom')).toBe('');
@@ -408,7 +436,7 @@ describe('UvGoApp', () => {
       mockMatchMedia(false);
       renderApp();
       expect(bar()).toBeNull();
-      expect(rootVar()).toBe('0px');
+      expect(strip()).toBeNull();
     });
 
     it('desktop: no bar and no offset', async () => {
@@ -417,8 +445,12 @@ describe('UvGoApp', () => {
       renderApp();
       await findHeroTime('18:00–19:00');
       expect(bar()).toBeNull();
-      expect(rootVar()).toBe('0px');
-      expect(document.documentElement.style.getPropertyValue('scroll-padding-top')).toBe('');
+      expect(strip()).toBeNull();
+      expect(headerTop()).toBe('');
+      const html = document.documentElement.style;
+      expect(html.getPropertyValue('scroll-padding-top')).toBe('');
+      // No toolbar on desktop: nothing to keep focus clear of at the bottom.
+      expect(html.getPropertyValue('scroll-padding-bottom')).toBe('');
     });
   });
 
@@ -430,8 +462,30 @@ describe('UvGoApp', () => {
       await findHeroTime('18:00–19:00');
       const plan = screen.getByRole('region', { name: 'Plan' });
       expect(within(plan).getByRole('radio', { name: '1 h' })).toBeInTheDocument();
+      // Nothing sits above the Plan card that its own inputs could add or remove.
+      expect(plan.previousElementSibling).toBeNull();
+      expect(plan.parentElement).not.toContainElement(
+        screen.getByRole('region', { name: 'What to take' }),
+      );
       expect(screen.queryByRole('button', { name: 'Plan' })).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Cities' })).toBeInTheDocument();
+      expect(within(plan).getByRole('radiogroup', { name: 'Day' })).toBeInTheDocument();
+    });
+
+    it('has no toolbar: Cities is a pin next to the place, and focus comes back to it', async () => {
+      mockMatchMedia(true);
+      storePlace();
+      const user = userEvent.setup();
+      renderApp();
+      await findHeroTime('18:00–19:00');
+      expect(screen.queryByRole('navigation', { name: 'App' })).not.toBeInTheDocument();
+      const cities = screen.getByRole('button', { name: 'Cities' });
+      expect(cities.parentElement).toContainElement(screen.getByText('Lisbon', { selector: 'p' }));
+
+      await user.click(cities);
+      await screen.findByRole('dialog', { name: 'Cities' });
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      await waitFor(() => expect(cities).toHaveFocus());
     });
 
     it('closes an open Plan sheet when the screen grows past the breakpoint', async () => {

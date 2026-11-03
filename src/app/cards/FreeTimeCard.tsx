@@ -29,8 +29,8 @@ interface Props {
   intro: boolean;
   /** Place in the card order, for the intro stagger. */
   index: number;
-  /** The pinned hero bar is on screen: the body slides under it. */
-  tuck?: boolean;
+  /** Height of the pinned layers at the top (bar and What to take strip): the body slides under. */
+  tuck?: number;
 }
 
 /** Rain below this share is not worth a line. */

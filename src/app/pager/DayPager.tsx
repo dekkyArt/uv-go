@@ -108,7 +108,7 @@ const progressOf = (day: Inputs['day']) => (day === 'tomorrow' ? 1 : 0);
 interface Props {
   day: Inputs['day'];
   onDay(d: Inputs['day']): void;
-  /** Off on desktop and with reduced motion: no swipe, the dots and arrow keys still work. */
+  /** Off on desktop and with reduced motion: no swipe, the Plan card's Today | Tomorrow switch still works. */
   enabled: boolean;
   /** 0 (Today) to 1 (Tomorrow); follows the finger during a swipe, the sky reads it. */
   progress: MotionValue<number>;
@@ -190,7 +190,7 @@ export function DayPager({ day, onDay, enabled, progress, className, children }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day]);
 
-  // The day changed from outside (dots, arrow keys, auto-switch): the progress follows.
+  // The day changed from outside (the Today | Tomorrow switch, auto-switch): the progress follows.
   useEffect(() => {
     if (gesture.current?.axis === 'x') return;
     const target = progressOf(day);
@@ -294,7 +294,7 @@ export function DayPager({ day, onDay, enabled, progress, className, children }:
     const dir = next === 'tomorrow' ? -1 : 1;
     running.current = animateTo(x, dir * g.width, { ...EXIT_SPRING, velocity }, () => {
       const from = -dir * g.width;
-      // The day may already have moved on its own (dots, auto-switch) during the exit: no render
+      // The day may already have moved on its own (the day switch, auto-switch) during the exit: no render
       // follows then, so the new page comes in from here.
       if (dayRef.current === next) {
         bringIn(from, next);
@@ -305,8 +305,8 @@ export function DayPager({ day, onDay, enabled, progress, className, children }:
     });
   }
 
-  // No overflow clip here: it would cut the hero scrim's feathered sides. The page clips sideways
-  // at the viewport edge instead ([data-page] in global.css).
+  // No overflow clip here: it would cut the sliding cards short of the screen edge. The page clips
+  // sideways at the viewport edge instead ([data-page] in global.css).
   const style: MotionStyle = {
     ...(enabled ? { x, touchAction: 'pan-y pinch-zoom' } : null),
     ...(reduced ? { opacity } : null),

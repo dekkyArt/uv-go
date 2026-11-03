@@ -44,14 +44,14 @@ export async function mockApis(page: Page): Promise<void> {
 }
 
 /**
- * Open the Cities sheet (the hero's "Find a city" on a first visit, else the toolbar's Cities),
- * search "Lis" and pick Lisbon.
+ * Open the Cities sheet (the hero's "Find a city" on a first visit, else Cities: the toolbar's on
+ * a phone, the pin next to the hero's place on desktop), search "Lis" and pick Lisbon.
  */
 export async function searchLisbon(page: Page): Promise<void> {
   const cities = page.getByRole('button', { name: 'Cities' });
-  // The toolbar comes with the app: once it is there, the hero shows its final buttons too.
-  await cities.waitFor();
   const findCity = page.getByRole('button', { name: 'Find a city' });
+  // Both come with the app: once either is there, the hero shows its final buttons too.
+  await findCity.or(cities).first().waitFor();
   if (await findCity.isVisible()) await findCity.click();
   else await cities.click();
   await page.getByRole('combobox').fill('Lis');

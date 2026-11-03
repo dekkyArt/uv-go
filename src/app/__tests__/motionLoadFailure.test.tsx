@@ -81,6 +81,7 @@ describe('when the motion features chunk fails to load', () => {
       <MotionProvider>
         <HourlyCard
           day={day}
+          dayName="Today"
           hours={scoredHours}
           freeTime={freeTime}
           best={best}

@@ -2,6 +2,8 @@
 import BaseLayout from '../components/BaseLayout.astro';
 import UvGoApp from '../app/UvGoApp';
 import { reserveLayout } from '../app/reserveLayout';
+import { BOOT_MAX_MS, BOOT_OUT_MS, startBoot } from '../app/boot';
+import BootSplash from '../components/BootSplash.astro';
 import HowItWorks from '../components/HowItWorks.astro';
 import Faq from '../components/Faq.astro';
 import { siteConfig } from '../site.config';
@@ -16,7 +18,11 @@ import { faqPageLd, webApplicationLd } from '../seo/jsonld';
   withToolbar
   jsonLd={[webApplicationLd(siteConfig.site), faqPageLd(faqItems)]}
 >
-  <script is:inline set:html={`(${reserveLayout})()`} />
+  <BootSplash />
+  <script
+    is:inline
+    set:html={`(${reserveLayout})();(${startBoot})(${BOOT_MAX_MS},${BOOT_OUT_MS})`}
+  />
   <UvGoApp client:load />
   <HowItWorks />
   <Faq />

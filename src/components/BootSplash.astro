@@ -1,0 +1,21 @@
+---
+// The home page's boot splash (src/app/boot.ts): shown only while <html data-boot> is set, which
+// startBoot() does before first paint when a place is stored. The place's name is written into
+// [data-boot-place] by the same script. The page under the splash is `visibility: hidden`, which
+// takes it out of the accessibility tree as well, so the splash's text is what assistive
+// technology finds meanwhile; the sun and its arc are decoration.
+---
+
+<div class="boot-splash" role="status">
+  <div class="boot-splash__inner sky-text">
+    <div class="boot-sky" aria-hidden="true">
+      <span class="boot-arc"></span>
+      <span class="boot-orbit">
+        <span class="boot-sun"></span>
+      </span>
+      <span class="boot-horizon"></span>
+    </div>
+    <p data-boot-place class="boot-place"></p>
+    <p class="boot-label">Loading forecast</p>
+  </div>
+</div>

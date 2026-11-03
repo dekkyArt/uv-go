@@ -19,16 +19,16 @@ export const firstResult = {
   barsDuration: 0.4,
   barStagger: 0.03,
   barStaggerMax: 0.2,
-  /** The What to take tiles pop in. */
-  tilesIn: 0.7,
-  tileStagger: 0.05,
+  /** The What to take pills pop in under the hero. */
+  chipsIn: 0.7,
+  chipStagger: 0.05,
 };
 
 type Choreography = typeof firstResult;
 
-/** The most cards and tiles on the page (Hourly, Your free time, What to take, Plan; 5 items). */
+/** The most staggered cards (room for four) and What to take pills (five items) on the page. */
 const MAX_CARDS = 4;
-const MAX_TILES = 5;
+const MAX_CHIPS = 5;
 const MAX_ROWS = 24;
 
 export function cardDelay(index: number, c: Choreography = firstResult): number {
@@ -39,8 +39,8 @@ export function barDelay(index: number, c: Choreography = firstResult): number {
   return c.barsGrow + Math.min(index * c.barStagger, c.barStaggerMax);
 }
 
-export function tileDelay(index: number, c: Choreography = firstResult): number {
-  return c.tilesIn + index * c.tileStagger;
+export function chipDelay(index: number, c: Choreography = firstResult): number {
+  return c.chipsIn + index * c.chipStagger;
 }
 
 /** When the best time is fully readable in the hero (spec 5.2: <= 1.0 s). */
@@ -56,6 +56,6 @@ export function totalDuration(c: Choreography = firstResult): number {
     c.hourScroll + springs.smooth.duration,
     c.bestOutline + c.bestOutlineDuration,
     barDelay(MAX_ROWS - 1, c) + c.barsDuration,
-    tileDelay(MAX_TILES - 1, c) + durations.base,
+    chipDelay(MAX_CHIPS - 1, c) + durations.base,
   );
 }

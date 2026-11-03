@@ -5,7 +5,7 @@ import { firstResult } from '../../motion/choreography';
 import { useFeaturesFailed } from '../../motion/featuresFailed';
 import { durations, springs } from '../../motion/tokens';
 import { HourDetails } from '../components/HourDetails';
-import { CELL_W, FREE_BAND_CLASS, KEEP_DETAILS_ATTR } from '../ui';
+import { CELL_W, FREE_BAND_CLASS, formatShortDate, KEEP_DETAILS_ATTR } from '../ui';
 import { CELL_H, HourCell, SunCell } from './HourCell';
 import { GlassCard } from './GlassCard';
 import { MetricSwitch } from './MetricSwitch';
@@ -13,6 +13,8 @@ import { spanOf, stripItems, type Metric } from './stripItems';
 
 interface Props {
   day: DayForecast;
+  /** Which day is shown, named next to its date in the header. */
+  dayName: 'Today' | 'Tomorrow';
   hours: ScoredHour[];
   freeTime: { start: number; end: number };
   best: TimeWindow | null;
@@ -24,8 +26,8 @@ interface Props {
   intro: boolean;
   /** Place in the card order, for the intro stagger. */
   index: number;
-  /** The pinned hero bar is on screen: the body slides under it. */
-  tuck?: boolean;
+  /** Height of the pinned layers at the top (bar and What to take strip): the body slides under. */
+  tuck?: number;
 }
 
 const SUBTITLES: Record<Metric, string> = {
@@ -52,6 +54,7 @@ function outlineRect(width: number) {
 
 export function HourlyCard({
   day,
+  dayName,
   hours,
   freeTime,
   best,
@@ -160,6 +163,7 @@ export function HourlyCard({
       tuck={tuck}
       layout
       title="Hourly"
+      titleNote={[dayName, formatShortDate(day.date)].filter(Boolean).join(', ')}
       subtitle={SUBTITLES[metric]}
       action={
         <div {...{ [KEEP_DETAILS_ATTR]: '' }}>

@@ -1,57 +1,50 @@
 import { m } from 'motion/react';
 import type { Ref } from 'react';
-import type { Inputs } from '../../domain/types';
 import { usePress } from '../../motion/press';
-import { DayDots } from './DayDots';
+import { PinIcon } from '../icons/PinIcon';
+import { ROUND_BUTTON_CLASS } from '../ui';
 
 interface Props {
-  day: Inputs['day'];
-  onDay(d: Inputs['day']): void;
-  panelId: string;
-  /** Opens the Plan sheet. Omitted on desktop, where the Plan card is on the page. */
-  onPlan?: () => void;
+  /** Opens the Plan sheet (Free time, Duration, Activity and the day). */
+  onPlan(): void;
   onCities(): void;
   planRef: Ref<HTMLButtonElement>;
   citiesRef: Ref<HTMLButtonElement>;
 }
 
-const ROUND_BUTTON =
-  'glass pointer-events-auto flex size-12 items-center justify-center rounded-full text-text';
+const ROUND_BUTTON = `${ROUND_BUTTON_CLASS} pointer-events-auto size-12`;
 
-const ICON = {
-  width: 22,
-  height: 22,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 2,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-  'aria-hidden': true,
-} as const;
-
-/** Floats at the bottom centre: Plan (mobile), the Today/Tomorrow dots, Cities. */
-export function Toolbar({ day, onDay, panelId, onPlan, onCities, planRef, citiesRef }: Props) {
+/**
+ * Floats at the bottom centre on a phone: Plan and Cities. Desktop has none: the Plan card is on
+ * the page and Cities sits next to the hero's place.
+ */
+export function Toolbar({ onPlan, onCities, planRef, citiesRef }: Props) {
   const press = usePress();
   return (
     <nav
       aria-label="App"
-      className="pointer-events-none fixed inset-x-0 bottom-[calc(12px+env(safe-area-inset-bottom))] z-30 flex items-center justify-center gap-3"
+      // boot-group: each button comes in as the boot splash hands over (global.css).
+      className="boot-group pointer-events-none fixed inset-x-0 bottom-[calc(12px+env(safe-area-inset-bottom))] z-30 flex items-center justify-center gap-3 [--boot-i:3]"
     >
-      {onPlan && (
-        <m.button {...press} ref={planRef} type="button" className={ROUND_BUTTON} onClick={onPlan}>
-          <svg {...ICON}>
-            <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" />
-            <circle cx="16" cy="6" r="2" />
-            <circle cx="10" cy="12" r="2" />
-            <circle cx="18" cy="18" r="2" />
-          </svg>
-          <span className="sr-only">Plan</span>
-        </m.button>
-      )}
-      <div className="glass pointer-events-auto flex h-12 items-center rounded-full px-1">
-        <DayDots day={day} onDay={onDay} panelId={panelId} />
-      </div>
+      <m.button {...press} ref={planRef} type="button" className={ROUND_BUTTON} onClick={onPlan}>
+        <svg
+          width={22}
+          height={22}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" />
+          <circle cx="16" cy="6" r="2" />
+          <circle cx="10" cy="12" r="2" />
+          <circle cx="18" cy="18" r="2" />
+        </svg>
+        <span className="sr-only">Plan</span>
+      </m.button>
       <m.button
         {...press}
         ref={citiesRef}
@@ -59,9 +52,7 @@ export function Toolbar({ day, onDay, panelId, onPlan, onCities, planRef, cities
         className={ROUND_BUTTON}
         onClick={onCities}
       >
-        <svg {...ICON}>
-          <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
-        </svg>
+        <PinIcon />
         <span className="sr-only">Cities</span>
       </m.button>
     </nav>

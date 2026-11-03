@@ -187,9 +187,9 @@ test.describe('UV GO smoke', () => {
     expect(time!.x + time!.width).toBeLessThanOrEqual(320);
     expect(time!.y + time!.height).toBeLessThanOrEqual(640);
 
-    // The What to take tiles stay inside the page width.
-    const tiles = page.getByRole('region', { name: 'What to take' }).getByRole('listitem');
-    for (const box of await tiles.evaluateAll((els) =>
+    // The What to take pills stay inside the page width.
+    const pills = page.getByRole('region', { name: 'What to take' }).getByRole('listitem');
+    for (const box of await pills.evaluateAll((els) =>
       els.map((el) => {
         const r = el.getBoundingClientRect();
         return { left: r.left, right: r.right, scrollWidth: el.scrollWidth, width: el.clientWidth };

@@ -140,45 +140,21 @@ html[data-sky-phase='dusk'] {
     font-variant-numeric: tabular-nums;
   }
   /*
-   * Under the hero text, which sits on the bare sky. The scrim is a flat black at 0.28 over the
-   * whole hero box, so it does not depend on where a line lands (a long city name that wraps makes
-   * the hero taller, the left-aligned desktop column moves the corners): every text box inside the
-   * hero stands on the full 0.28. It extends past the hero by a bleed (--scrim-x sideways,
-   * --scrim-y up and down) and the mask feathers it to transparent only inside that bleed: full
-   * at the hero's edge, 0 at the scrim's edge. There is no text in the bleed. The sideways bleed
-   * stays within the 16 px page gutter on a phone; on desktop the hero is a column of the grid and
-   * the extra reaches into the gap. The big time and the city are large text and only need 3:1 on
-   * the bare sky. src/app/__tests__/heroContrast.test.ts checks the flat alpha and the mask,
-   * e2e/heroScrim.spec.ts checks that every line lies inside the unfeathered rect.
+   * White text straight on the sky, with no plate behind it: the hero and the boot splash. Every
+   * glyph carries a crisp 1 px rim of black at --sky-rim, one unblurred copy per side, so the sky
+   * right around each stroke is darkened by at least that alpha wherever the line lands, however
+   * long the city name is and whichever way the column aligns. The small lines read against that
+   * rim; the big time and the city are large text and need only 3:1 on the bare sky. No blur: a
+   * wide soft shadow would be cut into boxes by the clipped digit columns of NumericRoll.
+   * src/app/__tests__/heroContrast.test.ts proves both over every worst-case sky.
    */
-  .hero-scrim {
-    --scrim-x: 16px;
-    --scrim-y: 24px;
-    position: absolute;
-    inset: calc(var(--scrim-y) * -1) calc(var(--scrim-x) * -1);
-    background: rgb(0 0 0 / 0.28);
-    mask-image:
-      linear-gradient(
-        to right,
-        transparent,
-        #000 var(--scrim-x),
-        #000 calc(100% - var(--scrim-x)),
-        transparent
-      ),
-      linear-gradient(
-        to bottom,
-        transparent,
-        #000 var(--scrim-y),
-        #000 calc(100% - var(--scrim-y)),
-        transparent
-      );
-    mask-composite: intersect;
-    -webkit-mask-composite: source-in;
-  }
-  @media (min-width: 1024px) {
-    .hero-scrim {
-      --scrim-x: 40px;
-    }
+  .sky-text {
+    --sky-rim: rgb(0 0 0 / 0.3);
+    text-shadow:
+      1px 0 0 var(--sky-rim),
+      -1px 0 0 var(--sky-rim),
+      0 1px 0 var(--sky-rim),
+      0 -1px 0 var(--sky-rim);
   }
 }
 
@@ -282,8 +258,8 @@ html::after {
 [data-page] {
   /*
    * The day pager slides its content sideways past the gutter: it is cut at the viewport edge
-   * here, not by the pager, whose box is inside the gutter and would cut the hero scrim's
-   * feathered sides. `clip` is not a scroll container, so sticky elements keep working.
+   * here, not by the pager, whose box is inside the gutter and would cut the sliding cards 16 px
+   * short of the screen edge. `clip` is not a scroll container, so sticky elements keep working.
    */
   overflow-x: clip;
   transform-origin: 50% var(--page-origin-y, 50vh);
@@ -378,5 +354,207 @@ html[data-sheet-open] [data-page] {
       animation-timeline: view();
       animation-range: entry 0% entry 35%;
     }
+  }
+}
+
+/*
+ * Boot splash (src/app/boot.ts, src/components/BootSplash.astro). With a stored place the page
+ * is hidden until the app's first settled state (result, empty, error), so the placeholder, the
+ * loading hero and the arriving cards are never seen moving. The sky stays: the splash sits on it.
+ *
+ * Hidden with `visibility`, and brought back by animating each glass element on its own: opacity
+ * below 1 on an ancestor makes it a backdrop root, and the glass inside would stop blurring the
+ * sky (which is outside the page) until the fade ends. The cards bring themselves in with the
+ * first-result choreography; `.boot-in` (and every child of `.boot-group`) is for the rest of the
+ * first screen, staggered by `--boot-i`. Every step ends before BOOT_OUT_MS (700 ms): the splash
+ * leaves in 200 ms, the last element (`--boot-i: 3`) is in at 40 + 3 * 60 + 300 = 520 ms.
+ * The curve is `ease` from src/motion/tokens.ts.
+ */
+:root {
+  --ease-boot: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-boot='on'] [data-page] > :is(header, footer),
+html[data-boot='on'] main > :not(.boot-splash),
+html[data-boot='on'] [data-fixed-layers] > :not(.sky-canvas) {
+  visibility: hidden;
+}
+
+@keyframes boot-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+html[data-boot='out'] :is(header .glass, .boot-in, .boot-group > *) {
+  animation: boot-in 300ms var(--ease-boot) both;
+  animation-delay: calc(40ms + var(--boot-i, 0) * 60ms);
+}
+
+.boot-splash {
+  display: none;
+}
+html[data-boot] .boot-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding-bottom: 8vh;
+  pointer-events: none;
+  text-align: center;
+}
+@keyframes boot-splash-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+html[data-boot='out'] .boot-splash {
+  animation: boot-splash-out 200ms var(--ease-boot) both;
+}
+
+/*
+ * The content comes in only after 300 ms, so a fast load hands over from the bare sky to the page
+ * without a splash flashing in between. The selector holds in both phases, so a hand-over during
+ * the fade-in keeps the running animation and the splash leaves from wherever it got to.
+ */
+@keyframes boot-splash-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+.boot-splash__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px 24px;
+}
+html[data-boot] .boot-splash__inner {
+  animation: boot-splash-in 300ms var(--ease-boot) 300ms both;
+}
+/*
+ * The sun crosses its day arc: a 112 px circle whose centre sits on the horizon (the bottom of
+ * .boot-sky, which clips everything below it). The orbit turns past ±90° so the sun rises from
+ * under the horizon and sets under it, then waits a moment below. Transform only, in CSS, so it
+ * keeps moving on the compositor while hydration keeps the main thread busy.
+ */
+.boot-sky {
+  position: relative;
+  width: 192px;
+  height: 96px;
+  overflow: hidden;
+}
+.boot-arc,
+.boot-orbit {
+  position: absolute;
+  top: 40px;
+  left: 40px;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+}
+.boot-arc {
+  border: 1.5px dashed rgb(255 255 255 / 0.45);
+}
+@keyframes boot-orbit {
+  0% {
+    transform: rotate(-105deg);
+  }
+  80%,
+  100% {
+    transform: rotate(105deg);
+  }
+}
+html[data-boot] .boot-orbit {
+  animation: boot-orbit 2.4s linear infinite;
+}
+.boot-sun {
+  position: absolute;
+  top: -8px;
+  left: calc(50% - 8px);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 12px 4px rgb(255 236 180 / 0.6),
+    0 0 32px 10px rgb(255 236 180 / 0.25);
+}
+/* At night (the device-time phase SkyScript sets before first paint) it is the moon that crosses. */
+html[data-sky-phase='night'] .boot-sun {
+  background: #eef2fb;
+  box-shadow:
+    0 0 10px 3px rgb(200 214 255 / 0.45),
+    0 0 28px 8px rgb(200 214 255 / 0.15);
+}
+.boot-horizon {
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgb(255 255 255 / 0.6) 20%,
+    rgb(255 255 255 / 0.6) 80%,
+    transparent
+  );
+}
+.boot-place {
+  position: relative;
+  margin: 0;
+  font-size: 32px;
+  line-height: 40px;
+}
+.boot-place:empty {
+  display: none;
+}
+.boot-label {
+  position: relative;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/*
+ * Reduced motion: the sun stays at noon and breathes like the hero's "--:--"; the splash and the
+ * page cross-fade without moving.
+ */
+@keyframes boot-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes boot-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes boot-breathe {
+  50% {
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-boot] .boot-orbit {
+    animation: none;
+  }
+  html[data-boot] .boot-sun {
+    animation: boot-breathe 1.6s ease-in-out infinite;
+  }
+  html[data-boot] .boot-splash__inner {
+    animation-name: boot-fade-in;
+  }
+  html[data-boot='out'] .boot-splash {
+    animation-name: boot-fade-out;
+  }
+  html[data-boot='out'] :is(header .glass, .boot-in, .boot-group > *) {
+    animation-name: boot-fade-in;
   }
 }

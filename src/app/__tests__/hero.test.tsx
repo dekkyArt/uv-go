@@ -1,3 +1,4 @@
+import { createRef } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -178,17 +179,75 @@ describe('Hero', () => {
     });
   });
 
-  it('notice: a status pill about the switch to tomorrow', () => {
+  describe('Cities pin (desktop)', () => {
+    const RESULT: HeroState = {
+      kind: 'result',
+      place: LISBON,
+      best: BEST,
+      reason: null,
+      duration: 60,
+      nowLine: '',
+    };
+
+    it('sits next to the place name and opens Cities', async () => {
+      const user = userEvent.setup();
+      const onCities = vi.fn();
+      const citiesRef = createRef<HTMLButtonElement>();
+      setup(RESULT, { onCities, citiesRef });
+      const pin = screen.getByRole('button', { name: 'Cities' });
+      expect(pin.previousElementSibling).toHaveTextContent('Lisbon');
+      expect(pin.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+      expect(citiesRef.current).toBe(pin);
+      await user.click(pin);
+      expect(onCities).toHaveBeenCalledTimes(1);
+    });
+
+    it('is there in every state with a place, not before one is chosen', () => {
+      const withPlace: HeroState[] = [
+        { kind: 'loading', place: LISBON },
+        { kind: 'error', place: LISBON },
+        { kind: 'empty', place: LISBON, reason: 'dark', duration: 60 },
+        RESULT,
+      ];
+      for (const state of withPlace) {
+        const { unmount } = setup(state, { onCities: vi.fn() });
+        expect(screen.getByRole('button', { name: 'Cities' })).toBeInTheDocument();
+        unmount();
+      }
+      setup({ kind: 'no-place' }, { onCities: vi.fn() });
+      expect(screen.queryByRole('button', { name: 'Cities' })).not.toBeInTheDocument();
+    });
+
+    it('is absent without onCities (a phone: Cities is in the toolbar)', () => {
+      setup(RESULT);
+      expect(screen.queryByRole('button', { name: 'Cities' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('notice: plain text on the sky about the switch to tomorrow, no plate or border', () => {
     setup(
       { kind: 'result', place: LISBON, best: BEST, reason: null, duration: 60, nowLine: '' },
       { notice: true },
     );
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Your free time today has passed — showing tomorrow',
-    );
+    const notice = screen.getByRole('status');
+    expect(notice).toHaveTextContent('Your free time today has passed — showing tomorrow');
+    expect(notice).not.toHaveClass('glass');
+    expect(notice.closest('.sky-text')).not.toBeNull();
   });
 
-  it('uses no secondary text colour anywhere in the hero (AA over the scrim needs full white)', () => {
+  it('puts the What to take slot under the answer and above the notice', () => {
+    setup(
+      { kind: 'result', place: LISBON, best: BEST, reason: null, duration: 60, nowLine: '' },
+      { notice: true, take: <ul data-testid="take" /> },
+    );
+    const take = screen.getByTestId('take');
+    const time = document.querySelector('[data-hero-time]')!;
+    const notice = screen.getByRole('status');
+    expect(time.compareDocumentPosition(take) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(take.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('uses no secondary text colour anywhere in the hero (AA on the bare sky needs full white)', () => {
     const states: HeroState[] = [
       { kind: 'no-place' },
       { kind: 'loading', place: LISBON },
@@ -210,10 +269,15 @@ describe('Hero', () => {
     }
   });
 
-  it('has the decorative scrim, hidden from assistive tech', () => {
-    const { container } = setup({ kind: 'no-place' });
-    const scrim = container.querySelector('.hero-scrim');
-    expect(scrim).not.toBeNull();
-    expect(scrim).toHaveAttribute('aria-hidden', 'true');
+  it('puts its text straight on the sky, every line inside the rim of .sky-text', () => {
+    const { container } = setup({ kind: 'no-place' }, { geoError: true });
+    expect(container.querySelector('.hero-scrim')).toBeNull();
+    const lines = [
+      screen.getByRole('heading', { level: 1 }),
+      screen.getByText('Choose a place'),
+      screen.getByRole('button', { name: 'Use my location' }),
+      screen.getByRole('alert'),
+    ];
+    for (const line of lines) expect(line.closest('.sky-text')).not.toBeNull();
   });
 });

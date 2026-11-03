@@ -12,63 +12,49 @@ function extreme(
   return values.length === 0 ? null : roundHalfUp(fn(...values));
 }
 
-/** The title with its number, or a bare fallback when the window has no data for it. */
-const titled = (value: number | null, title: (n: number) => string, fallback: string) =>
-  value === null ? fallback : title(value);
-
-/** The big line and the small explanation of one "What to take" tile, from the best window. */
-export function tileReason(
+/** The short value on a "What to take" pill and the reason, read out to screen readers. */
+export function takeReason(
   id: ChecklistId,
   window: TimeWindow,
   activity: Activity,
-): { title: string; detail: string } {
+): { value: string | null; detail: string } {
   const r = rules.checklist;
+  const show = (n: number | null, format: (n: number) => string) => (n === null ? null : format(n));
+  const peakUv = () =>
+    show(
+      extreme(window, (h) => h.uv, Math.max),
+      (n) => `UV ${n}`,
+    );
   switch (id) {
     case 'sunscreen':
-      return {
-        title: titled(
-          extreme(window, (h) => h.uv, Math.max),
-          (n) => `UV up to ${n}`,
-          'UV',
-        ),
-        detail: `Needed from UV ${r.sunscreenUv}`,
-      };
+      return { value: peakUv(), detail: `Needed from UV ${r.sunscreenUv}` };
     case 'hat-sunglasses':
-      return {
-        title: titled(
-          extreme(window, (h) => h.uv, Math.max),
-          (n) => `UV up to ${n}`,
-          'UV',
-        ),
-        detail: `Needed from UV ${r.hatUv}`,
-      };
+      return { value: peakUv(), detail: `Needed from UV ${r.hatUv}` };
     case 'rain-jacket':
       return {
-        title: titled(
+        value: show(
           extreme(window, (h) => h.rainProb, Math.max),
-          (n) => `Rain up to ${n}%`,
-          'Rain',
+          (n) => `${n}%`,
         ),
         detail: `Needed from ${r.rainJacket}% rain`,
       };
     case 'water':
       return {
-        title:
+        // An active plan is the reason itself: no number to show.
+        value:
           activity === 'active'
-            ? 'Active plan'
-            : titled(
+            ? null
+            : show(
                 extreme(window, (h) => h.feelsLike, Math.max),
-                (n) => `Feels up to ${n}°`,
-                'Feels like',
+                (n) => `${n}°`,
               ),
         detail: `Needed when active or from ${r.waterFeelsLike}°`,
       };
     case 'warm-layer':
       return {
-        title: titled(
+        value: show(
           extreme(window, (h) => h.feelsLike, Math.min),
-          (n) => `Feels down to ${n}°`,
-          'Feels like',
+          (n) => `${n}°`,
         ),
         detail: `Needed below ${r.warmLayerBelow}°`,
       };

@@ -6,7 +6,7 @@ import { SEGMENT_OFF_CLASS, SEGMENT_ON_CLASS, SEGMENT_PILL_CLASS } from '../ui';
 
 interface Props<T extends string | number> {
   label: string;
-  options: { value: T; label: string }[];
+  options: readonly { value: T; label: string }[];
   value: T;
   onChange(v: T): void;
 }

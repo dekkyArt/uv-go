@@ -16,6 +16,7 @@ const INPUTS: Inputs = {
 };
 
 function setup() {
+  const onDay = vi.fn();
   const onFreeTime = vi.fn();
   const onDuration = vi.fn();
   const onActivity = vi.fn();
@@ -23,13 +24,14 @@ function setup() {
     <MotionProvider>
       <PlanControls
         inputs={INPUTS}
+        onDay={onDay}
         onFreeTime={onFreeTime}
         onDuration={onDuration}
         onActivity={onActivity}
       />
     </MotionProvider>,
   );
-  return { onFreeTime, onDuration, onActivity };
+  return { onDay, onFreeTime, onDuration, onActivity };
 }
 
 describe('PlanControls', () => {
@@ -43,6 +45,24 @@ describe('PlanControls', () => {
     }
     expect(screen.getByRole('radiogroup', { name: 'Duration' })).toBeInTheDocument();
     expect(screen.getByRole('radiogroup', { name: 'Activity' })).toBeInTheDocument();
+  });
+
+  it('opens with a Today | Tomorrow switch on the current day', () => {
+    setup();
+    const day = screen.getByRole('radiogroup', { name: 'Day' });
+    expect(day.parentElement?.firstElementChild).toBe(day);
+    expect(screen.getByRole('radio', { name: 'Today' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'Tomorrow' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+  });
+
+  it('a click on Tomorrow reports the day', async () => {
+    const user = userEvent.setup();
+    const { onDay } = setup();
+    await user.click(screen.getByRole('radio', { name: 'Tomorrow' }));
+    expect(onDay).toHaveBeenCalledWith('tomorrow');
   });
 
   it('shows the free time window', () => {

@@ -24,6 +24,7 @@ function setup(
     <MotionProvider>
       <HourlyCard
         day={day}
+        dayName="Today"
         hours={scoredHours}
         freeTime={FREE}
         best={best}

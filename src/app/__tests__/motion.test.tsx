@@ -13,7 +13,7 @@ import { durations, ease, springs } from '../../motion/tokens';
 import { makeForecastJson } from '../../test/forecastJson';
 import { FreeTimeCard } from '../cards/FreeTimeCard';
 import { HourlyCard } from '../cards/HourlyCard';
-import { TakeTiles } from '../cards/TakeTiles';
+import { TakeChips } from '../cards/TakeChips';
 import { Hero, type HeroState } from '../hero/Hero';
 import UvGoApp from '../UvGoApp';
 
@@ -99,6 +99,7 @@ function Result({ intro }: { intro: boolean }) {
       <HourlyCard
         index={0}
         day={day}
+        dayName="Today"
         hours={scoredHours}
         freeTime={FREE}
         best={best}
@@ -117,7 +118,7 @@ function Result({ intro }: { intro: boolean }) {
         activity="relaxed"
         intro={intro}
       />
-      <TakeTiles
+      <TakeChips
         items={(['sunscreen', 'water'] as const).map((id) => ({
           id,
           label: rules.checklistLabels[id],
@@ -165,15 +166,15 @@ describe('first-result choreography', () => {
     const fills = document.querySelectorAll<HTMLElement>('[data-bar-fill]');
     expect(fills.length).toBeGreaterThan(0);
     for (const fill of fills) expect(fill.style.clipPath).toMatch(/^inset\(0(px)? 100%/);
-    const tiles = screen.getAllByRole('listitem');
-    for (const tile of tiles) expect(tile.style.transform).toContain('scale(0.94)');
+    const chips = screen.getAllByRole('listitem');
+    for (const chip of chips) expect(chip.style.transform).toContain('scale(0.94)');
 
     await sleep(totalDuration());
     await waitFor(() => {
       for (const card of cards) expect(card.style.opacity).toBe('1');
     });
     for (const card of cards) expect(card.style.transform).toBe('none');
-    for (const tile of tiles) expect(tile.style.transform).toBe('none');
+    for (const chip of chips) expect(chip.style.transform).toBe('none');
     const bar = fills[0].closest<HTMLElement>('[data-score-bar]')!;
     const rest = (1 - Number(bar.dataset.fill)) * 100;
     expect(fills[0].style.clipPath).toContain(`${rest}%`);
@@ -209,8 +210,8 @@ describe('first-result choreography', () => {
       expect(card.style.opacity).toBe('1');
       expect(card.style.transform).not.toContain('translate');
     }
-    for (const tile of screen.getAllByRole('listitem')) {
-      expect(tile.style.transform).not.toContain('scale');
+    for (const chip of screen.getAllByRole('listitem')) {
+      expect(chip.style.transform).not.toContain('scale');
     }
     const fill = document.querySelector<HTMLElement>('[data-bar-fill]')!;
     const rest = (1 - Number(fill.closest<HTMLElement>('[data-score-bar]')!.dataset.fill)) * 100;
@@ -258,6 +259,7 @@ describe('micro-interactions', () => {
         <HourlyCard
           index={0}
           day={day}
+          dayName="Today"
           hours={scoredHours}
           freeTime={FREE}
           best={best}
@@ -297,17 +299,25 @@ describe('motion foundation', () => {
     prefs.reduced = true;
     const user = userEvent.setup();
     render(<UvGoApp />);
-    const day = await screen.findByRole('tablist', { name: 'Day' });
-    expect(day).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Today' })).toHaveAttribute('aria-selected', 'true');
-    await user.click(screen.getByRole('tab', { name: 'Tomorrow' }));
+    // On a phone the day is switched in the Plan sheet.
+    await user.click(await screen.findByRole('button', { name: 'Plan' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Plan' });
+    const day = within(sheet).getByRole('radiogroup', { name: 'Day' });
+    expect(within(day).getByRole('radio', { name: 'Today' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await user.click(within(day).getByRole('radio', { name: 'Tomorrow' }));
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: 'Tomorrow' })).toHaveAttribute(
-        'aria-selected',
+      expect(within(day).getByRole('radio', { name: 'Tomorrow' })).toHaveAttribute(
+        'aria-checked',
         'true',
       ),
     );
-    expect(screen.getByRole('tab', { name: 'Today' })).toHaveAttribute('aria-selected', 'false');
+    expect(within(day).getByRole('radio', { name: 'Today' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
   });
 
   it('moves the segmented indicator to the chosen option', async () => {

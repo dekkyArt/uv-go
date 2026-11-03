@@ -16,14 +16,15 @@ import { evaluate } from '../domain/evaluate';
 import type { Inputs } from '../domain/types';
 import { useFeaturesFailed } from '../motion/featuresFailed';
 import { MotionProvider } from '../motion/MotionProvider';
+import { endBoot } from './boot';
 import { FreeTimeCard } from './cards/FreeTimeCard';
 import { GlassCard } from './cards/GlassCard';
 import { CELL_H } from './cards/HourCell';
 import { HourlyCard } from './cards/HourlyCard';
 import { PlanControls } from './cards/PlanControls';
-import { TakeTiles } from './cards/TakeTiles';
+import { CHIP_H, STRIP_H, TakeChips, TakeStrip, useTakeFolded } from './cards/TakeChips';
 import { fixedLayers } from './fixedLayers';
-import { HERO_H1, Hero } from './hero/Hero';
+import { HERO_BOX_CLASS, HERO_H1, Hero } from './hero/Hero';
 import { CollapsedBar } from './hero/CollapsedBar';
 import { heroState } from './hero/heroState';
 import { placeTitle } from './hero/heroText';
@@ -42,7 +43,6 @@ import { Sheet } from './sheet/Sheet';
 import { initialState, isForecastStale, reducer } from './state';
 import { Toolbar } from './toolbar/Toolbar';
 import {
-  DAY_OPTIONS,
   DAY_PANEL_ID,
   ROW_H,
   SHEET_BUTTON_CLASS,
@@ -103,8 +103,9 @@ export default function UvGoApp() {
 }
 
 /**
- * Mobile: one column (hero, then the day's cards). Desktop (spec 3.4, 4.2): the hero sticks in a
- * left column; on the right, Hourly over two columns, Your free time | What to take and Plan.
+ * Mobile: one column (hero and its What to take pills, then the day's cards). Desktop (spec 3.4,
+ * 4.2): the hero and its pills stick in a left column; on the right, Hourly over two columns, Your
+ * free time | Plan. Nothing sits above Plan that its own inputs could add or remove.
  */
 const LAYOUT_CLASS =
   'flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(320px,4fr)_8fr] lg:items-start lg:gap-6';
@@ -114,45 +115,38 @@ const HERO_COLUMN_CLASS = 'lg:sticky lg:top-24';
 const PANEL_CLASS = 'flex min-w-0 flex-col gap-3 lg:gap-6';
 const SPLIT_CLASS = 'flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6';
 /**
- * What to take and Plan. On desktop it always takes the right half, even without Your free time
- * (no place, error), and it reserves the Plan card plus one row of tiles, so the tiles arriving
- * with a result do not move what is below. Three or more tiles (two rows) still grow it.
- *
- * The container is up to 1200 px (main: max 1200 px minus 2 * 16 px gutter), so the half column
- * is C = min(100vw, 1200px) - 32px wide in the page, (C - 24) * 2/3 for the right panel and half
- * of that minus the 24 px gap, (C - 24) / 3 - 12, for this column: 310.7 px at 1024, 369.3 px from
- * 1200 up (1280 and 1440 give the same). A tile is square, (column - 12) / 2 = (C - 24) / 6 - 12
- * (149 px at 1024, 178.7 px from 1200 up), so the reserve is PLAN + 24 + tile = PLAN + 12 +
- * (min(100vw, 1200px) - 56px) / 6, which is continuous in the width. 100vw counts a classic
- * scrollbar, so it can come out a couple of px too large, never too small.
- *
- * PLAN is the Plan card at that width (measured: 70 px of GlassCard chrome without a subtitle
- * plus PlanControls). The controls re-wrap with the column: 422 px from 1024 up to 1110 px
- * (column up to 339 px), 374 px from 1120 px. The reserve keeps 422 until the container stops
- * growing at 1200 px and uses 374 from there, so it is exact at 1024 and from 1200 up and
- * (slightly) generous in between: 422 + 12 + 161.3 = 595 at 1024, 374 + 12 + 190.7 = 577 at
- * 1200, 1280 and 1440.
+ * The Plan card's column. On desktop it always takes the right half, even without Your free time
+ * (no place, error). PLAN_CARD_H_CLASS is the Plan card's height for the placeholder (measured: 70
+ * px of GlassCard chrome without a subtitle plus PlanControls), which re-wrap with the column: 492
+ * px up to a 1200 px viewport, 444 px from there (the container stops growing at 1200 px).
  */
-const PLAN_CARD_H_CLASS = 'h-[374px] lg:max-[1200px]:h-[422px]';
-const SIDE_COLUMN_LG =
-  'lg:col-start-2 lg:min-h-[calc(386px+(min(100vw,1200px)-56px)/6)] lg:max-[1200px]:min-h-[calc(434px+(min(100vw,1200px)-56px)/6)] lg:gap-6';
-const SIDE_CLASS = `flex min-w-0 flex-col gap-3 ${SIDE_COLUMN_LG}`;
+const PLAN_CARD_H_CLASS = 'h-[444px] lg:max-[1200px]:h-[492px]';
+const SIDE_CLASS = 'flex min-w-0 flex-col lg:col-start-2';
 
-/** Room under the content for the fixed toolbar (spec 3.4). */
+/** Room under the content for the fixed toolbar (spec 3.4), which only a phone has. */
 const BOTTOM_SPACE: CSSProperties = {
-  paddingBottom: `calc(${TOOLBAR_H}px + 24px + env(safe-area-inset-bottom))`,
+  ['--toolbar-space' as string]: `calc(${TOOLBAR_H}px + 24px + env(safe-area-inset-bottom))`,
 };
+const BOTTOM_SPACE_CLASS = 'pb-(--toolbar-space) lg:pb-0';
 
 /**
  * Card skeletons have the height of the card they stand in for. GlassCard: 1 px border at the top
- * and bottom, a 16 px padded header and a 16 px padded body. Hourly's header is as tall as the
- * 48 px metric switch, its body one row of cells. Your free time's header is a 20 px title over an
+ * and bottom, a 16 px padded header and a 16 px padded body. Hourly's header is a 20 px title over an
+ * 18 px day and date and an 18 px subtitle (taller than the 48 px metric switch), its body one row
+ * of cells. Your free time's header is a 20 px title over an
  * 18 px subtitle, its body one ROW_H row per free hour (the column headers are visually hidden).
  */
-const HOURLY_SKELETON_H = 2 + 16 + 48 + 2 * 16 + CELL_H;
+const HOURLY_SKELETON_H = 2 + 16 + 56 + 2 * 16 + CELL_H;
 const FREE_TIME_CHROME_H = 2 + 16 + 20 + 18 + 2 * 16;
 const freeTimeSkeletonHeight = (rows: number | string) =>
   `calc(${rows} * ${ROW_H}px + ${FREE_TIME_CHROME_H}px)`;
+
+/** One row of What to take pills, held under the hero until the result brings the pills. */
+function TakeReserve({ className = '' }: { className?: string }) {
+  return (
+    <div aria-hidden="true" data-take-reserve="" className={className} style={{ height: CHIP_H }} />
+  );
+}
 
 function HourlySkeleton({ className = '' }: { className?: string }) {
   return (
@@ -187,14 +181,11 @@ const WITH_PLACE = 'hidden [[data-has-place]_&]:block';
  */
 function Placeholder() {
   return (
-    <div className={LAYOUT_CLASS} style={BOTTOM_SPACE}>
+    <div className={`${LAYOUT_CLASS} ${BOTTOM_SPACE_CLASS}`} style={BOTTOM_SPACE}>
       <div className={HERO_COLUMN_CLASS}>
-        <div
-          // The hero's fixed pre-content height (spec 9), with its scrim under the H1.
-          className="relative flex h-[300px] w-full flex-col items-center justify-center px-4 py-6 text-center text-text lg:items-start lg:text-left [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]"
-        >
-          <div aria-hidden="true" className="hero-scrim pointer-events-none" />
-          <h1 className="relative m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">
+        {/* The hero's box at its fixed pre-content height (spec 9). */}
+        <div className={`${HERO_BOX_CLASS} h-[300px]`}>
+          <h1 className="m-0 text-xs font-semibold uppercase leading-4 tracking-[0.06em]">
             {HERO_H1}
           </h1>
         </div>
@@ -204,7 +195,7 @@ function Placeholder() {
         <HourlySkeleton className={WITH_PLACE} />
         <div className={SPLIT_CLASS}>
           <FreeTimeSkeleton rows="var(--free-rows, 6)" className={WITH_PLACE} />
-          <div className={`hidden min-w-0 flex-col lg:flex ${SIDE_COLUMN_LG}`}>
+          <div className={`hidden lg:flex ${SIDE_CLASS}`}>
             <div aria-busy="true" data-skeleton="" className={`glass ${PLAN_CARD_H_CLASS}`} />
           </div>
         </div>
@@ -290,7 +281,7 @@ function App() {
   const citiesRef = useRef<HTMLButtonElement>(null);
   const findCityRef = useRef<HTMLButtonElement>(null);
   // Focus goes back to whichever button opened Cities. The hero's "Find a city" is gone once a
-  // place is picked, so then it falls back to the toolbar's Cities.
+  // place is picked, so then it falls back to Cities (the toolbar's, or the hero's pin on desktop).
   const citiesFromHero = useRef(false);
   const citiesReturn = useMemo<RefObject<HTMLElement | null>>(
     () => ({
@@ -309,7 +300,6 @@ function App() {
   const best = evaluation?.best ?? null;
   const nowHour = inputs.day === 'today' ? (now?.hour ?? null) : null;
   const hero = heroState(state, evaluation, now);
-  const dayLabel = DAY_OPTIONS.find((o) => o.value === inputs.day)?.label;
 
   const announcement =
     best !== null && evaluation?.reason
@@ -319,6 +309,7 @@ function App() {
   const planControls = (
     <PlanControls
       inputs={inputs}
+      onDay={(day) => dispatch({ type: 'setDay', day })}
       onFreeTime={(freeTime) => changeStored({ freeTime }, { type: 'setFreeTime', freeTime })}
       onDuration={(duration) => changeStored({ duration }, { type: 'setDuration', duration })}
       onActivity={(activity) => changeStored({ activity }, { type: 'setActivity', activity })}
@@ -327,31 +318,46 @@ function App() {
 
   // The sticky card headers sit below the pinned bar, which exists on a phone with a result.
   const barShown = !isDesktop && hero.kind === 'result';
+  // A result always has What to take: its pills fold into a strip under the bar, and the headers
+  // stick below that.
+  const takeRef = useRef<HTMLElement>(null);
+  const takeFolded = useTakeFolded(takeRef, barShown);
+  const pinnedH = barShown ? COLLAPSED_H + STRIP_H : 0;
 
   // A focused control never ends up under the fixed layers (WCAG 2.4.11): not under the
-  // toolbar, and not under the pinned bar or a card header stuck below it.
+  // toolbar (a phone's), and not under the pinned bar, its strip or a card header stuck below them.
   useEffect(() => {
     const html = document.documentElement.style;
-    html.setProperty('scroll-padding-top', barShown ? `${COLLAPSED_H + STUCK_HEADER_H}px` : '');
-    html.setProperty('scroll-padding-bottom', `calc(${TOOLBAR_H}px + env(safe-area-inset-bottom))`);
+    html.setProperty('scroll-padding-top', pinnedH > 0 ? `${pinnedH + STUCK_HEADER_H}px` : '');
+    html.setProperty(
+      'scroll-padding-bottom',
+      isDesktop ? '' : `calc(${TOOLBAR_H}px + env(safe-area-inset-bottom))`,
+    );
     return () => {
       html.removeProperty('scroll-padding-top');
       html.removeProperty('scroll-padding-bottom');
     };
-  }, [barShown]);
+  }, [pinnedH, isDesktop]);
+
+  // The first settled state (anything but loading) is on the page: the boot splash hands over.
+  useEffect(() => {
+    if (hero.kind !== 'loading') endBoot();
+  }, [hero.kind]);
 
   // Cards follow the hero's state (spec 4.8): skeletons while loading, nothing without a place or
-  // after an error, What to take only with a result.
+  // after an error, What to take only with a result (a row held for it while loading).
   let hourlyCard = null;
   let freeTimeCard = null;
-  let takeTiles = null;
+  let takeChips = null;
   if (hero.kind === 'loading') {
+    takeChips = <TakeReserve />;
     hourlyCard = <HourlySkeleton />;
     freeTimeCard = <FreeTimeSkeleton rows={inputs.freeTime.end - inputs.freeTime.start} />;
   } else if (evaluation !== null && activeDay !== null) {
     hourlyCard = (
       <HourlyCard
         day={activeDay}
+        dayName={inputs.day === 'today' ? 'Today' : 'Tomorrow'}
         hours={evaluation.scoredHours}
         freeTime={inputs.freeTime}
         best={best}
@@ -360,7 +366,7 @@ function App() {
         onSelect={(hour) => dispatch({ type: 'selectHour', hour })}
         intro={playIntro}
         index={0}
-        tuck={barShown}
+        tuck={pinnedH}
       />
     );
     freeTimeCard = (
@@ -373,28 +379,25 @@ function App() {
         activity={inputs.activity}
         intro={playIntro}
         index={1}
-        tuck={barShown}
+        tuck={pinnedH}
       />
     );
     if (best !== null) {
-      takeTiles = (
-        <TakeTiles
+      takeChips = (
+        <TakeChips
           items={evaluation.checklist}
           window={best}
           activity={inputs.activity}
           intro={playIntro}
+          sectionRef={takeRef}
+          folded={takeFolded}
         />
       );
     }
   }
 
-  const rootStyle = {
-    ...BOTTOM_SPACE,
-    '--hero-collapsed-h': `${barShown ? COLLAPSED_H : 0}px`,
-  } as CSSProperties;
-
   return (
-    <div className={LAYOUT_CLASS} style={rootStyle}>
+    <div className={`${LAYOUT_CLASS} ${BOTTOM_SPACE_CLASS}`} style={BOTTOM_SPACE}>
       {/* The fixed layers stay outside the page, which scales under an open sheet. */}
       {createPortal(
         <>
@@ -417,15 +420,23 @@ function App() {
               opacity={collapse.barOpacity}
             />
           )}
-          <Toolbar
-            day={inputs.day}
-            onDay={(day) => dispatch({ type: 'setDay', day })}
-            panelId={DAY_PANEL_ID}
-            onPlan={isDesktop ? undefined : () => setPlanOpen(true)}
-            onCities={() => openCities(false)}
-            planRef={planRef}
-            citiesRef={citiesRef}
-          />
+          {barShown && evaluation !== null && best !== null && (
+            <TakeStrip
+              shown={takeFolded}
+              items={evaluation.checklist}
+              window={best}
+              activity={inputs.activity}
+              intro={false}
+            />
+          )}
+          {!isDesktop && (
+            <Toolbar
+              onPlan={() => setPlanOpen(true)}
+              onCities={() => openCities(false)}
+              planRef={planRef}
+              citiesRef={citiesRef}
+            />
+          )}
         </>,
         layers,
       )}
@@ -455,17 +466,21 @@ function App() {
             intro={playIntro}
             collapse={collapse}
             findCityRef={findCityRef}
+            onCities={isDesktop ? () => openCities(false) : undefined}
+            citiesRef={citiesRef}
+            take={takeChips}
           />
         </div>
-        <div id={DAY_PANEL_ID} role="tabpanel" aria-label={dayLabel} className={PANEL_CLASS}>
+        <div id={DAY_PANEL_ID} className={PANEL_CLASS}>
           {hourlyCard}
-          {(freeTimeCard !== null || takeTiles !== null || isDesktop) && (
+          {(freeTimeCard !== null || isDesktop) && (
             <div className={SPLIT_CLASS}>
               {freeTimeCard}
-              {(takeTiles !== null || isDesktop) && (
+              {isDesktop && (
                 <div className={SIDE_CLASS}>
-                  {takeTiles}
-                  {isDesktop && <GlassCard title="Plan">{planControls}</GlassCard>}
+                  <GlassCard title="Plan" className="boot-in [--boot-i:2]">
+                    {planControls}
+                  </GlassCard>
                 </div>
               )}
             </div>

@@ -18,6 +18,8 @@ import {
   SEGMENT_PILL_CLASS,
   SELECTED_CELL_CLASS,
   SHEET_BUTTON_CLASS,
+  TAKE_BADGE_CLASS,
+  TAKE_ICON_CLASS,
 } from '../ui';
 
 /**
@@ -80,26 +82,22 @@ function pick(classes: string, kind: 'bg' | 'text', variant = ''): Paint {
 const text = (classes: string, variant = '') => pick(classes, 'text', variant) as Layer;
 const bg = (classes: string, variant = '') => pick(classes, 'bg', variant);
 
-/** The flat black of the hero scrim (heroContrast.test.ts proves the scrim itself). */
-const SCRIM_ALPHA = Number(
-  /\.hero-scrim\s*\{[^}]*background:\s*rgb\(0 0 0 \/ ([\d.]+)\);/.exec(css)?.[1],
+/** The black rim around every glyph on the bare sky (heroContrast.test.ts proves its shape). */
+const RIM_ALPHA = Number(
+  /\.sky-text\s*\{[^}]*--sky-rim:\s*rgb\(0 0 0 \/ ([\d.]+)\);/.exec(css)?.[1],
 );
 
-type Ground = 'glass' | 'glass on glass' | 'hero scrim';
+type Ground = 'glass' | 'glass on glass' | 'hero sky';
 
 /** Every surface `plates` can end up as: over each glass and each worst-case background. */
 function surfaces(ground: Ground, plates: Paint[]): Rgb[] {
   return GLASSES.flatMap((g) =>
     WORST_BACKGROUNDS.map((sky) => {
       const glass = (behind: Rgb) => over(g.rgb, g.alpha, behind);
-      let s =
-        ground === 'hero scrim'
-          ? over(BLACK, SCRIM_ALPHA, sky)
-          : ground === 'glass'
-            ? glass(sky)
-            : glass(glass(sky));
+      let s = ground === 'hero sky' ? sky : ground === 'glass' ? glass(sky) : glass(glass(sky));
       for (const p of plates) s = p === 'glass' ? glass(s) : over(p.rgb, p.alpha, s);
-      return s;
+      // The text's own shadow paints above the plates: on the sky, a label reads against its rim.
+      return ground === 'hero sky' ? over(BLACK, RIM_ALPHA, s) : s;
     }),
   );
 }
@@ -118,8 +116,8 @@ const CASES: [name: string, ground: Ground, plates: Paint[], text: Layer][] = [
     [bg(FREE_BAND_CLASS), bg(SELECTED_CELL_CLASS)],
     WHITE_TEXT,
   ],
-  ['hero button', 'hero scrim', [bg(BUTTON_CLASS)], text(BUTTON_CLASS)],
-  ['hero button, hovered', 'hero scrim', [bg(BUTTON_CLASS, 'hover:')], text(BUTTON_CLASS)],
+  ['hero button', 'hero sky', [bg(BUTTON_CLASS)], text(BUTTON_CLASS)],
+  ['hero button, hovered', 'hero sky', [bg(BUTTON_CLASS, 'hover:')], text(BUTTON_CLASS)],
   ['sheet button', 'glass', [bg(SHEET_BUTTON_CLASS)], text(SHEET_BUTTON_CLASS)],
   ['sheet button, hovered', 'glass', [bg(SHEET_BUTTON_CLASS, 'hover:')], text(SHEET_BUTTON_CLASS)],
   ['city search text', 'glass', [bg(SEARCH_INPUT_CLASS)], text(SEARCH_INPUT_CLASS)],
@@ -149,7 +147,7 @@ const CASES: [name: string, ground: Ground, plates: Paint[], text: Layer][] = [
 
 describe('text contrast on plates and in colour, over the worst-case sky', () => {
   it('reads every colour from the classes', () => {
-    expect(SCRIM_ALPHA).toBeGreaterThan(0);
+    expect(RIM_ALPHA).toBeGreaterThan(0);
     expect(text(RAIN_TEXT_CLASS).rgb).not.toEqual(WHITE);
     expect(text(SEARCH_INPUT_CLASS, 'placeholder:').alpha).toBeLessThan(1);
     expect(() => pick('text-sm text-[13px]', 'text')).toThrow();
@@ -177,8 +175,18 @@ describe('coloured text', () => {
     const coloured = sources('src').flatMap((file) =>
       [...readFileSync(file, 'utf8').matchAll(/text-(?:verdict-[a-z-]+|night|\[#[0-9a-f]{6}\])/g)]
         .map((m) => `${file}: ${m[0]}`)
-        .filter((hit) => hit !== `src/app/ui.ts: ${RAIN_TEXT_CLASS}`),
+        .filter((hit) => hit !== `src/app/ui.ts: ${RAIN_TEXT_CLASS}`)
+        // Not text: the icon on the opaque What to take badges, proven below.
+        .filter((hit) => hit !== `src/app/ui.ts: ${TAKE_ICON_CLASS}`),
     );
     expect(coloured).toEqual([]);
+  });
+});
+
+describe('What to take badges', () => {
+  it.each(Object.entries(TAKE_BADGE_CLASS))('%s: the icon holds 3:1 on its badge', (_id, badge) => {
+    const plate = bg(badge) as Layer;
+    expect(plate.alpha).toBe(1);
+    expect(contrastRatio(text(TAKE_ICON_CLASS).rgb, plate.rgb)).toBeGreaterThanOrEqual(3);
   });
 });

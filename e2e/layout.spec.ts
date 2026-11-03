@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { makeForecastJson } from '../src/test/forecastJson';
 import { STORED_LISBON, mockApis } from './mocks';
 
 const TIME_RANGE = /^\d{2}:00–\d{2}:00$/;
@@ -75,38 +76,32 @@ test('desktop: the card titles scroll with their cards instead of sitting on the
   for (const overlap of overlaps) expect(overlap).toBeLessThanOrEqual(0);
 });
 
-test('phone: the pager does not clip the hero scrim; the page clips at the viewport edge', async ({
+test('phone: the pager does not clip its content; the page clips at the viewport edge', async ({
   page,
 }) => {
   await openLisbon(page, { width: 390, height: 844 });
   await expect(page.locator('[data-pager-enabled="true"]')).toHaveCount(1);
-  const { clippers, scrim, pageOverflowX } = await page.evaluate(() => {
-    const el = document.querySelector('.hero-scrim')!;
+  const { clippers, pageOverflowX } = await page.evaluate(() => {
+    const hero = document.querySelector('[data-hero-time]')!.closest('.sky-text')!;
     const page = document.querySelector('[data-page]')!;
     const clippers: string[] = [];
-    for (let a = el.parentElement; a && a !== page; a = a.parentElement) {
+    for (let a = hero.parentElement; a && a !== page; a = a.parentElement) {
       const style = getComputedStyle(a);
       if (style.overflowX !== 'visible' || style.clipPath !== 'none')
         clippers.push(`${a.tagName}.${a.className}`);
     }
-    const r = el.getBoundingClientRect();
-    return {
-      clippers,
-      scrim: { left: r.left, right: r.right },
-      pageOverflowX: getComputedStyle(page).overflowX,
-    };
+    return { clippers, pageOverflowX: getComputedStyle(page).overflowX };
   });
-  // Nothing between the scrim and the page cuts it, so its 16 px feather reaches the screen edge.
+  // Nothing between the hero and the page cuts the sliding content short of the screen edge.
   expect(clippers).toEqual([]);
-  expect(scrim.left).toBeCloseTo(0, 0);
-  expect(scrim.right).toBeCloseTo(390, 0);
   expect(pageOverflowX).toBe('clip');
 });
 
 /** Highest WCAG luminance in the sun zone (top 18 %) of the sky alone, with the page hidden. */
 async function sunZoneLuma(page: Page): Promise<number> {
   const hide = await page.addStyleTag({
-    content: '[data-page], [data-collapsed-bar], nav[aria-label="App"] { visibility: hidden }',
+    content:
+      '[data-page], [data-collapsed-bar], [data-take-strip], nav[aria-label="App"] { visibility: hidden }',
   });
   const shot = await page.screenshot({
     clip: { x: 0, y: 0, width: 390, height: Math.floor(844 * 0.18) },
@@ -146,7 +141,7 @@ test('phone: the sun gives up its light in the sun zone once the pinned bar is i
   await expect.poll(() => sunZoneLuma(page)).toBeLessThanOrEqual(0.3 + 1 / 255);
 });
 
-test('phone: focus scrolls clear of the pinned bar and the tallest stuck header', async ({
+test('phone: focus scrolls clear of the pinned bar, its pill strip and the tallest stuck header', async ({
   page,
 }) => {
   await openLisbon(page, { width: 390, height: 844 });
@@ -156,7 +151,110 @@ test('phone: focus scrolls clear of the pinned bar and the tallest stuck header'
   const padding = await page.evaluate(() =>
     parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop),
   );
-  // 56 px of bar plus STUCK_HEADER_H, which has to cover the tallest header.
-  expect(padding).toBe(120);
-  expect(Math.max(...headers)).toBeLessThanOrEqual(padding - 56);
+  // 56 px of bar, 44 px of strip, plus STUCK_HEADER_H, which has to cover the tallest header.
+  expect(padding).toBe(172);
+  expect(Math.max(...headers)).toBeLessThanOrEqual(padding - 100);
+});
+
+test('phone: the What to take pills fold into one row under the pinned bar on scroll', async ({
+  page,
+}) => {
+  await openLisbon(page, { width: 390, height: 844 });
+  const strip = page.locator('[data-take-strip]');
+  const onPage = page.getByRole('region', { name: 'What to take' });
+  // At the top the pills are on the page, the strip is not on screen.
+  await expect(strip).toHaveCSS('opacity', '0');
+  await expect(onPage).toHaveCSS('opacity', '1');
+
+  await page.evaluate(() => window.scrollTo(0, 900));
+  await expect(page.locator('[data-collapsed-bar]')).toHaveCSS('opacity', '1');
+  await expect(strip).toHaveCSS('opacity', '1');
+  await expect(onPage).toHaveCSS('opacity', '0');
+
+  // One row of pills right under the 56 px bar, all of the same height.
+  const pills = await strip.locator('li').evaluateAll((els) =>
+    els.map((el) => {
+      const r = el.getBoundingClientRect();
+      return { top: r.top, height: r.height };
+    }),
+  );
+  expect(pills.length).toBeGreaterThan(0);
+  for (const pill of pills) expect(pill).toEqual({ top: 62, height: 32 });
+
+  // Every card is cut at the strip's bottom edge: no glass shows behind the pills. The clips are
+  // written on the next frame after a scroll, so the check polls.
+  const highestVisibleTop = () =>
+    page.locator('#day-panel section.glass').evaluateAll((els) =>
+      Math.min(
+        ...els.map((el) => {
+          const top = el.getBoundingClientRect().top;
+          const m = /^inset\((\d+(?:\.\d+)?)px/.exec(getComputedStyle(el).clipPath);
+          return top + (m ? Number(m[1]) : 0);
+        }),
+      ),
+    );
+  await expect.poll(highestVisibleTop).toBeGreaterThanOrEqual(100 - 0.5);
+
+  // Back at the top the pills return to the page.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(strip).toHaveCSS('opacity', '0');
+  await expect(onPage).toHaveCSS('opacity', '1');
+});
+
+test('phone: a strip too wide for the screen scrolls sideways and fades its far edge', async ({
+  page,
+}) => {
+  await mockApis(page);
+  // High UV, rain and heat all through the day: every pill but the warm layer.
+  const json = makeForecastJson({
+    hourly: {
+      uv_index: Array.from({ length: 48 }, () => 9),
+      precipitation_probability: Array.from({ length: 48 }, () => 60),
+      apparent_temperature: Array.from({ length: 48 }, () => 30),
+    },
+  });
+  await page.route('**/api.open-meteo.com/**', (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify(json) }),
+  );
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.addInitScript((p) => {
+    window.localStorage.setItem('uvgo:location', JSON.stringify(p));
+  }, STORED_LISBON);
+  await page.goto('/');
+  await expect(page.locator('[data-hero-time]')).toHaveText(TIME_RANGE);
+  await page.evaluate(() => window.scrollTo(0, 900));
+  const row = page.locator('[data-take-strip] ul');
+  await expect(page.locator('[data-take-strip]')).toHaveCSS('opacity', '1');
+
+  const size = await row.evaluate((el) => ({ client: el.clientWidth, scroll: el.scrollWidth }));
+  expect(size.scroll).toBeGreaterThan(size.client);
+  // `transparent` comes back from the computed style as rgba(0, 0, 0, 0).
+  const clear = 'rgba\\(0, 0, 0, 0\\)';
+  await expect(row).toHaveCSS('mask-image', new RegExp(`${clear} 100%`));
+  await expect(row).not.toHaveCSS('mask-image', new RegExp(`${clear} 0px`));
+
+  await row.evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+  await expect(row).toHaveCSS('mask-image', new RegExp(`${clear} 0px`));
+  await expect(row).not.toHaveCSS('mask-image', new RegExp(`${clear} 100%`));
+});
+
+test('desktop: the Plan card stays put while its inputs change the What to take pills', async ({
+  page,
+}) => {
+  // No first-result intro: the cards rising in would move Plan on their own.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openLisbon(page, { width: 1280, height: 800 });
+  const plan = page.getByRole('region', { name: 'Plan' });
+  const take = page.getByRole('region', { name: 'What to take' });
+  const top = () => plan.evaluate((el) => el.getBoundingClientRect().top);
+  const start = await top();
+  // The pills sit in the hero's column, to the left of the cards.
+  const takeRight = await take.evaluate((el) => el.getBoundingClientRect().right);
+  const planLeft = await plan.evaluate((el) => el.getBoundingClientRect().left);
+  expect(takeRight).toBeLessThanOrEqual(planLeft);
+
+  for (const name of ['Active', 'Long in the sun', 'Relaxed', '30 min', '3 h', '1 h']) {
+    await plan.getByRole('radio', { name }).click();
+    expect(await top()).toBe(start);
+  }
 });

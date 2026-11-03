@@ -1,11 +1,22 @@
 import { rules } from '../domain/rules.config';
-import type { Activity, DurationMin, Factor, Verdict } from '../domain/types';
+import type { Activity, ChecklistId, DurationMin, Factor, Verdict } from '../domain/types';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /** 'HH:00' for an hour of the day (24 is allowed for the end of a free-time range). */
 export function formatHour(hour: number): string {
   return `${pad(hour)}:00`;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** '2026-11-02' → '2 Nov'; null for anything but a calendar date, so the caller can leave it out. */
+export function formatShortDate(date: string): string | null {
+  const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) return null;
+  const month = MONTHS[Number(m[1]) - 1];
+  const day = Number(m[2]);
+  return month && day >= 1 && day <= 31 ? `${day} ${month}` : null;
 }
 
 /** Marks UI that must not count as an "outside tap" for HourDetails. */
@@ -37,10 +48,10 @@ export const CARD_TUCK_CLIP = true;
 /** Height in px the bottom toolbar occupies: 48 px buttons plus 12 px above and below. */
 export const TOOLBAR_H = 72;
 
-/** Height in px of the tallest card header stuck under the pinned bar (Hourly, with its switch). */
-export const STUCK_HEADER_H = 64;
+/** Height in px of the tallest card header stuck under the pinned bar (Hourly: title, day and date, subtitle). */
+export const STUCK_HEADER_H = 72;
 
-/** The Today/Tomorrow tabpanel, which the day dots control. */
+/** The day's cards, which change with the Today | Tomorrow switch (and the swipe on a phone). */
 export const DAY_PANEL_ID = 'day-panel';
 
 export const DURATION_OPTIONS: { value: DurationMin; label: string }[] = [
@@ -92,6 +103,23 @@ export const VERDICT_FILL_CLASS: Record<Verdict | 'night', string> = {
   night: 'bg-night',
 };
 
+/**
+ * What to take pills: a bright, opaque badge per item, the icon dark on it. The colour is what sets
+ * the pills apart from the cards; the icons are decorative (the label is the text), and
+ * textContrast.test.ts holds each pairing at 3:1, the non-text minimum. The empty pill's badge is
+ * the verdict green (--uv-verdict-green).
+ */
+export const TAKE_BADGE_CLASS: Record<ChecklistId | 'none', string> = {
+  sunscreen: 'bg-[#ffb340]',
+  'hat-sunglasses': 'bg-[#ffd60a]',
+  'rain-jacket': 'bg-[#64d2ff]',
+  water: 'bg-[#9cc4ff]',
+  'warm-layer': 'bg-[#ff9f7a]',
+  none: 'bg-[#4cd964]',
+};
+/** The icon on a What to take badge: the night sky's navy (--uv-bg). */
+export const TAKE_ICON_CLASS = 'text-[#0b1530]';
+
 /*
  * Coloured text and the plates text sits on. White and secondary text on bare glass are proven by
  * glassFor; src/app/__tests__/textContrast.test.ts proves every pairing below at 4.5:1 over the
@@ -110,9 +138,21 @@ export const FREE_BAND_CLASS = 'bg-white/[0.08]';
 /** Under the selected hour of the Hourly strip; it can sit on the free band as well. */
 export const SELECTED_CELL_CLASS = 'bg-white/[0.08]';
 
-/** The hero's buttons, on the bare sky over the hero scrim. */
+/** The hero's buttons, on the bare sky; their labels carry the hero's `.sky-text` rim. */
 export const BUTTON_CLASS =
   'inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-white/[0.06] px-4 text-sm font-medium text-text hover:bg-surface';
+
+/**
+ * The hero's Cities pin on desktop, next to the chosen place: just the icon, a step dimmer than the
+ * white around it and with no plate, until a hover or focus washes a circle in behind it. The face
+ * is 36 px; the `before` box grows the touch target back to 44 px.
+ */
+export const HERO_PIN_BUTTON_CLASS =
+  "relative flex size-9 shrink-0 items-center justify-center rounded-full text-white/75 before:absolute before:-inset-1 before:content-[''] hover:bg-white/10 hover:text-text focus-visible:bg-white/10 focus-visible:text-text";
+
+/** A round glass icon button: the toolbar's Plan and Cities. */
+export const ROUND_BUTTON_CLASS =
+  'glass flex shrink-0 items-center justify-center rounded-full text-text';
 
 /** Full-width buttons inside a sheet. */
 export const SHEET_BUTTON_CLASS =

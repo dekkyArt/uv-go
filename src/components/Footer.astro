@@ -8,7 +8,7 @@ interface Props {
 }
 
 const { withToolbar = false } = Astro.props;
-const linkClass = 'inline-flex min-h-11 items-center underline underline-offset-2 hover:text-text';
+const linkClass = 'underline underline-offset-2 hover:text-white/80';
 ---
 
 <!-- The toolbar is a phone's only: desktop keeps the plain padding. -->
@@ -20,7 +20,7 @@ const linkClass = 'inline-flex min-h-11 items-center underline underline-offset-
       : undefined
   }
 >
-  <div class="glass mx-auto flex max-w-[1200px] flex-col gap-1 rounded-2xl px-4 py-4 text-[13px] text-text-muted">
+  <div class="mx-auto flex max-w-[1200px] flex-col gap-1 px-4 py-4 text-[13px] leading-tight text-white">
     <p class="flex flex-wrap items-center gap-x-1">
       <span>Weather data by</span>
       <a class={linkClass} href="https://open-meteo.com/" rel="noopener">

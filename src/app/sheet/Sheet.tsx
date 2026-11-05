@@ -8,6 +8,7 @@ interface Props {
   open: boolean;
   onClose(): void;
   title: string;
+  titleAccessory?: ReactNode;
   size: 'auto' | 'tall';
   /** Receives focus when the sheet closes (usually the control that opened it). */
   returnFocusRef: RefObject<HTMLElement | null>;
@@ -26,7 +27,15 @@ const CLOSE_VELOCITY = 500;
  * dialog, and `html[data-sheet-open]` scales the page down around the middle of the viewport;
  * both are lifted on close and on unmount.
  */
-export function Sheet({ open, onClose, title, size, returnFocusRef, children }: Props) {
+export function Sheet({
+  open,
+  onClose,
+  title,
+  titleAccessory,
+  size,
+  returnFocusRef,
+  children,
+}: Props) {
   const reduced = useReducedMotion() ?? false;
   // Without the motion features the sheet and its backdrop open in place (and close at once).
   const motionFailed = useFeaturesFailed();
@@ -124,15 +133,24 @@ export function Sheet({ open, onClose, title, size, returnFocusRef, children }: 
               }}
             >
               {/* Only the grip and title start a drag, so the content below can scroll freely. */}
-              <div className="touch-none px-5 pt-2" onPointerDown={(e) => dragControls.start(e)}>
+              <div
+                data-sheet-drag-handle={!reduced && !motionFailed ? '' : undefined}
+                className="touch-none px-5 pt-2"
+                onPointerDown={(e) => dragControls.start(e)}
+              >
                 <div
                   aria-hidden="true"
                   className="mx-auto h-1 w-9 rounded-full bg-white/40"
                   data-sheet-handle
                 />
-                <h2 id={titleId} className="py-3 text-xl font-semibold">
-                  {title}
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 id={titleId} className="py-3 text-xl font-semibold">
+                    {title}
+                  </h2>
+                  <div className="cursor-auto" onPointerDown={(event) => event.stopPropagation()}>
+                    {titleAccessory}
+                  </div>
+                </div>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">
                 {children}

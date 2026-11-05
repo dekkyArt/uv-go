@@ -72,7 +72,7 @@ describe('Hero', () => {
     it('announces a geolocation error', () => {
       setup({ kind: 'no-place' }, { geoError: true });
       expect(screen.getByRole('alert')).toHaveTextContent(
-        "Can't get your location. Search a city instead.",
+        "Can't get your location. Search for a city instead.",
       );
     });
 
@@ -129,7 +129,7 @@ describe('Hero', () => {
     it('dark', () => {
       setup({ kind: 'empty', place: LISBON, reason: 'dark', duration: 60 });
       expect(
-        screen.getByText("It's dark during your free time. Try earlier hours."),
+        screen.getByText('No daylight window fits this outing. Change your free time or duration.'),
       ).toBeInTheDocument();
     });
 
@@ -141,7 +141,7 @@ describe('Hero', () => {
         reason: 'past',
         duration: 60,
       });
-      expect(screen.getByText('No time left today.')).toBeInTheDocument();
+      expect(screen.getByText('No future start time fits your plan today.')).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Show tomorrow' }));
       expect(onShowTomorrow).toHaveBeenCalledTimes(1);
     });
@@ -230,7 +230,7 @@ describe('Hero', () => {
       { notice: true },
     );
     const notice = screen.getByRole('status');
-    expect(notice).toHaveTextContent('Your free time today has passed — showing tomorrow');
+    expect(notice).toHaveTextContent('No future start time fits today — showing tomorrow');
     expect(notice).not.toHaveClass('glass');
     expect(notice.closest('.sky-text')).not.toBeNull();
   });

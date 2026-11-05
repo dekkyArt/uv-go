@@ -45,7 +45,7 @@ function evaluation(over: Partial<EvaluationResult> = {}): EvaluationResult {
     scoredHours: HOURS,
     best: BEST,
     emptyReason: null,
-    reason: 'Low UV, low chance of rain',
+    reason: 'No points from available forecast data',
     checklist: [],
     ...over,
   };
@@ -89,7 +89,7 @@ describe('heroState', () => {
       kind: 'result',
       place: LISBON,
       best: BEST,
-      reason: 'Low UV, low chance of rain',
+      reason: 'No points from available forecast data',
       duration: 60,
       nowLine: 'Now UV 6 · Feels 24°',
     });

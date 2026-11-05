@@ -65,11 +65,11 @@ const chip = {
 } as const;
 
 const checklistWhen: Record<ChecklistId, string> = {
-  sunscreen: `The highest UV in your window is ${checklist.sunscreenUv} or more`,
-  'hat-sunglasses': `The highest UV in your window is ${checklist.hatUv} or more`,
-  'rain-jacket': `The chance of rain is ${checklist.rainJacket}% or more`,
-  water: `You picked Active, or it feels like ${checklist.waterFeelsLike}°C or more`,
-  'warm-layer': `It feels like below ${checklist.warmLayerBelow}°C`,
+  sunscreen: `The highest rounded UV in your window is ${checklist.sunscreenUv} or more`,
+  'hat-sunglasses': `The highest rounded UV in your window is ${checklist.hatUv} or more`,
+  'rain-jacket': `At least one hour has a ${checklist.rainJacket}% or higher chance of rain`,
+  water: `You picked Active, or at least one hour feels like ${checklist.waterFeelsLike}°C or more`,
+  'warm-layer': `At least one hour feels like below ${checklist.warmLayerBelow}°C`,
 };
 const checklistRows = (Object.entries(checklistLabels) as [ChecklistId, string][]).map(
   ([id, label]) => ({ label, when: checklistWhen[id] }),
@@ -78,7 +78,7 @@ const checklistRows = (Object.entries(checklistLabels) as [ChecklistId, string][
 const steps = [
   {
     title: 'Pick a place',
-    text: 'Search for a city or use your current location. UV GO remembers it in your browser.',
+    text: 'Search for a city or use your current location. UV GO saves the selected place in your browser when storage is available.',
   },
   {
     title: 'Set your time',
@@ -86,7 +86,7 @@ const steps = [
   },
   {
     title: 'Get one answer',
-    text: 'You see the best time window, a colour verdict, the reason in one line and what to take.',
+    text: 'When a daylight window fits, you see the lowest-scoring time, its verdict, a short explanation and suggested items to take. Even the best window can be Not recommended.',
   },
 ];
 
@@ -103,8 +103,9 @@ const h3 = 'mt-8 text-[17px] font-semibold text-text';
 
 <section
   id="how-it-works"
+  tabindex="-1"
   aria-labelledby="how-heading"
-  class="reveal glass mt-8 rounded-[22px] p-4 sm:p-6"
+  class="reveal glass mt-8 scroll-mt-32 rounded-[22px] p-4 sm:p-6"
 >
   <h2 id="how-heading" class="text-[22px] font-semibold leading-7 text-text">
     How it works
@@ -128,15 +129,30 @@ const h3 = 'mt-8 text-[17px] font-semibold text-text';
 
   <h3 class={h3}>The rules behind the answer</h3>
   <p class="mt-1 text-text-muted">
-    Every hour in daylight gets points for UV, rain, heat, cold and wind. Lower is better. A window
-    is scored as the average of its hours, so one bad hour counts but does not decide it alone.
-    Hours after dark are left out.
+    Each forecast hour gets points for UV, chance of rain, heat, cold and wind. Lower is better. A
+    window is scored as the average of its hours. UV GO compares the exact averages; ties go to the
+    window with the lowest worst-hour score, then the earliest start.
+  </p>
+  <p class="mt-3 text-text-muted">
+    Windows start on the hour and must fit inside your free time. Every included hour must be marked
+    as daytime in the forecast. For today, starts before the current time are excluded: at 14:10,
+    the earliest start is 15:00. All times use the chosen place’s local time.
+  </p>
+  <p class="mt-3 text-text-muted">
+    A 30-minute outing needs a full hour inside your free time and uses the same forecast as a
+    1-hour outing, but its result ends after 30 minutes. Outings of 2 or 3 hours use 2 or 3
+    consecutive forecast hours. UV GO does not calculate daylight eligibility minute by minute from
+    sunrise and sunset.
+  </p>
+  <p class="mt-3 text-text-muted">
+    Active adds more heat points and always suggests water. Relaxed uses the standard points. Long
+    in the sun increases UV points; duration is chosen separately.
   </p>
 
   <h3 class={h3}>UV</h3>
   <p class="mt-1 text-text-muted">
-    UV is rounded to a whole number first. For Long in the sun, UV points are multiplied by{' '}
-    <span class="font-semibold text-text">× {longSun}</span>.
+    UV is rounded to the nearest whole number first, with .5 rounded up. For Long in the sun, UV
+    points are multiplied by <span class="font-semibold text-text">× {longSun}</span>.
   </p>
   <div class={tableWrap}>
     <table class={table}>
@@ -234,7 +250,9 @@ const h3 = 'mt-8 text-[17px] font-semibold text-text';
 
   <h3 class={h3}>Verdict</h3>
   <p class="mt-1 text-text-muted">
-    The window score is rounded, then matched to a verdict. The label always comes with the colour.
+    The average window score is rounded to the nearest whole number, with .5 rounded up, then
+    matched to a verdict. Hourly verdicts use that hour’s score. The best window can still have a
+    red verdict.
   </p>
   <div class={tableWrap}>
     <table class={table}>
@@ -267,10 +285,19 @@ const h3 = 'mt-8 text-[17px] font-semibold text-text';
     </table>
   </div>
 
+  <h3 class={h3}>The short explanation</h3>
+  <p class="mt-1 text-text-muted">
+    The reason line shows up to two factors that add the most points across the chosen window. It
+    uses the highest available UV, chance of rain, heat or wind value, or the lowest feels-like
+    temperature for cold. It describes the selected window; it does not compare it with other
+    windows. When no factor adds points, it says “{rules.reasonTemplates.none}”.
+  </p>
+
   <h3 class={h3}>What to take</h3>
   <p class="mt-1 text-text-muted">
-    The checklist is built from the hours of your best window. {rules.emptyChecklistText} shows when
-    none of these apply.
+    The checklist uses the highest or lowest available values across the forecast hours of your best
+    window. “{rules.emptyChecklistText}” means none of these rules triggered with the available
+    data.
   </p>
   <div class={tableWrap}>
     <table class={table}>
@@ -297,4 +324,26 @@ const h3 = 'mt-8 text-[17px] font-semibold text-text';
       </tbody>
     </table>
   </div>
+
+  <h3 class={h3}>Reading the forecast</h3>
+  <p class="mt-1 text-text-muted">
+    Hourly shows all 24 hours. Switch between UV, chance of rain and feels-like temperature, and
+    select an hour for its values and points. The shaded band marks your free time; the outline
+    marks the forecast hours used for the best window. Your free time lists those hours with
+    individual verdicts. A longer bar means more points, and Best marks hours in the chosen window.
+    Those hourly verdicts can differ from the window’s average verdict.
+  </p>
+  <p class="mt-3 text-text-muted">
+    Now shows the current hour’s forecast, rather than a live measurement. Tomorrow’s summary shows
+    peak UV and the feels-like range across all forecast daylight hours, rather than just your
+    chosen window. A dash or “no data” means a forecast value is missing. Missing factors add no
+    points and cannot trigger checklist items, so a low score can reflect incomplete data.
+  </p>
+  <h3 class={h3}>When no window fits</h3>
+  <p class="mt-1 text-text-muted">
+    Extend your free time or shorten the outing if it does not fit. If no daylight window fits,
+    change the hours or duration. When a forecast loads and all eligible starts today have passed,
+    UV GO switches to tomorrow. Choose Today again to keep viewing today for the rest of the
+    session. Changing the plan recalculates the result immediately; Done closes the Plan panel.
+  </p>
 </section>

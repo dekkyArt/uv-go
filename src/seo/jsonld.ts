@@ -27,7 +27,7 @@ export function webApplicationLd(site: string): object {
     name: 'UV GO',
     url: `${site}/`,
     description:
-      'Find the best time to go outside today from the hourly UV index and weather forecast for your location.',
+      'Compare daylight outings today or tomorrow within your free hours using the hourly UV and weather forecast, your duration and activity.',
     applicationCategory: 'UtilitiesApplication',
     operatingSystem: 'Any',
     browserRequirements: 'Requires JavaScript',

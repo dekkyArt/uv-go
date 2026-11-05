@@ -6,9 +6,7 @@ import { makeDay } from './factories';
 const UV_BY_HOUR = { 13: 7, 14: 6, 15: 5, 16: 4, 17: 3, 18: 1 };
 
 function dayWithUv() {
-  return makeDay(
-    Object.fromEntries(Object.entries(UV_BY_HOUR).map(([h, uv]) => [h, { uv }])),
-  );
+  return makeDay(Object.fromEntries(Object.entries(UV_BY_HOUR).map(([h, uv]) => [h, { uv }])));
 }
 
 function inputs(start = 13, end = 19, duration: DurationMin = 60): Inputs {
@@ -21,7 +19,7 @@ describe('evaluate', () => {
     expect(result.best?.label).toBe('18:00–19:00');
     expect(result.best?.verdict).toBe('green');
     expect(result.emptyReason).toBeNull();
-    expect(result.reason).toBe('Low UV, low chance of rain');
+    expect(result.reason).toBe('No points from available forecast data');
     expect(result.checklist).toEqual([]);
   });
 

@@ -104,8 +104,9 @@ function emptyText(reason: EmptyReason, duration: DurationMin): string {
   if (reason === 'too-short') {
     return `Your free time is shorter than ${durationLabel(duration)}. Extend it or pick a shorter outing.`;
   }
-  if (reason === 'dark') return "It's dark during your free time. Try earlier hours.";
-  return 'No time left today.';
+  if (reason === 'dark')
+    return 'No daylight window fits this outing. Change your free time or duration.';
+  return 'No future start time fits your plan today.';
 }
 
 /**
@@ -293,7 +294,7 @@ export function Hero({
         {/* No plate: the line sits on the sky with the hero's rim, like the text above it. */}
         {notice && (
           <p role="status" className="m-0 max-w-[34ch] text-[15px] font-medium leading-5">
-            Your free time today has passed — showing tomorrow
+            No future start time fits today — showing tomorrow
           </p>
         )}
       </div>

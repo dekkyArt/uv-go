@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { formatPlace } from '../../data/geocoding';
+import { placeTitle } from '../hero/heroText';
 import type { Place } from '../../data/types';
 import { CitySearch } from '../components/CitySearch';
 import { useGeolocate } from '../hooks/useGeolocate';
@@ -44,7 +45,9 @@ export function CitiesSheet({ open, onClose, place, onPlace, returnFocusRef }: P
         {place && (
           <p className="flex items-center gap-2 text-base">
             <span aria-hidden="true">📍</span>
-            <span className="font-medium">{formatPlace(place)}</span>
+            <span className="font-medium">
+              {placeTitle(place).mine ? placeTitle(place).name : formatPlace(place)}
+            </span>
           </p>
         )}
         <CitySearch onSelect={choose} inputRef={inputRef} />

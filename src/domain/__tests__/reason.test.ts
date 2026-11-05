@@ -82,7 +82,7 @@ describe('buildReason', () => {
 
   it('zero points -> none template', () => {
     expect(buildReason(makeWindow({ 10: { uv: 1 }, 11: { uv: 2 } }))).toBe(
-      'Low UV, low chance of rain',
+      'No points from available forecast data',
     );
   });
 

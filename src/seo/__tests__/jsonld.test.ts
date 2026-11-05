@@ -16,9 +16,9 @@ describe('faqPageLd', () => {
     }[];
   };
 
-  it('has nine Question entries, each with an accepted answer text', () => {
+  it('has matching Question entries, each with an accepted answer text', () => {
     expect(ld['@type']).toBe('FAQPage');
-    expect(ld.mainEntity).toHaveLength(9);
+    expect(ld.mainEntity).toHaveLength(faqItems.length);
     for (const [i, entity] of ld.mainEntity.entries()) {
       expect(entity['@type']).toBe('Question');
       expect(entity.name).toBe(faqItems[i].q);

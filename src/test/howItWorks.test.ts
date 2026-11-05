@@ -71,10 +71,10 @@ describe('HowItWorks', () => {
 });
 
 describe('Faq', () => {
-  it('renders nine details elements', async () => {
+  it('renders each FAQ as a details element', async () => {
     const html = await render(Faq);
-    expect(html.match(/<details/g)).toHaveLength(9);
-    expect(faqItems).toHaveLength(9);
+    expect(html.match(/<details/g)).toHaveLength(faqItems.length);
+    expect(faqItems).toHaveLength(11);
     const escape = (text: string) => text.replaceAll('"', '&quot;');
     for (const item of faqItems) expect(html).toContain(escape(item.q));
   });

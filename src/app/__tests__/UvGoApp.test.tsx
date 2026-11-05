@@ -187,7 +187,7 @@ describe('UvGoApp', () => {
     storePlace();
     renderApp();
     const live = await screen.findByText(
-      'Best time 18:00–19:00, Good. Low UV, low chance of rain.',
+      'Best time 18:00–19:00, Good. No points from available forecast data.',
     );
     expect(live).toHaveAttribute('aria-live', 'polite');
   });
@@ -288,7 +288,9 @@ describe('UvGoApp', () => {
     storeInputs({ freeTime: { start: 21, end: 23 } });
     renderApp();
     expect(
-      await screen.findByText("It's dark during your free time. Try earlier hours."),
+      await screen.findByText(
+        'No daylight window fits this outing. Change your free time or duration.',
+      ),
     ).toBeInTheDocument();
   });
 
@@ -299,13 +301,15 @@ describe('UvGoApp', () => {
     const user = userEvent.setup();
     renderApp();
     expect(
-      await screen.findByText('Your free time today has passed — showing tomorrow'),
+      await screen.findByText('No future start time fits today — showing tomorrow'),
     ).toBeInTheDocument();
     expect(dayRadio('Tomorrow')).toHaveAttribute('aria-checked', 'true');
     await findHeroTime('18:00–19:00');
 
     await user.click(dayRadio('Today'));
-    expect(await screen.findByText('No time left today.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('No future start time fits your plan today.'),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/showing tomorrow/)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Show tomorrow' }));
@@ -325,7 +329,7 @@ describe('UvGoApp', () => {
     renderApp();
     await user.click(screen.getByRole('button', { name: 'Use my location' }));
     expect(
-      await screen.findByText("Can't get your location. Search a city instead."),
+      await screen.findByText("Can't get your location. Search for a city instead."),
     ).toBeInTheDocument();
   });
 

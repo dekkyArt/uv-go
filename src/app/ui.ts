@@ -28,11 +28,14 @@ export const CELL_W = 56;
 /** Height in px of one row of the Your free time table. */
 export const ROW_H = 44;
 
+/** Let Plan determine the desktop grid row height, including while the cards are loading. */
+export const FREE_TIME_DESKTOP_CLASS = 'lg:[contain:size] lg:self-stretch';
+
 /** A score at or above this fills the whole bar of the Your free time table. */
 export const SCORE_BAR_MAX = 8;
 
 /** Shown when the browser can't give a position (denied, timed out or unavailable). */
-export const GEO_ERROR = "Can't get your location. Search a city instead.";
+export const GEO_ERROR = "Can't get your location. Search for a city instead.";
 
 export const DAY_OPTIONS = [
   { value: 'today', label: 'Today' },

@@ -27,16 +27,16 @@ export function takeReason(
     );
   switch (id) {
     case 'sunscreen':
-      return { value: peakUv(), detail: `Needed from UV ${r.sunscreenUv}` };
+      return { value: peakUv(), detail: `Suggested from rounded UV ${r.sunscreenUv}` };
     case 'hat-sunglasses':
-      return { value: peakUv(), detail: `Needed from UV ${r.hatUv}` };
+      return { value: peakUv(), detail: `Suggested from rounded UV ${r.hatUv}` };
     case 'rain-jacket':
       return {
         value: show(
           extreme(window, (h) => h.rainProb, Math.max),
           (n) => `${n}%`,
         ),
-        detail: `Needed from ${r.rainJacket}% rain`,
+        detail: `Suggested from ${r.rainJacket}% chance of rain`,
       };
     case 'water':
       return {
@@ -48,7 +48,7 @@ export function takeReason(
                 extreme(window, (h) => h.feelsLike, Math.max),
                 (n) => `${n}°`,
               ),
-        detail: `Needed when active or from ${r.waterFeelsLike}°`,
+        detail: `Suggested for Active or when it feels like ${r.waterFeelsLike}°C or more`,
       };
     case 'warm-layer':
       return {
@@ -56,7 +56,7 @@ export function takeReason(
           extreme(window, (h) => h.feelsLike, Math.min),
           (n) => `${n}°`,
         ),
-        detail: `Needed below ${r.warmLayerBelow}°`,
+        detail: `Suggested when it feels like below ${r.warmLayerBelow}°C`,
       };
   }
 }

@@ -19,42 +19,42 @@ describe('takeReason', () => {
   it('sunscreen: peak UV of the window and the config threshold', () => {
     expect(takeReason('sunscreen', WINDOW, 'relaxed')).toEqual({
       value: 'UV 5',
-      detail: 'Needed from UV 3',
+      detail: 'Suggested from rounded UV 3',
     });
   });
 
   it('hat-sunglasses: peak UV and its own threshold', () => {
     expect(takeReason('hat-sunglasses', WINDOW, 'relaxed')).toEqual({
       value: 'UV 5',
-      detail: 'Needed from UV 6',
+      detail: 'Suggested from rounded UV 6',
     });
   });
 
   it('rain-jacket: peak rain chance, rounded', () => {
     expect(takeReason('rain-jacket', WINDOW, 'relaxed')).toEqual({
       value: '60%',
-      detail: 'Needed from 30% rain',
+      detail: 'Suggested from 30% chance of rain',
     });
   });
 
   it('water: highest feels-like when relaxed', () => {
     expect(takeReason('water', WINDOW, 'relaxed')).toEqual({
       value: '27°',
-      detail: 'Needed when active or from 25°',
+      detail: 'Suggested for Active or when it feels like 25°C or more',
     });
   });
 
   it('water: no value for an active plan, the detail says why', () => {
     expect(takeReason('water', WINDOW, 'active')).toEqual({
       value: null,
-      detail: 'Needed when active or from 25°',
+      detail: 'Suggested for Active or when it feels like 25°C or more',
     });
   });
 
   it('warm-layer: lowest feels-like of the window', () => {
     expect(takeReason('warm-layer', WINDOW, 'relaxed')).toEqual({
       value: '3°',
-      detail: 'Needed below 5°',
+      detail: 'Suggested when it feels like below 5°C',
     });
   });
 
@@ -107,11 +107,11 @@ describe('TakeChips', () => {
   it('keeps the detail for screen readers only', () => {
     setup([item('sunscreen')]);
     const chip = screen.getByRole('listitem');
-    expect(chip).toHaveTextContent('Sunscreen UV 5. Needed from UV 3');
-    expect(within(chip).getByText('. Needed from UV 3')).toHaveClass('sr-only');
+    expect(chip).toHaveTextContent('Sunscreen UV 5. Suggested from rounded UV 3');
+    expect(within(chip).getByText('. Suggested from rounded UV 3')).toHaveClass('sr-only');
   });
 
-  it('shows one "Nothing extra needed" pill for an empty checklist', () => {
+  it('shows one "No extra items suggested" pill for an empty checklist', () => {
     setup([]);
     const chips = screen.getAllByRole('listitem');
     expect(chips).toHaveLength(1);

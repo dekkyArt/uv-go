@@ -2,7 +2,7 @@
 title: 'How to Protect Yourself from UV'
 description: 'How to protect your skin from UV: time your outings, use sunscreen properly, cover up with clothing and a hat, wear UV-blocking sunglasses and find shade.'
 publishedAt: 2026-10-27
-updatedAt: 2026-10-27
+updatedAt: 2026-11-05
 sources:
   - title: 'Ultraviolet radiation (fact sheet)'
     url: 'https://www.who.int/news-room/fact-sheets/detail/ultraviolet-radiation'
@@ -36,7 +36,7 @@ tldr:
 
 The cheapest sun protection is choosing when you go. The WHO advises limiting time in the midday sun and seeking shade ([WHO](https://www.who.int/news-room/fact-sheets/detail/ultraviolet-radiation)). The Skin Cancer Foundation names 10 AM to 4 PM as the [peak hours of sun intensity](https://www.skincancer.org/skin-cancer-prevention/sun-protection/), and the NHS says that in the UK the sun is strongest between 11am and 3pm from March to October.
 
-Check the UV index too. The NHS says to protect your skin when it is 3 or higher ([NHS](https://www.nhs.uk/live-well/seasonal-health/sunscreen-and-sun-safety/)). If your free time covers both midday and late afternoon, the later hours will often carry a lower UV number. This is the decision UV GO is built to make for you, using [the UV index](/uv-index) hour by hour.
+Check the UV index too. The NHS says to protect your skin when it is 3 or higher ([NHS](https://www.nhs.uk/live-well/seasonal-health/sunscreen-and-sun-safety/)). If your free time covers both midday and late afternoon, the later hours will often carry a lower UV number. UV GO compares [the UV index](/uv-index) hour by hour alongside rain, heat, cold and wind, and picks the lowest average score within your free time.
 
 ## Sunscreen: SPF, amount, reapplying
 
@@ -76,7 +76,7 @@ At the high end of the scale, the US EPA gives a quick field test for a UV index
 
 ## Putting it together: what to take
 
-The what-to-take list in UV GO follows the same ideas, with thresholds of its own that sit in one configuration file:
+The what-to-take list in UV GO follows the same ideas, using available values across the forecast hours of your best window. Its current thresholds are also listed in [How it works](/#how-it-works):
 
 - **Sunscreen** appears when the highest rounded UV in your window is 3 or above, in line with the WHO and NHS threshold above.
 - **Hat and sunglasses** appear at UV 6 or above.
@@ -84,6 +84,6 @@ The what-to-take list in UV GO follows the same ideas, with thresholds of its ow
 - **Water** appears for the Active activity, or when it feels like 25°C or more.
 - **Warm layer** appears when it feels like less than 5°C.
 
-When none of these apply, the list says “Nothing extra needed.” At UV below 3 you can still choose to protect your skin, especially if you burn easily. That is your call.
+When none of these rules trigger with the available data, the list says “No extra items suggested.” Missing forecast values cannot trigger an item. At UV below 3 you can still choose to protect your skin, especially if you burn easily. That is your call.
 
 UV GO gives general guidance, not a guarantee. If you have a skin condition or are protecting a baby, ask a healthcare professional. The NHS, for example, advises keeping babies under 6 months out of direct sunlight.

@@ -116,7 +116,7 @@ test.describe('UV GO smoke', () => {
 
     const plan = page.getByRole('region', { name: 'Plan' });
     await expect(plan).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Plan' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Plan', exact: true })).toHaveCount(0);
     await expectOneLine(page);
     await plan.getByRole('radio', { name: '3 h' }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -251,7 +251,7 @@ test.describe('UV GO smoke', () => {
     // The hero's button, on a first visit.
     await page.getByRole('button', { name: 'Use my location' }).click();
     await expect(page.getByRole('alert').filter({ hasText: /./ })).toHaveText(
-      "Can't get your location. Search a city instead.",
+      "Can't get your location. Search for a city instead.",
     );
     await context.close();
   });

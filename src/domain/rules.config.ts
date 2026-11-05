@@ -41,7 +41,7 @@ export const rules = {
     heat: 'Feels like {t}°C',
     cold: 'Feels like {t}°C',
     wind: 'Wind up to {w} km/h',
-    none: 'Low UV, low chance of rain',
+    none: 'No points from available forecast data',
   },
   checklist: { sunscreenUv: 3, hatUv: 6, rainJacket: 30, waterFeelsLike: 25, warmLayerBelow: 5 },
   checklistLabels: {
@@ -51,6 +51,6 @@ export const rules = {
     water: 'Water',
     'warm-layer': 'Warm layer',
   } satisfies Record<ChecklistId, string>,
-  emptyChecklistText: 'Nothing extra needed.',
+  emptyChecklistText: 'No extra items suggested.',
   verdictLabels: { green: 'Good', yellow: 'OK with protection', red: 'Not recommended' },
 } as const;

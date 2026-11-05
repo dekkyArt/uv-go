@@ -7,6 +7,8 @@ import { useCardTuck } from './useCardTuck';
 
 interface GlassCardProps {
   title: string;
+  titleIcon?: ReactNode;
+  titleAccessory?: ReactNode;
   subtitle?: string;
   /** Muted line under the title, above the subtitle (the Hourly card's day and date). */
   titleNote?: string;
@@ -40,6 +42,8 @@ const REST = { opacity: 1, y: 0 };
  */
 export function GlassCard({
   title,
+  titleIcon,
+  titleAccessory,
   subtitle,
   titleNote,
   action,
@@ -93,9 +97,20 @@ export function GlassCard({
         className={`${tuck > 0 ? 'sticky z-10 ' : ''}flex items-start justify-between gap-3 px-4 pt-4`}
       >
         <div className="min-w-0">
-          <h2 id={titleId} className="m-0 text-[15px] font-semibold leading-5 text-text">
-            {title}
-          </h2>
+          <div className="flex items-center gap-2">
+            {titleIcon ? (
+              <span
+                aria-hidden="true"
+                className="flex size-5 shrink-0 items-center text-text-muted"
+              >
+                {titleIcon}
+              </span>
+            ) : null}
+            <h2 id={titleId} className="m-0 text-[15px] font-semibold leading-5 text-text">
+              {title}
+            </h2>
+            {titleAccessory}
+          </div>
           {titleNote ? (
             <p
               data-card-title-note=""

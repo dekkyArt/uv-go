@@ -22,6 +22,7 @@ import { GlassCard } from './cards/GlassCard';
 import { CELL_H } from './cards/HourCell';
 import { HourlyCard } from './cards/HourlyCard';
 import { PlanControls } from './cards/PlanControls';
+import { PlanHelp } from './cards/PlanHelp';
 import { CHIP_H, STRIP_H, TakeChips, TakeStrip, useTakeFolded } from './cards/TakeChips';
 import { fixedLayers } from './fixedLayers';
 import { HERO_BOX_CLASS, HERO_H1, Hero } from './hero/Hero';
@@ -44,6 +45,7 @@ import { initialState, isForecastStale, reducer } from './state';
 import { Toolbar } from './toolbar/Toolbar';
 import {
   DAY_PANEL_ID,
+  FREE_TIME_DESKTOP_CLASS,
   ROW_H,
   SHEET_BUTTON_CLASS,
   STUCK_HEADER_H,
@@ -164,8 +166,8 @@ function FreeTimeSkeleton({ rows, className = '' }: { rows: number | string; cla
     <div
       aria-busy="true"
       data-skeleton=""
-      className={`glass ${className}`.trim()}
-      style={{ height: freeTimeSkeletonHeight(rows) }}
+      className={`glass h-(--free-time-height) lg:h-auto ${FREE_TIME_DESKTOP_CLASS} ${className}`.trim()}
+      style={{ '--free-time-height': freeTimeSkeletonHeight(rows) } as CSSProperties}
     />
   );
 }
@@ -478,7 +480,26 @@ function App() {
               {freeTimeCard}
               {isDesktop && (
                 <div className={SIDE_CLASS}>
-                  <GlassCard title="Plan" className="boot-in [--boot-i:2]">
+                  <GlassCard
+                    title="Plan"
+                    titleAccessory={<PlanHelp />}
+                    titleIcon={
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        className="size-5 text-text-muted"
+                      >
+                        <path d="M4 7h6m4 0h6M4 17h10m4 0h2" />
+                        <circle cx="12" cy="7" r="2" />
+                        <circle cx="16" cy="17" r="2" />
+                      </svg>
+                    }
+                    className="plan-card boot-in [--boot-i:2]"
+                  >
                     {planControls}
                   </GlassCard>
                 </div>
@@ -492,6 +513,7 @@ function App() {
         open={planOpen}
         onClose={() => setPlanOpen(false)}
         title="Plan"
+        titleAccessory={<PlanHelp onNavigate={() => setPlanOpen(false)} />}
         size="auto"
         returnFocusRef={planRef}
       >

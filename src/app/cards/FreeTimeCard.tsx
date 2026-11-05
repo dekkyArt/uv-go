@@ -4,6 +4,7 @@ import { barDelay } from '../../motion/choreography';
 import { WeatherIcon } from '../icons/weather/Icon';
 import { weatherIcon } from '../icons/weather/weatherIcon';
 import {
+  FREE_TIME_DESKTOP_CLASS,
   RAIN_TEXT_CLASS,
   ROW_H,
   VERDICT_FILL_CLASS,
@@ -147,6 +148,7 @@ export function FreeTimeCard({
       index={index}
       tuck={tuck}
       title="Your free time"
+      className={`${FREE_TIME_DESKTOP_CLASS} lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden lg:[&>[data-card-header]]:shrink-0 lg:[&>[data-card-body]]:min-h-0 lg:[&>[data-card-body]]:overflow-y-auto`}
       subtitle={`${formatHour(freeTime.start)}–${formatHour(freeTime.end)} · ${activityLabel(activity)} · ${durationLabel(duration)}`}
     >
       <table className="w-full table-fixed border-collapse">

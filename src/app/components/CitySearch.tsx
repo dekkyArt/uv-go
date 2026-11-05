@@ -60,8 +60,10 @@ export function CitySearch({ onSelect, inputRef }: Props) {
   }
 
   let message: string | null = null;
-  if (searching && status === 'error') message = 'Search is unavailable. Try again.';
-  else if (searching && status === 'done' && results.length === 0) message = 'No cities found';
+  if (searching && status === 'error')
+    message = 'Search is unavailable. Edit your search to retry.';
+  else if (searching && status === 'done' && results.length === 0)
+    message = 'No cities found. Try another name.';
 
   return (
     <div className="relative">

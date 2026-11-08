@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApis, searchLisbon } from './mocks';
 
-const PAGES = ['/', '/uv-index', '/uv-risks', '/sun-protection', '/404'] as const;
+const PAGES = ['/', '/uv-index', '/uv-risks', '/sun-protection', '/privacy', '/404'] as const;
 /** Axe reads mid-fade colours as low contrast: wait for the entrance choreography to finish. */
 async function settleAnimations(page: Page): Promise<void> {
   await page.waitForFunction(() =>

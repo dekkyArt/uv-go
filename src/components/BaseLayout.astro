@@ -3,6 +3,7 @@ import '../styles/global.css';
 import SkyScript from './SkyScript.astro';
 import Header from './Header.astro';
 import Footer from './Footer.astro';
+import AnalyticsConsent from './AnalyticsConsent.astro';
 import SeoHead from './SeoHead.astro';
 import { siteConfig } from '../site.config';
 
@@ -53,5 +54,6 @@ const ogImageUrl = new URL(ogImage, siteConfig.site).href;
       </main>
       <Footer withToolbar={withToolbar} />
     </div>
+    <AnalyticsConsent />
   </body>
 </html>

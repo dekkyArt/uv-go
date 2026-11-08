@@ -3,6 +3,7 @@ dist/
 .astro/
 .vercel/
 .env*
+!.env.example
 .DS_Store
 .claude/settings.local.json
 test-results/

@@ -1,0 +1,95 @@
+---
+import { measurementId } from '../analytics/consent';
+const id = measurementId(import.meta.env.PUBLIC_GA_MEASUREMENT_ID);
+---
+
+{id && (
+  <section
+    data-analytics-consent
+    data-measurement-id={id}
+    aria-labelledby="analytics-heading"
+    hidden
+  >
+    <h2 id="analytics-heading">Optional analytics cookies</h2>
+    <p>
+      With your permission, UV GO uses Google Analytics cookies to measure visits and how the site
+      is used. Google receives usage and device data. Analytics is optional; the site works without
+      it. You can withdraw consent at any time in Cookie settings.
+      <a href="/privacy/">Privacy and cookie details</a>
+    </p>
+    <div class="consent-actions">
+      <button type="button" data-consent="denied">
+        Reject analytics
+      </button>
+      <button type="button" data-consent="granted">
+        Accept analytics
+      </button>
+    </div>
+  </section>
+)}
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-analytics-consent]');
+  if (root) {
+    const { initConsent } = await import('../analytics/consent');
+    initConsent(root);
+  }
+</script>
+
+<style>
+  [data-analytics-consent] {
+    position: fixed;
+    z-index: 10000;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    left: 1rem;
+    right: 1rem;
+    max-width: 40rem;
+    margin-inline: auto;
+    max-height: 80dvh;
+    overflow-y: auto;
+    border: 1px solid #64748b;
+    border-radius: 1rem;
+    padding: 1.25rem;
+    background: #101827;
+    color: #fff;
+    box-shadow: 0 8px 32px #0006;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  h2 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  a {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .consent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  button {
+    flex: 1 1 10rem;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    background: #1e293b;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #334155;
+  }
+  :is(button, a):focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 4px;
+  }
+</style>

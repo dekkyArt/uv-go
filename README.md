@@ -6,11 +6,11 @@ UV GO answers one question: which hour of your free time is the best one to be o
 
 It is also a portfolio case for React, Motion (Framer Motion) and WebGL work, styled after iOS Weather: a live sky behind dark glass cards, a hero that folds into a pinned bar as you scroll, and numbers that roll. The animation is there to help you read the answer, not to hide it. I am a programmer, not a motion designer: all of the motion is written in code (Motion springs, scroll-bound MotionValues and a GLSL shader), with no design-tool animation files.
 
-- **Live:** https://uv-go.vercel.app (will be live after the first deploy)
+- **Live:** Set the production URL after [Cloudflare Pages setup](docs/cloudflare-pages.md).
 - **Screenshot/GIF:** TODO
 - **Repository:** https://github.com/dekkyArt/uv-go
 
-The site is fully static. There is no backend, no cookies, no analytics and no third-party scripts. Coordinates go only to Open-Meteo. Your place and inputs are kept in your browser's localStorage and nowhere else.
+The site is fully static with no backend. Coordinates go to Open-Meteo. Your place and inputs are kept in your browser's localStorage. Google Analytics is optional: it is disabled unless a GA4 measurement ID is supplied at build time, and loads only after the visitor accepts analytics cookies.
 
 ## Stack
 
@@ -24,7 +24,7 @@ The site is fully static. There is no backend, no cookies, no analytics and no t
 | Tests        | Vitest, React Testing Library, Playwright, axe                                                                                                                                |
 | Quality      | ESLint, Prettier, `astro check`, Lighthouse CI                                                                                                                                |
 | Data         | Open-Meteo Forecast and Geocoding APIs (no key)                                                                                                                               |
-| CI / hosting | GitHub Actions, Vercel (static build)                                                                                                                                         |
+| CI / hosting | GitHub Actions, Cloudflare Pages (static Direct Upload)                                                                                                                                         |
 
 Weather data by [Open-Meteo.com](https://open-meteo.com/).
 
@@ -49,7 +49,40 @@ npm run dev
 | `npm run format`       | Prettier, writes files                                                                    |
 | `npm run check:bundle` | Gzip size of the JavaScript each built page loads, against the budget (run after `build`) |
 
-CI (`.github/workflows/ci.yml`) runs lint, type check, unit tests, e2e, build, the bundle budget and Lighthouse CI on every push and pull request.
+CI (`.github/workflows/ci.yml`) runs lint, type check, unit tests, e2e, build, the bundle budget and Lighthouse CI on every push and pull request. After all checks pass, pushes to `main` deploy the verified `dist/` artifact to Cloudflare Pages.
+
+See [Cloudflare Pages setup and deployment instructions (RU)](docs/cloudflare-pages.md) for project creation, GitHub secrets and variables, the production URL, and rollback.
+
+## Optional Google Analytics
+
+Set `PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX` in `.env` locally or in the build environment.
+Use the GA4 web stream **Measurement ID**, not an account number or a `UA-` ID.
+The ID is public. Missing, blank and invalid values disable analytics and its consent banner.
+This is a static site: changing the value requires rebuilding and deploying.
+
+Google loads only after explicit acceptance (basic consent mode); rejection sends no Google
+analytics requests. Advertising consent stays denied. The English banner offers equally styled
+accept/reject buttons and links to `/privacy/`. Visitors can reopen it through **Cookie settings**
+in the footer and withdraw consent. Both choices expire after 180 days. Withdrawal disables GA,
+removes accessible `_ga` / `_ga_*` cookies and reloads to stop the loaded tag. Changes synchronize
+across tabs. No analytics events are added to the weather app.
+
+Before production, review `/privacy/` for your actual operator identity, direct privacy contact,
+processing and retention settings, and international transfer arrangements. A banner alone does
+not establish GDPR/ePrivacy compliance in every EU jurisdiction. In the GA property, review and
+accept the applicable data processing terms; set event data retention to the minimum needed
+(e.g. 2 months), disable Google signals, advertising features and unnecessary data sharing.
+Disable **Enhanced measurement** in the web stream so automatic events cannot capture additional
+URLs or form data beyond this integration's page views. Recheck these settings when changing the
+property. Do not add advertising or other purposes without updating disclosures and obtaining
+new consent (bump the consent record version/key).
+
+For the GitHub Actions deployment, set repository variable `PUBLIC_GA_MEASUREMENT_ID`.
+Only the final production build receives this repository variable. Consent E2E uses a separate
+test ID with intercepted Google requests; other E2E and Lighthouse keep analytics disabled.
+An empty/unset variable leaves the deployed site without analytics. See
+[Google consent mode](https://developers.google.com/tag-platform/security/concepts/consent-mode)
+and [CNIL guidance](https://www.cnil.fr/en/sheet-ndeg16-use-analytics-your-websites-and-applications).
 
 ## Architecture
 

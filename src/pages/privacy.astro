@@ -1,0 +1,81 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import { siteConfig } from '../site.config';
+import { measurementId } from '../analytics/consent';
+const analyticsEnabled = !!measurementId(import.meta.env.PUBLIC_GA_MEASUREMENT_ID);
+---
+
+<BaseLayout
+  title="Privacy & cookies | UV GO"
+  description="How UV GO uses local storage, weather services and optional Google Analytics cookies, and how to manage your choice."
+  ogImage="/og/home.png"
+>
+  <article class="glass article-prose mx-auto max-w-3xl rounded-[22px] px-5 py-6 sm:px-8 sm:py-8">
+    <h1>Privacy &amp; cookies</h1>
+    <p>Last updated: 6 November 2026.</p>
+    <h2>Who runs this site</h2>
+    <p>
+      UV GO is maintained by {siteConfig.author.name}. For privacy enquiries, contact the maintainer
+      through <a href={siteConfig.author.url}>their GitHub profile</a>. Please do not post personal
+      information in public issues.
+    </p>
+    <h2>Your weather preferences</h2>
+    <p>
+      Your selected place and planning preferences are stored in your browser’s localStorage. You
+      can remove them by clearing this site’s data in your browser. Coordinates and city searches
+      are sent to Open-Meteo to retrieve weather and location results. See
+      <a href="https://open-meteo.com/en/terms">Open-Meteo’s privacy information</a>.
+    </p>
+    <h2>Optional Google Analytics</h2>
+    {analyticsEnabled ? (
+      <p>
+        Analytics is available on this build. It runs only if you choose “Accept analytics”.
+        Rejecting it does not limit access to the site. Before acceptance, we do not load Google’s
+        analytics script or send analytics requests to Google.
+      </p>
+    ) : (
+      <p>Google Analytics is disabled on this build. No analytics script is loaded.</p>
+    )}
+    <p>
+      If enabled and accepted, Google Analytics 4 measures visits and site usage for audience
+      statistics. Google Ireland Limited and Google LLC process usage data such as page paths, visit
+      times, browser and device information, and cookie identifiers. Your IP address is transmitted
+      when connecting to Google. We do not intentionally send your selected weather location, search
+      terms, URL query parameters or fragments to Analytics. Advertising storage, advertising
+      personalisation and Google signals are disabled in our tag.
+    </p>
+    <p>
+      Analytics processing is based on your consent (Article 6(1)(a) GDPR). GA uses first-party
+      cookies named <code>_ga</code> and <code>_ga_*</code> to distinguish visits. Their lifetime is
+      limited to 180 days by this site’s configuration, without renewal on each visit. The analytics
+      consent choice (acceptance or rejection, timestamp and version) is stored in localStorage
+      under <code>uvgo:analytics-consent:v1</code> for 180 days. This preference is necessary to
+      remember your choice and is not sent to Google by our consent manager.
+    </p>
+    <h2>Change or withdraw your choice</h2>
+    <p>
+      When analytics is available, use “Cookie settings” in the footer of any page to change your
+      choice. Select “Reject analytics” to withdraw consent. This stops future collection, deletes
+      accessible GA cookies for this site and reloads the page to remove the active tag. Withdrawal
+      does not affect the lawfulness of processing before withdrawal and does not delete data
+      already received by Google. Clearing site storage also resets your choice.
+    </p>
+    <h2>Google’s processing and your rights</h2>
+    <p>
+      Google may process data outside the European Economic Area, including in the United States.
+      Its contractual safeguards and applicable transfer arrangements are described in
+      <a href="https://business.safety.google/adsprocessorterms/">Google’s data processing terms</a>
+      . Read <a href="https://policies.google.com/privacy">Google’s Privacy Policy</a> and
+      <a href="https://policies.google.com/technologies/partner-sites">
+        how Google uses data from partner sites
+      </a>
+      .
+    </p>
+    <p>
+      Under applicable data protection law, you may request access, correction, erasure or
+      restriction of your personal data, and portability where applicable. Contact the maintainer
+      using the link above. You may also lodge a complaint with your local data protection
+      authority.
+    </p>
+  </article>
+</BaseLayout>

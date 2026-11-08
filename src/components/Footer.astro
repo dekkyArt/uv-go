@@ -1,6 +1,7 @@
 ---
 import { siteConfig } from '../site.config';
 import { TOOLBAR_H } from '../app/ui';
+import { measurementId } from '../analytics/consent';
 
 interface Props {
   /** The page has the fixed bottom toolbar (the home page, on a phone): leave room for it under the footer. */
@@ -37,6 +38,20 @@ const linkClass = 'underline underline-offset-2 hover:text-white/80';
           {siteConfig.author.name}
         </a>
       </span>
+    </p>
+    <p class="flex flex-wrap items-center gap-x-4">
+      <a class={linkClass} href="/privacy/">
+        Privacy &amp; cookies
+      </a>
+      {measurementId(import.meta.env.PUBLIC_GA_MEASUREMENT_ID) && (
+        <button
+          type="button"
+          data-analytics-settings
+          class={`${linkClass} min-h-11 cursor-pointer`}
+        >
+          Cookie settings
+        </button>
+      )}
     </p>
     <p>UV GO gives general guidance, not medical advice.</p>
   </div>

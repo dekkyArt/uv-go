@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { faqItems } from '../../content/faq';
 import { articleLd, breadcrumbLd, faqPageLd, serializeLd, webApplicationLd } from '../jsonld';
 
-const SITE = 'https://uv-go.vercel.app';
+const SITE = 'https://uv-go.dekky.dev';
 const author = { name: 'Artem Bakulin', url: 'https://github.com/dekkyArt' };
 
 describe('faqPageLd', () => {

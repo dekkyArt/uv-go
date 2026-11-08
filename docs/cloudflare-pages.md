@@ -68,18 +68,22 @@ Direct Upload нельзя впоследствии переключить на 
 
 ## 4. Задать публичный URL
 
-Перед первой публикацией замените `site` в `src/site.config.ts` на фактический
-production URL проекта, например:
+Основной production URL уже задан в `src/site.config.ts`:
 
 ```ts
-site: 'https://uv-go.pages.dev',
+site: 'https://uv-go.dekky.dev',
 ```
 
 Этот адрес используется в canonical, Open Graph, JSON-LD, sitemap и `robots.txt`.
-Сейчас там указан старый адрес Vercel. Обновите также ссылку **Live** в README.
-Если используете собственный домен, сначала подключите его в **Pages → ваш проект →
-Custom domains**, затем укажите его HTTPS URL в `site` и опубликуйте новую сборку.
+Перед публикацией подключите `uv-go.dekky.dev` в **Pages → ваш проект → Custom domains**
+и дождитесь активации домена и HTTPS. Затем опубликуйте новую сборку.
 Настройки окружения в панели Pages не меняют сайт: сборка выполняется в GitHub.
+
+Если старый домен Vercel или адрес `*.pages.dev` доступны публично, настройте на стороне
+хостинга постоянный редирект на `https://uv-go.dekky.dev` с сохранением пути и query string.
+Не добавляйте безусловный редирект на тот же домен в общие правила сайта: это создаст цикл.
+После публикации проверьте canonical и отправьте
+`https://uv-go.dekky.dev/sitemap-index.xml` в Google Search Console и Bing Webmaster Tools.
 
 ## 5. Первый деплой и проверка
 

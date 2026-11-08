@@ -84,3 +84,15 @@ export function breadcrumbLd(items: BreadcrumbItem[]): object {
 export function serializeLd(data: object): string {
   return JSON.stringify(data).replace(/</g, '\\u003c');
 }
+
+/** Stable site identity shared by search engines and link consumers. */
+export function websiteLd(site: string): object {
+  return {
+    '@context': CONTEXT,
+    '@type': 'WebSite',
+    '@id': new URL('/#website', site).href,
+    name: 'UV GO',
+    url: new URL('/', site).href,
+    inLanguage: 'en',
+  };
+}

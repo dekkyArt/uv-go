@@ -14,11 +14,14 @@ interface Props {
   ogImage: string;
   jsonLd?: object[];
   noindex?: boolean;
+  publishedAt?: Date;
+  updatedAt?: Date;
   /** The page has the fixed bottom toolbar (the home page): the footer leaves room for it. */
   withToolbar?: boolean;
 }
 
-const { title, description, ogImage, jsonLd, noindex, withToolbar } = Astro.props;
+const { title, description, ogImage, jsonLd, noindex, withToolbar, publishedAt, updatedAt } =
+  Astro.props;
 const canonical = new URL(Astro.url.pathname, siteConfig.site).href;
 const ogImageUrl = new URL(ogImage, siteConfig.site).href;
 ---
@@ -38,6 +41,8 @@ const ogImageUrl = new URL(ogImage, siteConfig.site).href;
       ogImage={ogImageUrl}
       jsonLd={jsonLd}
       noindex={noindex}
+      publishedAt={publishedAt}
+      updatedAt={updatedAt}
     />
   </head>
   <body class="font-sans text-text antialiased">

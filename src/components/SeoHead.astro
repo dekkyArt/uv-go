@@ -11,16 +11,30 @@ interface Props {
   ogImage: string;
   jsonLd?: object[];
   noindex?: boolean;
+  publishedAt?: Date;
+  updatedAt?: Date;
 }
 
-const { title, description, canonical, ogImage, jsonLd = [], noindex = false } = Astro.props;
+const {
+  title,
+  description,
+  canonical,
+  ogImage,
+  jsonLd = [],
+  noindex = false,
+  publishedAt,
+  updatedAt,
+} = Astro.props;
 const { google, bing } = siteConfig.verification;
 ---
 
 <title>{title}</title>
 <meta name="description" content={description} />
 {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
-<meta property="og:type" content="website" />
+<meta property="og:type" content={publishedAt ? 'article' : 'website'} />
+{publishedAt && <meta property="article:published_time" content={publishedAt.toISOString()} />}
+{updatedAt && <meta property="article:modified_time" content={updatedAt.toISOString()} />}
+<meta property="og:image:alt" content={title} />
 <meta property="og:site_name" content={siteConfig.name} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />

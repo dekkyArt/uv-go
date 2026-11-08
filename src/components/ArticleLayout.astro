@@ -18,7 +18,7 @@ const relatedArticles = await Promise.all(
   related.map(async (id) => {
     const entry = await getEntry('articles', id);
     if (!entry) throw new Error(`Article "${slug}" lists unknown related article "${id}".`);
-    return { href: `/${entry.id}`, title: entry.data.title };
+    return { href: `/${entry.id}/`, title: entry.data.title };
   }),
 );
 
@@ -44,9 +44,27 @@ const jsonLd = [
 const sectionHeading = 'text-xl font-bold tracking-tight text-text';
 ---
 
-<BaseLayout title={title} description={description} ogImage={`/og/${slug}.png`} jsonLd={jsonLd}>
+<BaseLayout
+  title={title}
+  description={description}
+  ogImage={`/og/${slug}.png`}
+  jsonLd={jsonLd}
+  publishedAt={publishedAt}
+  updatedAt={updatedAt}
+>
   <article class="glass mx-auto max-w-3xl rounded-[22px] px-5 py-6 sm:px-8 sm:py-8">
     <h1 class="text-3xl font-bold leading-tight tracking-tight text-text sm:text-4xl">{title}</h1>
+
+    <p class="mt-3 text-sm text-text-muted">
+      By{' '}
+      <a href="/about/" rel="author" class="underline">
+        {siteConfig.author.name}
+      </a>{' '}
+      ·{' '}
+      <a href="/about/#editorial" class="underline">
+        Editorial approach
+      </a>
+    </p>
 
     {/* The plate lightens the glass, so its text is full white: secondary white would fall under AA. */}
     <section aria-labelledby="tldr-heading" class={`mt-6 rounded-xl ${INSET_CLASS} p-4 sm:p-5`}>

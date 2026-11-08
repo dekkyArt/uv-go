@@ -3,8 +3,8 @@ import { robotsTxt } from '../robots';
 
 describe('robotsTxt', () => {
   it('allows everything and points at the sitemap index under the given site', () => {
-    expect(robotsTxt('https://uv-go.vercel.app')).toBe(
-      'User-agent: *\nAllow: /\n\nSitemap: https://uv-go.vercel.app/sitemap-index.xml\n',
+    expect(robotsTxt('https://uv-go.dekky.dev')).toBe(
+      'User-agent: *\nAllow: /\n\nSitemap: https://uv-go.dekky.dev/sitemap-index.xml\n',
     );
   });
 

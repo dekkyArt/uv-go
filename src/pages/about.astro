@@ -1,0 +1,59 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import { siteConfig } from '../site.config';
+const person = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  '@id': new URL('/about/#author', siteConfig.site).href,
+  name: siteConfig.author.name,
+  url: new URL('/about/', siteConfig.site).href,
+  sameAs: [siteConfig.author.url],
+};
+---
+
+<BaseLayout
+  title="About UV GO — Author, Data & Editorial Approach"
+  description="Meet the maker of UV GO, learn where its weather data comes from, and understand how its guides and outing recommendations are prepared."
+  ogImage="/og/home.png"
+  jsonLd={[person]}
+>
+  <article class="glass article-prose mx-auto max-w-3xl rounded-[22px] px-5 py-6 sm:px-8 sm:py-8">
+    <h1>About UV GO</h1>
+    <p>
+      UV GO compares daylight outings today and tomorrow using hourly UV and weather forecasts, your
+      free time, duration and activity.
+    </p>
+    <h2 id="author">Who makes UV GO</h2>
+    <p>
+      UV GO is designed and built by <a href={siteConfig.author.url}>{siteConfig.author.name}</a>.
+      You can inspect the implementation and report problems in the{' '}
+      <a href={siteConfig.repoUrl}>public GitHub repository</a>. Please avoid posting personal
+      information in public issues.
+    </p>
+    <h2>Data and recommendations</h2>
+    <p>
+      Weather forecasts and city search come from <a href="https://open-meteo.com/">Open-Meteo</a>.
+      UV GO applies its own fixed scoring rules to that forecast. A recommended window is a
+      comparison of the available options, not a guarantee of safe conditions.
+    </p>
+    <p>
+      Read <a href="/methodology/">how the scoring works</a>, including rounding, missing data and
+      the limits of the forecast.
+    </p>
+    <h2 id="editorial">Editorial approach</h2>
+    <p>
+      Our educational guides link to their sources and display their last update date. Health
+      information is based on the referenced public guidance; the outing score is a product rule,
+      not a clinical assessment. No medical reviewer is credited for these guides.
+    </p>
+    <p>
+      Check the linked sources for their full context. UV GO gives general guidance, not medical
+      advice. Discuss personal health concerns with a healthcare professional.
+    </p>
+    <p>
+      For a correction, open an issue in the repository with the page, the statement and a
+      supporting source. For information about storage and optional analytics, read{' '}
+      <a href="/privacy/">Privacy &amp; cookies</a>.
+    </p>
+  </article>
+</BaseLayout>

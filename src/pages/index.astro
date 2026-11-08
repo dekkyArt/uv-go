@@ -8,7 +8,7 @@ import HowItWorks from '../components/HowItWorks.astro';
 import Faq from '../components/Faq.astro';
 import { siteConfig } from '../site.config';
 import { faqItems } from '../content/faq';
-import { faqPageLd, webApplicationLd } from '../seo/jsonld';
+import { faqPageLd, webApplicationLd, websiteLd } from '../seo/jsonld';
 ---
 
 <BaseLayout
@@ -16,7 +16,7 @@ import { faqPageLd, webApplicationLd } from '../seo/jsonld';
   description="Plan an outing today or tomorrow. Set your place, free hours, duration and activity. UV GO compares daylight windows using the hourly UV and weather forecast."
   ogImage="/og/home.png"
   withToolbar
-  jsonLd={[webApplicationLd(siteConfig.site), faqPageLd(faqItems)]}
+  jsonLd={[webApplicationLd(siteConfig.site), websiteLd(siteConfig.site), faqPageLd(faqItems)]}
 >
   <BootSplash />
   <script

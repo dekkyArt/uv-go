@@ -31,6 +31,7 @@ function stripGlslComments() {
 // https://astro.build/config
 export default defineConfig({
   output: 'static',
+  trailingSlash: 'always',
   site: siteConfig.site,
   integrations: [react(), mdx(), sitemap()],
 

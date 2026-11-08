@@ -6,7 +6,7 @@ UV GO answers one question: which hour of your free time is the best one to be o
 
 It is also a portfolio case for React, Motion (Framer Motion) and WebGL work, styled after iOS Weather: a live sky behind dark glass cards, a hero that folds into a pinned bar as you scroll, and numbers that roll. The animation is there to help you read the answer, not to hide it. I am a programmer, not a motion designer: all of the motion is written in code (Motion springs, scroll-bound MotionValues and a GLSL shader), with no design-tool animation files.
 
-- **Live:** Set the production URL after [Cloudflare Pages setup](docs/cloudflare-pages.md).
+- **Live:** [uv-go.dekky.dev](https://uv-go.dekky.dev/)
 - **Screenshot/GIF:** TODO
 - **Repository:** https://github.com/dekkyArt/uv-go
 

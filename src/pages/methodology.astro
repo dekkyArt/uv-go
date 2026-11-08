@@ -1,0 +1,52 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import HowItWorks from '../components/HowItWorks.astro';
+---
+
+<BaseLayout
+  title="How UV GO Works — Forecast Scoring & Limitations"
+  description="Understand how UV GO scores daylight outings using UV, rain, feels-like temperature and wind, including rounding, missing data and forecast limitations."
+  ogImage="/og/home.png"
+>
+  <article class="mx-auto max-w-3xl">
+    <div class="glass article-prose rounded-[22px] px-5 py-6 sm:px-8 sm:py-8">
+      <h1>How UV GO chooses your time outside</h1>
+      <p>
+        UV GO compares forecast windows inside your free hours and chooses the one with the lowest
+        average score. The rules below are shared with the planner, so the threshold tables reflect
+        the implementation.
+      </p>
+      <h2>From forecast to a recommendation</h2>
+      <p>
+        Only hours marked as daytime by Open-Meteo are eligible. Starts are on the hour. A 30-minute
+        outing uses one full forecast hour; longer outings use consecutive hours. For today, the
+        earliest start is the current time rounded up to the next hour.
+      </p>
+      <p>
+        Each hour receives points for UV, rain, heat, cold and wind. The window score is their
+        average. Ties favour the milder worst hour, then the earlier start.
+      </p>
+      <h2>A worked example</h2>
+      <p>
+        Suppose two eligible two-hour windows have hourly scores of 2 and 4, and 3 and 3. Both
+        average 3. The second window wins because its worst hour scores 3 rather than 4. These are
+        illustrative scores, not a live forecast.
+      </p>
+      <h2>What the result cannot tell you</h2>
+      <p>
+        A forecast is not a live measurement. Missing factors add no points, so a low score can
+        reflect incomplete data. The best available window can still be marked Not recommended. The
+        score does not assess your personal medical risk.
+      </p>
+      <p>
+        All displayed times refer to the selected place. Forecast conditions may change. Check the
+        current forecast before heading out and use your own judgement.
+      </p>
+      <p>
+        See <a href="/about/">the author and editorial approach</a>,{' '}
+        <a href="/uv-index/">the UV index guide</a>, or <a href="/">plan an outing</a>.
+      </p>
+    </div>
+    <HowItWorks />
+  </article>
+</BaseLayout>

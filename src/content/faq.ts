@@ -27,7 +27,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     q: 'Do you store my location?',
-    a: 'Your selected place, free hours, duration and activity are saved in your browser’s localStorage when it is available. The selected day is not saved. Coordinates rounded to two decimal places are sent to Open-Meteo for the forecast; city search text is sent to its geocoding service. Use my location asks the browser for a position when you press it; it does not keep tracking you. UV GO sets no cookies and has no analytics.',
+    a: 'Your selected place, free hours, duration and activity are saved in your browser’s localStorage when it is available. The selected day is not saved. Coordinates rounded to two decimal places are sent to Open-Meteo for the forecast; city search text is sent to its geocoding service. Use my location asks the browser for a position when you press it; it does not keep tracking you. Optional Google Analytics runs only when it is configured and you accept analytics cookies. You can withdraw consent through Cookie settings. See Privacy & cookies for details.',
   },
   {
     q: 'At what UV index should I use sunscreen?',

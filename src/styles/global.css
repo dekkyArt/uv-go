@@ -329,6 +329,13 @@ html::after {
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* `inert` blocks interaction, but the document still needs its own scroll lock. */
+html[data-sheet-open],
+html[data-sheet-open] body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 html[data-sheet-open] [data-page] {
   transform: scale(0.94);
   border-radius: 16px;

@@ -111,7 +111,7 @@ export function NumericRoll({ value, className }: NumericRollProps) {
           <span
             key={i}
             aria-hidden="true"
-            className="relative -my-[0.1em] inline-block overflow-hidden whitespace-pre py-[0.1em] align-top"
+            className="relative my-[-0.1em] inline-block overflow-hidden whitespace-pre py-[0.1em] align-top"
           >
             <AnimatePresence mode="popLayout" custom={custom}>
               <m.span
@@ -119,7 +119,8 @@ export function NumericRoll({ value, className }: NumericRollProps) {
                 custom={custom}
                 variants={variants}
                 initial={roll ? 'from' : false}
-                animate={roll ? 'to' : undefined}
+                // Keep the target when another update leaves this incoming digit unchanged.
+                animate="to"
                 exit="out"
                 data-char={char}
                 {...(roll ? { 'data-rolling': '' } : null)}

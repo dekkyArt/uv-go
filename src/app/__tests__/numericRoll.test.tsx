@@ -100,6 +100,29 @@ describe('NumericRoll', () => {
     for (const el of slots) expect(el.style.opacity).toBe('0');
   });
 
+  it('finishes an incoming digit when the next update leaves that digit unchanged', async () => {
+    const { container, rerender } = renderRoll('15:00–16:00');
+    rerenderRoll(rerender, '17:00–18:00');
+    const digit = container.querySelector<HTMLElement>('[data-char="7"]')!;
+    // Interrupt an actual animation, rather than depending on a fixed frame delay.
+    await waitFor(
+      () => {
+        expect(Number(digit.style.opacity)).toBeGreaterThan(0);
+        expect(Number(digit.style.opacity)).toBeLessThan(1);
+      },
+      { interval: 5 },
+    );
+
+    rerenderRoll(rerender, '17:00–19:00');
+
+    await waitFor(() => {
+      expect(digit.style.filter).toBe('none');
+      expect(digit.style.opacity).toBe('1');
+      expect(digit.style.transform).toBe('none');
+    });
+    expect(container.querySelector('[data-char="7"]')).toBe(digit);
+  });
+
   it('enters from below when the value grows and from above when it shrinks', () => {
     const up = renderRoll('13:00');
     rerenderRoll(up.rerender, '15:00');

@@ -141,9 +141,9 @@ export const FREE_BAND_CLASS = 'bg-white/[0.08]';
 /** Under the selected hour of the Hourly strip; it can sit on the free band as well. */
 export const SELECTED_CELL_CLASS = 'bg-white/[0.08]';
 
-/** The hero's buttons, on the bare sky; their labels carry the hero's `.sky-text` rim. */
+/** The hero's buttons use the contrast-tested glass surface even on a bright sky. */
 export const BUTTON_CLASS =
-  'inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-white/[0.06] px-4 text-sm font-medium text-text hover:bg-surface';
+  'inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-surface px-4 text-sm font-medium text-text hover:bg-surface';
 
 /**
  * The hero's Cities pin on desktop, next to the chosen place: just the icon, a step dimmer than the

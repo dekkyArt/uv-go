@@ -34,6 +34,26 @@ async function accessibilityViolations(page: Page) {
   return [...general.violations, ...contrast.violations];
 }
 
+for (const hour of [0, 6, 12, 18]) {
+  test(`first visit has no serious a11y violations at ${hour}:00`, async ({ page }) => {
+    await mockApis(page);
+    await page.clock.setFixedTime(new Date(2026, 5, 21, hour));
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Find a city', exact: true })).toBeVisible();
+    await settleAnimations(page);
+
+    const violations = await accessibilityViolations(page);
+    expect(
+      violations
+        .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+        .map((v) => ({
+          id: v.id,
+          nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })),
+        })),
+    ).toEqual([]);
+  });
+}
+
 for (const path of PAGES) {
   test(`no serious or critical a11y violations: ${path}`, async ({ page }) => {
     await mockApis(page);

@@ -1,6 +1,35 @@
 import { expect, test } from '@playwright/test';
 import { mockApis, STORED_LISBON } from './mocks';
 
+test('Cities keeps scroll reveal timelines attached to the document while locking scroll', async ({
+  page,
+}) => {
+  await mockApis(page);
+  await page.goto('/');
+  const sourceIsDocument = () =>
+    page.locator('.reveal').evaluateAll((elements) => {
+      // Inspect view() source selection directly, independent of animation progress.
+      const { ViewTimeline } = window as unknown as {
+        ViewTimeline: new (options: { subject: Element }) => { source: Element | null };
+      };
+      return (
+        elements.length > 0 &&
+        elements.every(
+          (element) => new ViewTimeline({ subject: element }).source === document.scrollingElement,
+        )
+      );
+    });
+  await expect.poll(sourceIsDocument).toBe(true);
+  await page.getByRole('button', { name: 'Find a city' }).click();
+  await expect(page.getByRole('dialog', { name: 'Cities' })).toBeVisible();
+  // A body scroll container would rebind view() away from the document. Removing it
+  // on close can crash Safari in RemoteLayerTreeNode's accelerated timeline lookup.
+  await expect.poll(sourceIsDocument).toBe(true);
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect.poll(sourceIsDocument).toBe(true);
+});
+
 for (const sheet of ['Plan', 'Cities']) {
   test(`${sheet}: locks background scrolling and restores it on close`, async ({ page }) => {
     // A short phone viewport also exercises scrolling inside the Plan sheet.

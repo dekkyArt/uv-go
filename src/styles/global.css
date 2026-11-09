@@ -329,9 +329,11 @@ html::after {
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* `inert` blocks interaction, but the document still needs its own scroll lock. */
-html[data-sheet-open],
-html[data-sheet-open] body {
+/* Lock the document only. Making body a scroll container rebinds view() timelines;
+ * destroying that container on close can crash Safari's accelerated timeline lookup.
+ * `inert` blocks interaction, while the root overflow rule blocks background scrolling.
+ */
+html[data-sheet-open] {
   overflow: hidden;
   overscroll-behavior: none;
 }

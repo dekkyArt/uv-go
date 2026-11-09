@@ -37,9 +37,49 @@ beforeEach(() => {
 
 afterEach(() => {
   document.documentElement.removeAttribute('data-sheet-open');
+  vi.unstubAllGlobals();
 });
 
 describe('Sheet', () => {
+  it('tracks the visible viewport when the keyboard opens and Safari pans it', () => {
+    const viewport = Object.assign(new EventTarget(), { height: 844, offsetTop: 0 });
+    vi.stubGlobal('visualViewport', viewport);
+    const { unmount } = render(<Harness size="tall" returnFocusRef={createRef()} />);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.style.getPropertyValue('--sheet-viewport-height')).toBe('844px');
+    viewport.height = 360;
+    viewport.offsetTop = 80;
+    viewport.dispatchEvent(new Event('resize'));
+    expect(dialog.style.getPropertyValue('--sheet-viewport-height')).toBe('360px');
+    expect(dialog.style.getPropertyValue('--sheet-viewport-bottom')).toBe('440px');
+    viewport.offsetTop = 100;
+    viewport.dispatchEvent(new Event('scroll'));
+    expect(dialog.style.getPropertyValue('--sheet-viewport-bottom')).toBe('460px');
+    unmount();
+  });
+
+  it('blocks touch panning outside the content and at its scroll boundaries', () => {
+    const { unmount } = render(<Harness returnFocusRef={createRef()} />);
+    const backdrop = document.querySelector('[data-sheet-backdrop]')!;
+    const content = screen.getByRole('button', { name: 'First action' }).parentElement!;
+    Object.defineProperties(content, {
+      scrollHeight: { value: 900 },
+      clientHeight: { value: 300 },
+    });
+    const swipe = (target: Element, from: number, to: number) => {
+      fireEvent.touchStart(target, { touches: [{ clientY: from }] });
+      return fireEvent.touchMove(target, { touches: [{ clientY: to }] });
+    };
+    expect(swipe(backdrop, 100, 50)).toBe(false);
+    expect(swipe(content, 100, 150)).toBe(false);
+    expect(swipe(content, 100, 50)).toBe(true);
+    content.scrollTop = 600;
+    expect(swipe(content, 100, 50)).toBe(false);
+    expect(swipe(content, 100, 150)).toBe(true);
+    unmount();
+    expect(swipe(backdrop, 100, 50)).toBe(true);
+  });
+
   it('opens as a labelled modal dialog, inerts the page and focuses its first control', () => {
     const returnFocusRef = createRef<HTMLElement>();
     render(<Harness returnFocusRef={returnFocusRef} />);

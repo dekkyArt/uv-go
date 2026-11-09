@@ -61,8 +61,47 @@ export function Sheet({
     document.documentElement.setAttribute('data-sheet-open', '');
 
     const panel = panelRef.current;
+    // iOS keeps the layout viewport tall when the keyboard opens. Anchor the sheet to
+    // the visible viewport, including Safari's focus-induced viewport panning.
+    const viewport = window.visualViewport;
+    function syncViewport() {
+      if (!viewport || !panel) return;
+      panel.style.setProperty('--sheet-viewport-height', `${viewport.height}px`);
+      panel.style.setProperty(
+        '--sheet-viewport-bottom',
+        `${viewport.offsetTop + viewport.height}px`,
+      );
+    }
+    syncViewport();
+    viewport?.addEventListener('resize', syncViewport);
+    viewport?.addEventListener('scroll', syncViewport);
+
+    // Root overflow alone does not stop keyboard-era Safari touch panning. Cancel
+    // gestures outside the scroller and at its edges, without changing body's scroll
+    // container (which would rebind the page's view timelines).
+    let touchY = 0;
+    function onTouchStart(e: TouchEvent) {
+      if (e.touches.length === 1) touchY = e.touches[0].clientY;
+    }
+    function onTouchMove(e: TouchEvent) {
+      if (e.touches.length !== 1) return;
+      const delta = touchY - e.touches[0].clientY;
+      touchY = e.touches[0].clientY;
+      const content = panel?.querySelector<HTMLElement>('[data-sheet-content]');
+      const inside = e.target instanceof Node && content?.contains(e.target);
+      const canScroll =
+        content &&
+        content.scrollHeight > content.clientHeight &&
+        (delta < 0
+          ? content.scrollTop > 0
+          : content.scrollTop + content.clientHeight < content.scrollHeight);
+      if (!inside || !canScroll) e.preventDefault();
+    }
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+
     const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
-    (first ?? panel)?.focus();
+    (first ?? panel)?.focus({ preventScroll: true });
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== 'Escape') return;
@@ -72,10 +111,14 @@ export function Sheet({
     document.addEventListener('keydown', onKeyDown);
 
     return () => {
+      viewport?.removeEventListener('resize', syncViewport);
+      viewport?.removeEventListener('scroll', syncViewport);
+      document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchmove', onTouchMove);
       document.removeEventListener('keydown', onKeyDown);
       for (const el of blocked) el.removeAttribute('inert');
       document.documentElement.removeAttribute('data-sheet-open');
-      latest.current.returnFocusRef.current?.focus();
+      latest.current.returnFocusRef.current?.focus({ preventScroll: true });
     };
   }, [open]);
 
@@ -112,7 +155,10 @@ export function Sheet({
                 borderRadius: '22px 22px 0 0',
                 borderBottom: 'none',
                 paddingBottom: 'env(safe-area-inset-bottom)',
-                ...(size === 'tall' ? { height: '92dvh' } : { maxHeight: '92dvh' }),
+                bottom: 'calc(100% - var(--sheet-viewport-bottom, 100%))',
+                ...(size === 'tall'
+                  ? { height: 'calc(var(--sheet-viewport-height, 100dvh) * 0.92)' }
+                  : { maxHeight: 'calc(var(--sheet-viewport-height, 100dvh) * 0.92)' }),
               }}
               initial={motionFailed ? false : reduced ? { opacity: 0 } : { y: '100%' }}
               animate={reduced ? { opacity: 1 } : { y: 0 }}
@@ -135,7 +181,7 @@ export function Sheet({
               {/* Only the grip and title start a drag, so the content below can scroll freely. */}
               <div
                 data-sheet-drag-handle={!reduced && !motionFailed ? '' : undefined}
-                className="touch-none px-5 pt-2"
+                className="shrink-0 touch-none px-5 pt-2"
                 onPointerDown={(e) => dragControls.start(e)}
               >
                 <div
@@ -152,7 +198,10 @@ export function Sheet({
                   </div>
                 </div>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-1 pb-5">
+              <div
+                data-sheet-content
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-1 pb-5"
+              >
                 {children}
               </div>
             </m.div>

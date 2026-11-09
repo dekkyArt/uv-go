@@ -1,6 +1,33 @@
 import { expect, test } from '@playwright/test';
 import { mockApis, STORED_LISBON } from './mocks';
 
+test('Cities fits above the keyboard after the visual viewport shrinks and pans', async ({
+  page,
+}) => {
+  await mockApis(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Find a city' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Cities' });
+  await expect(dialog).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperties(window.visualViewport!, {
+      height: { configurable: true, value: 360 },
+      offsetTop: { configurable: true, value: 80 },
+    });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+    window.visualViewport!.dispatchEvent(new Event('scroll'));
+  });
+  await expect
+    .poll(async () => {
+      const box = await dialog.boundingBox();
+      return !!box && box.y >= 80 && box.y + box.height <= 441;
+    })
+    .toBe(true);
+  const input = await dialog.getByRole('combobox').boundingBox();
+  expect(input!.y).toBeGreaterThanOrEqual(80);
+  expect(input!.y + input!.height).toBeLessThanOrEqual(440);
+});
+
 test('Cities keeps scroll reveal timelines attached to the document while locking scroll', async ({
   page,
 }) => {

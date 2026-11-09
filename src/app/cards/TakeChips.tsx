@@ -93,7 +93,8 @@ function Chip({
       >
         {icon}
       </span>
-      <span className="min-w-0 truncate">{children}</span>
+      {/* Contain absolute sr-only details so they cannot escape a truncated label. */}
+      <span className="relative min-w-0 truncate">{children}</span>
     </m.li>
   );
 }

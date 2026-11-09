@@ -187,17 +187,28 @@ test.describe('UV GO smoke', () => {
     expect(time!.x + time!.width).toBeLessThanOrEqual(320);
     expect(time!.y + time!.height).toBeLessThanOrEqual(640);
 
-    // The What to take pills stay inside the page width.
-    const pills = page.getByRole('region', { name: 'What to take' }).getByRole('listitem');
-    for (const box of await pills.evaluateAll((els) =>
-      els.map((el) => {
-        const r = el.getBoundingClientRect();
-        return { left: r.left, right: r.right, scrollWidth: el.scrollWidth, width: el.clientWidth };
-      }),
-    )) {
-      expect(box.left).toBeGreaterThanOrEqual(0);
-      expect(box.right).toBeLessThanOrEqual(320);
-      expect(box.scrollWidth).toBeLessThanOrEqual(box.width);
+    // A wide fallback font also exercises truncated labels with screen-reader details.
+    const take = page.getByRole('region', { name: 'What to take' });
+    for (const font of ['inherit', 'monospace']) {
+      await take.evaluate((el, family) => {
+        el.style.fontFamily = family;
+      }, font);
+      const pills = take.getByRole('listitem');
+      for (const box of await pills.evaluateAll((els) =>
+        els.map((el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            left: r.left,
+            right: r.right,
+            scrollWidth: el.scrollWidth,
+            width: el.clientWidth,
+          };
+        }),
+      )) {
+        expect(box.left).toBeGreaterThanOrEqual(0);
+        expect(box.right).toBeLessThanOrEqual(320);
+        expect(box.scrollWidth).toBeLessThanOrEqual(box.width);
+      }
     }
   });
 

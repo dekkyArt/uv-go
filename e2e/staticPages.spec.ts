@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-const PAGES = ['/uv-index', '/uv-risks', '/sun-protection', '/404'] as const;
+const PAGES = ['/uv-index/', '/uv-risks/', '/sun-protection/', '/404.html'] as const;
 
 for (const path of PAGES) {
   test(`${path}: no horizontal scroll at 320 px`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
     await page.goto(path);
+    await expect(page.locator('main#main')).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(overflow).toBeLessThanOrEqual(320);
   });
@@ -30,7 +31,7 @@ for (const path of PAGES) {
 test('the UV scale rows are 44 px with a category label next to each colour dot', async ({
   page,
 }) => {
-  await page.goto('/uv-index');
+  await page.goto('/uv-index/');
   const rows = page.locator('tbody tr');
   await expect(rows).toHaveCount(5);
   for (const row of await rows.all()) {

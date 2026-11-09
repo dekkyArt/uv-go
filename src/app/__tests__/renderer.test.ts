@@ -156,7 +156,71 @@ function fakeCanvas(gl: unknown) {
 }
 
 describe('createRenderer', () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it.each(['message', 'error'])(
+    'waits for worker %s before opening the visible context',
+    async (event) => {
+      const worker = new EventTarget();
+      const terminate = vi.fn();
+      vi.stubGlobal(
+        'Worker',
+        class {
+          constructor() {
+            return Object.assign(worker, { terminate });
+          }
+        },
+      );
+      const { gl } = fakeGl();
+      const canvas = fakeCanvas(gl);
+      const pending = createRenderer(canvas, { reducedMotion: true, onLost() {} });
+      expect(canvas.getContext).not.toHaveBeenCalled();
+      worker.dispatchEvent(new MessageEvent(event, { data: 'ready' }));
+      const sky = await pending;
+      expect(canvas.getContext).toHaveBeenCalled();
+      expect(terminate).toHaveBeenCalledOnce();
+      sky!.destroy();
+    },
+  );
+
+  it('still opens the visible context when workers cannot be constructed', async () => {
+    vi.stubGlobal(
+      'Worker',
+      class {
+        constructor() {
+          throw new Error('workers blocked');
+        }
+      },
+    );
+    const { gl } = fakeGl();
+    const sky = await createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} });
+    expect(sky).not.toBeNull();
+    sky!.destroy();
+  });
+
+  it('falls back if the warmup worker never responds', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const terminate = vi.fn();
+    vi.stubGlobal(
+      'Worker',
+      class extends EventTarget {
+        terminate = terminate;
+      },
+    );
+    const { gl } = fakeGl();
+    const canvas = fakeCanvas(gl);
+    const pending = createRenderer(canvas, { reducedMotion: true, onLost() {} });
+    expect(canvas.getContext).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(8000);
+    const sky = await pending;
+    expect(sky).not.toBeNull();
+    expect(terminate).toHaveBeenCalledOnce();
+    sky!.destroy();
+  });
 
   it('returns null and warns once without WebGL', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -166,10 +230,30 @@ describe('createRenderer', () => {
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
+  it('enables background compilation before starting it and avoids shader status stalls on success', async () => {
+    let parallelEnabled = false;
+    const { gl } = fakeGl({
+      getExtension: () => {
+        parallelEnabled = true;
+        return { COMPLETION_STATUS_KHR: COMPLETION };
+      },
+      compileShader: () => {
+        if (!parallelEnabled) throw new Error('synchronous compilation');
+      },
+      getShaderParameter: () => {
+        throw new Error('synchronous shader status query');
+      },
+    });
+    const sky = await createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} });
+    expect(sky).not.toBeNull();
+    sky!.destroy();
+  });
+
   it('returns null and warns once when the shader does not compile', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { gl, deleted } = fakeGl({
       getShaderParameter: () => false,
+      getProgramParameter: (_: unknown, pname: unknown) => pname === COMPLETION,
       getShaderInfoLog: () => 'ERROR',
     });
     expect(await createRenderer(fakeCanvas(gl), { reducedMotion: false, onLost() {} })).toBeNull();
@@ -208,7 +292,7 @@ describe('createRenderer', () => {
     const sky = await createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} });
     expect(sky).not.toBeNull();
     // Asking for a status blocks until the GPU is done, so it only comes after "done".
-    expect(asked).toEqual(['done?', 'done?', 'done?', 'status', 'status', 'status']);
+    expect(asked).toEqual(['done?', 'done?', 'done?', 'status']);
     expect(raf).toHaveBeenCalledTimes(2);
     sky!.destroy();
   });
@@ -231,7 +315,7 @@ describe('createRenderer', () => {
       return window.setTimeout(() => cb(0), 0);
     });
     const sky = await createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} });
-    expect(asked).toEqual(['frame', 'status', 'status', 'status']);
+    expect(asked).toEqual(['frame', 'status']);
     sky!.destroy();
   });
 

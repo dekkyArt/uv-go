@@ -1,5 +1,6 @@
 import { mixUniforms, type SkyUniforms } from '../../domain/skyUniforms';
 import { FRAGMENT_SRC, VERTEX_SRC } from './shader';
+import { warmGpu } from './warmGpu';
 
 export type Quality = { scale: 0.5 | 0.35; octaves: 4 | 2; fps: 60 | 30 };
 
@@ -84,6 +85,8 @@ export const flashLevel = (age: number): number =>
  * the status is read a frame later, after the GPU process has had that frame to work.
  */
 async function program(gl: WebGLRenderingContext): Promise<WebGLProgram | string> {
+  // Enable background compilation before issuing any compile/link commands.
+  const parallel = gl.getExtension('KHR_parallel_shader_compile');
   const vs = gl.createShader(gl.VERTEX_SHADER);
   const fs = gl.createShader(gl.FRAGMENT_SHADER);
   const prog = gl.createProgram();
@@ -107,7 +110,6 @@ async function program(gl: WebGLRenderingContext): Promise<WebGLProgram | string
   gl.bindAttribLocation(prog, 0, 'aPos');
   gl.linkProgram(prog);
 
-  const parallel = gl.getExtension('KHR_parallel_shader_compile');
   const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
   if (parallel) {
     while (!gl.getProgramParameter(prog, parallel.COMPLETION_STATUS_KHR)) await nextFrame();
@@ -115,11 +117,13 @@ async function program(gl: WebGLRenderingContext): Promise<WebGLProgram | string
     await nextFrame();
   }
 
-  for (const [s] of shaders)
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
-      return fail(`compile: ${gl.getShaderInfoLog(s)}`);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS))
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    // Shader queries can still stall the driver. Only request diagnostics after a failed link.
+    for (const [s] of shaders)
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+        return fail(`compile: ${gl.getShaderInfoLog(s)}`);
     return fail(`link: ${gl.getProgramInfoLog(prog)}`);
+  }
   // Flagged for deletion: freed together with the program.
   gl.deleteShader(vs);
   gl.deleteShader(fs);
@@ -134,13 +138,19 @@ export async function createRenderer(
   canvas: HTMLCanvasElement,
   opts: { reducedMotion: boolean; onLost(): void },
 ): Promise<SkyRenderer | null> {
-  const context = canvas.getContext('webgl', {
-    alpha: false,
-    antialias: false,
-    depth: false,
-    stencil: false,
-    powerPreference: 'low-power',
-  });
+  const releaseWarmup = await warmGpu();
+  let context: WebGLRenderingContext | null;
+  try {
+    context = canvas.getContext('webgl', {
+      alpha: false,
+      antialias: false,
+      depth: false,
+      stencil: false,
+      powerPreference: 'low-power',
+    });
+  } finally {
+    releaseWarmup();
+  }
   if (!context) {
     console.warn('Sky: WebGL is unavailable, keeping the CSS sky.');
     return null;

@@ -56,6 +56,16 @@ jobs:
           export CHROME_PATH="$(node -e "console.log(require('@playwright/test').chromium.executablePath())")"
           npx lhci autorun
 
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Build production site with optional analytics
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:

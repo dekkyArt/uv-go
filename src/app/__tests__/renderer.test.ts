@@ -162,66 +162,6 @@ describe('createRenderer', () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(['message', 'error'])(
-    'waits for worker %s before opening the visible context',
-    async (event) => {
-      const worker = new EventTarget();
-      const terminate = vi.fn();
-      vi.stubGlobal(
-        'Worker',
-        class {
-          constructor() {
-            return Object.assign(worker, { terminate });
-          }
-        },
-      );
-      const { gl } = fakeGl();
-      const canvas = fakeCanvas(gl);
-      const pending = createRenderer(canvas, { reducedMotion: true, onLost() {} });
-      expect(canvas.getContext).not.toHaveBeenCalled();
-      worker.dispatchEvent(new MessageEvent(event, { data: 'ready' }));
-      const sky = await pending;
-      expect(canvas.getContext).toHaveBeenCalled();
-      expect(terminate).toHaveBeenCalledOnce();
-      sky!.destroy();
-    },
-  );
-
-  it('still opens the visible context when workers cannot be constructed', async () => {
-    vi.stubGlobal(
-      'Worker',
-      class {
-        constructor() {
-          throw new Error('workers blocked');
-        }
-      },
-    );
-    const { gl } = fakeGl();
-    const sky = await createRenderer(fakeCanvas(gl), { reducedMotion: true, onLost() {} });
-    expect(sky).not.toBeNull();
-    sky!.destroy();
-  });
-
-  it('falls back if the warmup worker never responds', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    const terminate = vi.fn();
-    vi.stubGlobal(
-      'Worker',
-      class extends EventTarget {
-        terminate = terminate;
-      },
-    );
-    const { gl } = fakeGl();
-    const canvas = fakeCanvas(gl);
-    const pending = createRenderer(canvas, { reducedMotion: true, onLost() {} });
-    expect(canvas.getContext).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(8000);
-    const sky = await pending;
-    expect(sky).not.toBeNull();
-    expect(terminate).toHaveBeenCalledOnce();
-    sky!.destroy();
-  });
-
   it('returns null and warns once without WebGL', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     expect(

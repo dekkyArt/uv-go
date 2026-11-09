@@ -74,6 +74,26 @@ afterEach(() => {
 });
 
 describe('SkyCanvas', () => {
+  it('uses a fresh canvas when the render mode changes because a canvas can only transfer once', async () => {
+    fakeRenderers();
+    const { rerender } = render(
+      <SkyCanvas
+        today={TODAY}
+        tomorrow={TOMORROW}
+        progress={motionValue(0)}
+        reducedMotion={false}
+      />,
+    );
+    await startSky();
+    const previous = canvas()!;
+    rerender(
+      <SkyCanvas today={TODAY} tomorrow={TOMORROW} progress={motionValue(0)} reducedMotion />,
+    );
+    expect(previous.isConnected).toBe(false);
+    await startSky();
+    expect(canvas()).not.toBe(previous);
+  });
+
   it('without WebGL drops the canvas and leaves the CSS sky and the phase glass', async () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});

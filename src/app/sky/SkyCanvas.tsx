@@ -30,7 +30,12 @@ function releasePage() {
  * day it settles on. It starts when the page is idle, builds its shader without blocking, and
  * fades in over the CSS backdrop after its first frame. Without WebGL, or when the context is lost, the canvas goes and the CSS sky stays.
  */
-export default function SkyCanvas({ today, tomorrow, progress, topCap, reducedMotion }: Props) {
+export default function SkyCanvas(props: Props) {
+  // An OffscreenCanvas can transfer only once. A mode change needs a fresh canvas and ready state.
+  return <SkyLayer key={props.reducedMotion ? 'still' : 'animated'} {...props} />;
+}
+
+function SkyLayer({ today, tomorrow, progress, topCap, reducedMotion }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<SkyRenderer | null>(null);
   /** Send the current target and top cap to the renderer; replaced whenever the inputs change. */
@@ -83,7 +88,7 @@ export default function SkyCanvas({ today, tomorrow, progress, topCap, reducedMo
       setFailed(true);
     };
     const cancelIdle = whenIdle(() => {
-      void createRenderer(canvas, { reducedMotion, onLost: drop }).then((made) => {
+      void createRenderer(canvas, { reducedMotion, onLost: drop }).then(async (made) => {
         if (disposed) {
           made?.destroy();
           return;
@@ -96,7 +101,8 @@ export default function SkyCanvas({ today, tomorrow, progress, topCap, reducedMo
         rendererRef.current = renderer;
         pushRef.current();
         pushCapRef.current();
-        renderer.start();
+        await renderer.start();
+        if (disposed || renderer !== made) return;
         // The renderer's first frame is queued ahead of this one (or, reduced, already drawn).
         frame = requestAnimationFrame(() => {
           root().dataset.skyLive = '';

@@ -214,12 +214,16 @@ test.describe('UV GO smoke', () => {
 
   test('the live sky draws with WebGL and stays quiet in the console', async ({ page }) => {
     const noise = skyConsole(page);
+    const worker = page.waitForEvent('worker', {
+      predicate: (worker) => /renderer\.worker/.test(worker.url()),
+    });
     await page.goto('/');
     await searchLisbon(page);
     await expect(heroTime(page)).toHaveText(TIME_RANGE);
 
     const sky = page.locator('canvas.sky-canvas');
     await expect(sky).toHaveAttribute('data-ready', '');
+    expect(page.workers()).toContain(await worker);
     await expect(page.locator('html')).toHaveAttribute('data-sky-live', '');
     expect(await sky.evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
     // The glass is tinted from the live sky.

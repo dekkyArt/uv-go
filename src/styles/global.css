@@ -49,30 +49,38 @@
   --sky-day: linear-gradient(180deg, #2f6fd0 0%, #5b97dc 100%);
   --sky-golden: linear-gradient(180deg, #3b72c4 0%, #c9803a 100%);
   --sky-dusk: linear-gradient(180deg, #2f3a7c 0%, #c4577f 100%);
+  /* Safari exposes the document colour below fixed layers, behind its floating toolbar. */
+  --sky-edge: #5b97dc;
 }
 
 /* Glass per phase, as glassFor() computes it from the mean of the phase's two sky colours. */
 html[data-sky-phase='night'] {
+  --sky-edge: #1d2c55;
   --glass-rgb: 7 11 23;
   --glass-alpha: 0.44;
 }
 html[data-sky-phase='dawn'] {
+  --sky-edge: #cc7a8c;
   --glass-rgb: 49 37 52;
   --glass-alpha: 0.55;
 }
 html[data-sky-phase='morning'] {
+  --sky-edge: #c8825a;
   --glass-rgb: 46 44 51;
   --glass-alpha: 0.57;
 }
 html[data-sky-phase='day'] {
+  --sky-edge: #5b97dc;
   --glass-rgb: 24 46 75;
   --glass-alpha: 0.58;
 }
 html[data-sky-phase='golden'] {
+  --sky-edge: #c9803a;
   --glass-rgb: 46 42 44;
   --glass-alpha: 0.56;
 }
 html[data-sky-phase='dusk'] {
+  --sky-edge: #c4577f;
   --glass-rgb: 43 25 44;
   --glass-alpha: 0.51;
 }
@@ -103,7 +111,7 @@ html[data-sky-phase='dusk'] {
 
 @layer base {
   html {
-    background-color: var(--color-bg);
+    background-color: var(--sky-edge);
     color: var(--color-text);
     font-family: var(--font-sans);
     -webkit-text-size-adjust: 100%;
@@ -232,6 +240,8 @@ html::before {
   content: '';
   position: fixed;
   inset: 0;
+  height: 100vh;
+  height: 100lvh;
   z-index: -1;
   pointer-events: none;
   background-image: var(--sky-day);
@@ -288,7 +298,9 @@ html::after {
   inset: 0;
   z-index: -1;
   width: 100%;
-  height: 100%;
+  /* Cover the largest viewport without resizing the sky as the browser controls collapse. */
+  height: 100vh;
+  height: 100lvh;
   pointer-events: none;
   opacity: 0;
   transition: opacity 400ms ease-out;

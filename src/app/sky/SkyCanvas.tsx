@@ -22,6 +22,7 @@ function releasePage() {
   delete root().dataset.skyLive;
   root().style.removeProperty('--glass-rgb');
   root().style.removeProperty('--glass-alpha');
+  root().style.removeProperty('--sky-edge');
 }
 
 /**
@@ -55,6 +56,8 @@ function SkyLayer({ today, tomorrow, progress, topCap, reducedMotion }: Props) {
       const t = Math.min(1, Math.max(0, progress.get()));
       const target = t === 0 ? from : t === 1 ? to : mixUniforms(from, to, t);
       renderer.setTarget(target);
+      // Match the document exposed behind Safari's floating browser controls to this sky.
+      root().style.setProperty('--sky-edge', `rgb(${target.skyBottom.join(' ')})`);
       // The glass follows the day it lands on, not every frame of a swipe (its CSS fades it).
       if (t !== 0 && t !== 1) return;
       const { rgb, alpha } = glassTint(target);

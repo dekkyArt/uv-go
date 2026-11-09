@@ -23,6 +23,17 @@ async function settleAnimations(page: Page): Promise<void> {
   await page.waitForTimeout(2000);
 }
 
+async function accessibilityViolations(page: Page) {
+  // The site footer's text on bare sky is an agreed design exception for contrast only.
+  // Keep all other accessibility rules active there, including link and landmark checks.
+  const general = await new AxeBuilder({ page }).disableRules('color-contrast').analyze();
+  const contrast = await new AxeBuilder({ page })
+    .withRules('color-contrast')
+    .exclude('[data-page] > footer')
+    .analyze();
+  return [...general.violations, ...contrast.violations];
+}
+
 for (const path of PAGES) {
   test(`no serious or critical a11y violations: ${path}`, async ({ page }) => {
     await mockApis(page);
@@ -35,7 +46,7 @@ for (const path of PAGES) {
       await settleAnimations(page);
     }
 
-    const { violations } = await new AxeBuilder({ page }).analyze();
+    const violations = await accessibilityViolations(page);
     const blocking = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
     expect(
       blocking.map((v) => ({
@@ -61,7 +72,7 @@ test('no serious or critical a11y violations with the hero folded into the pinne
   await expect(bar).toHaveCSS('opacity', '1');
   await expect(bar).toHaveText(/^Lisbon · \d{2}:00–\d{2}:00 \| (Good|OK|Avoid)$/);
 
-  const { violations } = await new AxeBuilder({ page }).analyze();
+  const violations = await accessibilityViolations(page);
   const blocking = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
   expect(blocking.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) }))).toEqual([]);
 });

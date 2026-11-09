@@ -152,7 +152,7 @@ export function Sheet({
                   </div>
                 </div>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-1 pb-5">
                 {children}
               </div>
             </m.div>

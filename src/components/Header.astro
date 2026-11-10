@@ -9,11 +9,11 @@ const links = [
 
 // The navigation glass keeps link text readable over the sun zone (spec 6.4).
 const pill =
-  'glass inline-flex min-h-11 shrink-0 items-center rounded-full text-sm font-semibold text-text sm:text-[15px]';
+  'glass inline-flex min-h-11 shrink-0 items-center rounded-full text-sm font-semibold text-text max-[375px]:text-[13px] sm:text-[15px]';
 ---
 
 <header>
-  <div class="mx-auto flex max-w-[1200px] items-center justify-between gap-2 px-4 pt-3">
+  <div class="mx-auto flex max-w-[1200px] items-center justify-between gap-2 px-4 pt-3 max-[375px]:gap-1 max-[375px]:px-2">
     <a
       href="/"
       data-logo-link
@@ -28,7 +28,7 @@ const pill =
       {links.map((link) => (
         <a
           href={link.href}
-          class="inline-flex min-h-11 min-w-11 items-center justify-center px-1 hover:underline sm:px-2"
+          class="inline-flex min-h-11 min-w-11 items-center justify-center px-1 hover:underline max-[375px]:px-0.5 sm:px-2"
         >
           {link.label}
         </a>

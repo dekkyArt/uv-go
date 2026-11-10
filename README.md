@@ -7,7 +7,7 @@ UV GO answers one question: which hour of your free time is the best one to be o
 It is also a portfolio case for React, Motion (Framer Motion) and WebGL work, styled after iOS Weather: a live sky behind dark glass cards, a hero that folds into a pinned bar as you scroll, and numbers that roll. The animation is there to help you read the answer, not to hide it. I am a programmer, not a motion designer: all of the motion is written in code (Motion springs, scroll-bound MotionValues and a GLSL shader), with no design-tool animation files.
 
 - **Live:** [uv-go.dekky.dev](https://uv-go.dekky.dev/)
-- **Screenshot/GIF:** TODO
+- **Social preview (OG image):** [public/og/home.png](public/og/home.png)
 - **Repository:** https://github.com/dekkyArt/uv-go
 
 The site is fully static with no backend. Coordinates go to Open-Meteo. Your place and inputs are kept in your browser's localStorage. Google Analytics is optional: it is disabled unless a GA4 measurement ID is supplied at build time, and loads only after the visitor accepts analytics cookies.
@@ -30,24 +30,24 @@ Weather data by [Open-Meteo.com](https://open-meteo.com/).
 
 ## Getting started
 
-Requires Node 22 (see `.nvmrc`) and npm.
+Requires Node >=22.23.4 (`package.json`); `.nvmrc` selects the Node 22 line. Use npm with the committed lockfile.
 
 ```bash
-npm i
+npm ci
 npm run dev
 ```
 
-| Script                 | What it does                                                                              |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
-| `npm run dev`          | Astro dev server                                                                          |
-| `npm run build`        | Static build into `dist/`                                                                 |
-| `npm run preview`      | Serve the built site locally                                                              |
-| `npm test`             | Vitest unit and component tests                                                           |
-| `npm run test:e2e`     | Playwright smoke and accessibility checks (API mocked, 390x844 viewport)                  |
-| `npm run check`        | `astro check` (types)                                                                     |
-| `npm run lint`         | ESLint                                                                                    |
-| `npm run format`       | Prettier, writes files                                                                    |
-| `npm run check:bundle` | Gzip size of the JavaScript each built page loads, against the budget (run after `build`) |
+| Script                 | What it does                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| `npm run dev`          | Astro dev server                                                                                       |
+| `npm run build`        | Static build into `dist/`                                                                              |
+| `npm run preview`      | Serve the built site locally                                                                           |
+| `npm test`             | Vitest unit and component tests                                                                        |
+| `npm run test:e2e`     | Playwright functional, layout, motion and accessibility checks (mocked APIs; default 390x844 viewport) |
+| `npm run check`        | `astro check` (types)                                                                                  |
+| `npm run lint`         | ESLint                                                                                                 |
+| `npm run format`       | Prettier, writes files                                                                                 |
+| `npm run check:bundle` | Gzip size of the JavaScript each built page loads, against the budget (run after `build`)              |
 
 CI (`.github/workflows/ci.yml`) runs lint, type check, unit tests, e2e, build, the bundle budget and Lighthouse CI on every push and pull request. After all checks pass, pushes to `main` deploy the verified `dist/` artifact to Cloudflare Pages.
 
@@ -86,16 +86,16 @@ and [CNIL guidance](https://www.cnil.fr/en/sheet-ndeg16-use-analytics-your-websi
 
 ## Architecture
 
-The code is split into four layers. Each one only looks down the list.
+The code is organized into the following areas. The domain is independent of React and browser APIs; data and UI code reuse domain types and functions.
 
-| Layer  | Where                                                       | What it holds                                                                                                                                                                                                           |
-| ------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| domain | `src/domain/`                                               | Pure TypeScript: scoring rules, windows, reason text, checklist, sky state, sky palette, glass tint and shader uniforms. No React, no DOM, no imports from `data/` or `app/`. All thresholds live in `rules.config.ts`. |
-| data   | `src/data/`                                                 | Open-Meteo forecast and geocoding clients, local time helpers, localStorage wrapper (every access in `try/catch`).                                                                                                      |
-| app    | `src/app/`, `src/motion/`                                   | The React island: one `useReducer`, hooks, components, SVG icons, the WebGL sky, motion tokens and choreography.                                                                                                        |
-| site   | `src/pages/`, `src/components/`, `src/content/`, `src/seo/` | Astro pages and components, MDX articles, FAQ, SEO head and JSON-LD.                                                                                                                                                    |
+| Layer  | Where                                                       | What it holds                                                                                                                                                                                                                                                                             |
+| ------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| domain | `src/domain/`                                               | Pure TypeScript: scoring rules, windows, reason text, checklist, sky state, sky palette, glass tint and shader uniforms. No React, no DOM, no imports from `data/` or `app/`. Scoring rules live in `rules.config.ts`; sky settings also use `sky.config.ts` and `skyUniforms.config.ts`. |
+| data   | `src/data/`                                                 | Open-Meteo forecast and geocoding clients, local time helpers, localStorage wrapper (every access in `try/catch`).                                                                                                                                                                        |
+| app    | `src/app/`, `src/motion/`                                   | The React island: one `useReducer`, hooks, components, SVG icons, the WebGL sky, motion tokens and choreography.                                                                                                                                                                          |
+| site   | `src/pages/`, `src/components/`, `src/content/`, `src/seo/` | Astro pages and components, MDX articles, FAQ, SEO head and JSON-LD.                                                                                                                                                                                                                      |
 
-All time is handled in the location's time zone, and `now` is passed into the domain as a parameter, so the scoring is deterministic and easy to test.
+Forecast evaluation uses the location's time zone, and `now` is passed into the domain as a parameter, so the scoring is deterministic and easy to test.
 
 Data flow inside the island:
 
@@ -106,11 +106,11 @@ Inputs (Plan) --------------------------------------------+- evaluate(activeDay,
                                                           |        |
                                                           |        v
                                                           |  EvaluationResult -> heroState -> Hero, CollapsedBar
-                                                          |                   -> HourlyCard, FreeTimeCard, TakeTiles
+                                                          |                   -> HourlyCard, FreeTimeCard, TakeChips / TakeStrip
                                                           +- useSkyPair -> skyUniforms(Today, Tomorrow) -> SkyCanvas
 ```
 
-Island state is a single `useReducer`: `place`, `inputs`, `forecast` (`idle | loading | success | error`), `selectedHour`, the automatic switch to Tomorrow and a retry token. The only other shared state is one flag that records a failed motion chunk (`src/motion/featuresFailed.ts`), so the page can render at rest.
+Island state is a single `useReducer`: `place`, `inputs`, `forecast` (`idle | loading | success | error`), `selectedHour`, the automatic switch to Tomorrow and a retry token. Local React state also controls sheets and lazy sky loading; MotionValues coordinate animation. A shared flag records a failed motion chunk (`src/motion/featuresFailed.ts`), so the page can render at rest. The forecast client has an in-memory cache, and `src/analytics/` manages optional consent separately.
 
 ## Changing the rules
 
@@ -126,7 +126,7 @@ The rule behind all of them: motion helps you understand the answer. By the chor
 
 1. **`LazyMotion strict` with `m` components and a lazy `domMax`.** `src/motion/MotionProvider.tsx` loads the feature set with a dynamic import (`./features`), and `strict` mode makes any full `motion.*` component throw. The app shell is on the page first; layout and drag code arrive after. If the chunk fails to load, the page renders at rest: no intro, and nothing is left at its hidden starting values. The springs live in `src/motion/tokens.ts`: `smooth` (0.5 s, no bounce) for most transitions, `snappy` (0.3 s, bounce 0.15) for presses and pills, `sheet` (0.45 s, bounce 0.08) for sheets and the day pager.
 2. **The hero folds into a pinned bar.** `src/app/hero/useHeroCollapse.ts` turns the scroll position into MotionValues (time scale and rise, opacity of the details, eyebrow and bar) over 140 px of scroll, and `CollapsedBar.tsx` is the 56 px bar it ends in. There is no spring in between: the hero is a pure function of `scrollY`, so it follows the finger exactly and can be reversed at any point. Desktop shows no bar.
-3. **Cards tuck under the bar.** `src/app/cards/useCardTuck.ts` binds a `clip-path` on each card body to the page scroll, so the body slides under the pinned bar while the sticky header stays. Rects are read in the scroll callback and written to a MotionValue, so scrolling re-renders nothing. The `CARD_TUCK_CLIP` flag in `src/app/ui.ts` turns the clip off if scrolling turns out too slow on a device (only the sticky headers are left); the decision is open, see Frame rate below.
+3. **Cards tuck under the bar.** `src/app/cards/useCardTuck.ts` binds a `clip-path` on each card body to the page scroll, so the body slides under the pinned bar while the sticky header stays. Rects are read in the scroll callback and written to a MotionValue, so scrolling re-renders nothing. The `CARD_TUCK_CLIP` flag in `src/app/ui.ts` turns the clip off if scrolling turns out too slow on a device (only the sticky headers are left); the current value is `true`.
 4. **`NumericRoll`.** `src/app/components/NumericRoll.tsx` rolls only the characters that changed, up or down depending on the number, with a short blur and a 0.03 s lag between neighbours (capped at 6). Each character sits in a one-line clipped slot, so the line never changes height or width, and the text lives once in a screen-reader-only node. Nothing rolls on the first render.
 5. **The first result is choreographed with numbers.** `src/motion/choreography.ts` holds every delay in one table: the hero time blurs, rises and fades in at 0.05 s, the cards rise in a stagger from 0.25 s, the best-window outline draws, the score bars grow with a capped stagger, and the What to take pills under the hero pop in. `labelVisibleAt()` is 0.35 s and `totalDuration()` is 1.2 s (the end of the last bar and pill).
 6. **The sky is a WebGL shader.** `src/app/sky/shader.ts` (GLSL: gradient, sun, moon, stars, clouds, fog, rain, snow, drops on the glass, heat, lightning), `rendererCore.ts` (the shared draw loop), `renderer.worker.ts` (worker entry) and `SkyCanvas.tsx` (React wrapper), fed by uniforms from `src/domain/skyUniforms.ts`. The canvas is its own chunk, fetched only once the page is idle (`requestIdleCallback`, or 200 ms without it): the CSS sky stays visible until the first rendered frame is acknowledged. Where transferable `OffscreenCanvas` and Workers are available, context creation, compilation and every WebGL draw run in a worker; only uniforms, size and visibility cross the thread boundary. This keeps software GPU stalls off the UI thread. Older browsers retain the direct renderer; a failed worker keeps the CSS sky. With `KHR_parallel_shader_compile` the renderer polls the compile status once a frame, without it it checks a frame later. The renderer draws at 0.5 of the CSS size with 4 cloud octaves at 60 fps; if the mean frame interval over 60 frames is above 20 ms it steps down to 0.35 scale, and on the next slow window to 2 octaves at 30 fps. It never goes back up. With no WebGL, a shader that does not compile, or a lost context, the canvas is removed and the CSS phase backdrop (set before first paint by a tiny inline script) and the phase glass values stay. Outside the sun zone (the top 18 % of the screen) a linear-luminance clamp holds the sky under a relative luminance of 0.3, which is what the glass contrast numbers are computed against, so white text keeps 4.5:1. While the pinned bar is shown, its opacity also fades the sun's light inside the sun zone, so the bar and the card titles stuck under it sit on the same capped sky.
@@ -137,65 +137,36 @@ The rule behind all of them: motion helps you understand the answer. By the chor
 
 ## Performance and accessibility
 
-The numbers below come from Lighthouse CI runs and a Chrome DevTools-protocol CLS measurement on the built site. Nothing here is a claim about a real phone yet.
+The repository defines automated budgets and checks; these are thresholds, not current device measurements.
 
-**Lighthouse** (mobile, simulated throttling, 3 runs per page, `lhci autorun`):
+**Lighthouse CI** (`lighthouserc.json`) collects three runs each for `/`, `/uv-index/`, `/uv-risks/` and `/sun-protection/` from the built site. It requires:
 
-| Page               | Performance | Accessibility | Best Practices | SEO | LCP             | CLS   | TBT |
-| ------------------ | ----------- | ------------- | -------------- | --- | --------------- | ----- | --- |
-| `/`                | 98, 97, 97  | 100           | 100            | 100 | 2142 to 2439 ms | 0.005 | 0   |
-| `/uv-index/`       | 100         | 100           | 100            | 100 | about 1203 ms   | 0     | 0   |
-| `/uv-risks/`       | 100         | 100           | 100            | 100 | about 1203 ms   | 0     | 0   |
-| `/sun-protection/` | 100         | 100           | 100            | 100 | about 1203 ms   | 0     | 0   |
+| Metric         | Home      | Three article pages |
+| -------------- | --------- | ------------------- |
+| Performance    | ≥ 90      | ≥ 95                |
+| Accessibility  | ≥ 95      | ≥ 95                |
+| Best Practices | ≥ 95      | ≥ 95                |
+| SEO            | 100       | 100                 |
+| LCP            | ≤ 2500 ms | ≤ 2500 ms           |
+| CLS            | ≤ 0.05    | ≤ 0.05              |
 
-One earlier run of the same command measured `/` at Performance 75 (LCP 2781 ms, TBT 912 ms) in one of its three runs, with the other two at 97 and the median inside the budgets; it did not repeat. The home page is slower than before the redesign (LCP was 1204 to 1959 ms). I have not investigated the cause.
+CI uploads reports as `lighthouse-reports` with seven-day retention. Lighthouse does not use the deterministic forecast mocks from Playwright, so these checks do not establish performance of a loaded forecast on a real phone.
 
-Caveat: Lighthouse CI serves the built `dist/` offline, so on `/` the app runs without a real forecast response (it shows the empty or error state). This is not a measurement of the answer rendering.
+**JavaScript budget.** After `npm run build`, run `npm run check:bundle` (add `-- --verbose` for individual files). The script checks initial gzip JavaScript for each built `index.html`: 130,000 bytes for `/`, 2,000 bytes for other pages. It includes executable inline scripts, island entries and static imports. Dynamic imports and their static dependencies are reported separately; lazy and total sizes are informational. Worker assets referenced through URLs and external Google scripts are not included in that import traversal. Sizes depend on the build, including whether analytics is enabled.
 
-**JavaScript, gzip** (`npm run check:bundle`):
+**Rendering.** `CARD_TUCK_CLIP` in `src/app/ui.ts` is enabled. The sky renderer starts at scale 0.5, four noise octaves and a 60 fps target, and can reduce quality to scale 0.35, two octaves and a 30 fps target. These are implementation settings, not measured device frame rates.
 
-| Page               | Initial JS | Budget   | Lazy chunks | Initial + lazy |
-| ------------------ | ---------- | -------- | ----------- | -------------- |
-| `/`                | 118.4 KB   | 130.0 KB | 43.4 KB     | 161.8 KB       |
-| `/uv-index/`       | 0.3 KB     | 2.0 KB   | 0.0 KB      | 0.3 KB         |
-| `/uv-risks/`       | 0.3 KB     | 2.0 KB   | 0.0 KB      | 0.3 KB         |
-| `/sun-protection/` | 0.3 KB     | 2.0 KB   | 0.0 KB      | 0.3 KB         |
+**Accessibility.** `e2e/a11y.spec.ts` checks for serious and critical axe violations in static pages and app states. Footer colour contrast is explicitly excluded; other footer checks remain active. Lighthouse also uses a custom accessibility configuration (`scripts/lighthouse-config.mjs`). Component and domain tests cover keyboard controls, reduced motion and contrast calculations. City search uses an ARIA combobox, free-time handles use sliders, results use a polite live region, and the decorative sky is hidden from assistive technology. Automated checks do not constitute a complete manual accessibility audit.
 
-The budget applies to the JavaScript loaded up front. The lazy chunks load after it and are listed separately, not budgeted: Motion's `domMax` features (35.5 KB) and the sky canvas with its shader (7.9 KB). Initial + lazy on `/` is 161.8 KB, over 130 KB if you count both; the gate counts the initial JavaScript only, and the total is stated here so nothing is hidden.
+## Pages and assets
 
-**Layout shift under load** (stale: measured before the redesign, to be re-measured; Chrome DevTools protocol on the built preview, CPU throttled 4x, network 150 ms and 200 kB/s, cache off): CLS 0.0028 at 390 px with a stored place, 0.0007 at 1024 px with a stored place, 0 on a first visit at both widths.
+The static routes are `/`, `/uv-index/`, `/uv-risks/`, `/sun-protection/`, `/about/`, `/methodology/` and `/privacy/`, plus a custom `404.html`, `robots.txt` and generated sitemap. Articles are MDX in `src/content/articles/`; the FAQ is in `src/content/faq.ts`. Site URL, repository and author metadata are in `src/site.config.ts`.
 
-**Frame rate:**
+Images for social previews are in `public/og/`; the logo, favicons and self-hosted Inter font are in `public/`. No Lottie player or Lottie animation asset is used. Animation is implemented with Motion, CSS and the GLSL sky.
 
-- Chrome DevTools Performance, CPU throttling 4x: pending, author measurement.
-- Real mid-range Android device: pending, author measurement (device model and result to be added here).
-- `CARD_TUCK_CLIP` (`src/app/ui.ts`): pending, author measurement. Scroll the home page with the clip on and off on a mid-range device; if it measures below 50 fps, set the flag to `false` and record the result here.
+## Runtime and content
 
-**Accessibility.** Checked automatically: axe (Playwright, `e2e/a11y.spec.ts`) finds 0 serious or critical violations on every page. Checked in tests and code: city search is an ARIA combobox, free-time handles are `role="slider"`, and the result is announced through `aria-live="polite"`. Design rules the code follows (not separately audited): touch targets of at least 44x44 px, verdicts never rely on colour alone, the sky canvas is `aria-hidden`, and everything is reachable from the keyboard. White and 72 % white text on the glass are held to 4.5:1 by the glass opacity of each sky phase (computed in `src/domain/glass.ts`, checked by `src/test/skyCss.test.ts`).
-
-## Lottie assets
-
-No Lottie asset is used. Motion is code: Motion springs, scroll-bound MotionValues and the GLSL sky. A Lottie file has to pass the fit check in the design spec (section 10.9) before it is adopted.
-
-The three candidates recorded before the redesign (a loading sun, rain in the sky and an animated verdict icon) are gone from the UI: the sky is now the shader, and the verdict is always text with a colour dot. If I add a Lottie asset later, it will be generated with an AI tool or adapted from LottieFiles, and its origin recorded here.
-
-### How to adopt later
-
-- Install the player with `npm i @lottiefiles/dotlottie-react` and use dotLottie files in `public/lottie/`.
-- Load the player with `React.lazy` after the first result, so it stays off the first-screen critical path.
-- Keep a code version as the fallback: show it before load and under `prefers-reduced-motion`.
-- Check the bundle budget (JS on `/` ≤ 130 KB gzip) and the `.lottie` size (≤ 30 KB) before merging.
-- Record the origin of each asset in this section.
-
-## AI usage note
-
-I want this to be plain about what was made with AI and what was checked.
-
-- **Code.** Implemented by Claude Code (an AI coding agent from Anthropic) from my spec and plan, in small tasks. Each task was gated by unit and component tests, type check, lint, e2e and axe checks, plus an AI code-review pass. I have not yet done my own line-by-line review of the code.
-- **Article and FAQ drafts.** Drafts of the three articles (`src/content/articles/`) and the FAQ were written with AI from a short list of allowed sources: WHO, Cancer Council Australia, Skin Cancer Foundation, American Academy of Dermatology, NHS and US EPA. Each article lists its sources. Status: verification of every claim against its source by the author is to be done before release. Until then, treat the health content as unverified draft text.
-- **Lottie.** No Lottie asset has been made or used. See the section above. If I add one, its origin will be recorded there.
-- **What AI does not do at runtime.** The scoring is a fixed set of rules in `rules.config.ts`. There is no model, no prompt and no AI service in the running site.
-- **What I have not done yet.** Device FPS measurement, the `CARD_TUCK_CLIP` decision and the screenshot/GIF above are still to do.
+The running site uses fixed scoring rules in `src/domain/rules.config.ts`, with no AI model, prompt or AI service. Articles list their sources; code checks cannot establish independent medical review.
 
 UV GO gives general guidance, not medical advice. Talk to a healthcare professional about your skin.
 

@@ -21,7 +21,7 @@ export function buildChecklist(
   const minFeels = feels.length > 0 ? Math.min(...feels) : null;
   const c = r.checklist;
 
-  // Order is the fixed ТЗ 6.6 order (ChecklistId order).
+  // Order is the fixed spec 6.6 order (ChecklistId order).
   const checks: [ChecklistId, boolean][] = [
     ['sunscreen', maxUv !== null && maxUv >= c.sunscreenUv],
     ['hat-sunglasses', maxUv !== null && maxUv >= c.hatUv],

@@ -1,125 +1,125 @@
-# Публикация на Cloudflare Pages
+# Deploying to Cloudflare Pages
 
-После однократной настройки каждый push в `main` (включая merge pull request)
-запускает `.github/workflows/ci.yml`: lint → проверка типов → unit-тесты → E2E →
-сборка → проверка размера JavaScript → Lighthouse. Только после успешного завершения
-всех проверок job `deploy` загружает готовый `dist/` в Cloudflare Pages.
-При push в `main` после проверок выполняется production-сборка с опциональной
-переменной `PUBLIC_GA_MEASUREMENT_ID` и проверкой размера JS. При загрузке в Cloudflare
-повторной сборки нет. Pull request, другие ветки и теги проходят CI
-без публикации и без использования токена Cloudflare.
+After the one-time setup, every push to `main` (including a merged pull request)
+runs `.github/workflows/ci.yml`: lint → type checking → unit tests → E2E →
+build → JavaScript size check → Lighthouse. Only after all checks succeed does
+the `deploy` job upload the built `dist/` to Cloudflare Pages.
+On pushes to `main`, the checks are followed by a production build with the optional
+`PUBLIC_GA_MEASUREMENT_ID` variable and a JS size check. Cloudflare does not rebuild
+the upload. Pull requests, other branches and tags run CI without publishing or
+using the Cloudflare token.
 
-Используется **Pages Direct Upload через Wrangler**, а сборка выполняется в GitHub
-Actions на Node из `.nvmrc`. Astro уже настроен с `output: 'static'`; сервер,
-Cloudflare adapter и Pages Functions не нужны.
+This uses **Pages Direct Upload through Wrangler**, with the build running in GitHub
+Actions on the Node version from `.nvmrc`. Astro already uses `output: 'static'`;
+no server, Cloudflare adapter or Pages Functions are needed.
 
-## 1. Создать проект Pages
+## 1. Create a Pages project
 
-Нужны права администратора репозитория GitHub и доступ к аккаунту Cloudflare.
-Из корня репозитория выполните локально:
+You need GitHub repository administrator permissions and access to the Cloudflare account.
+Run locally from the repository root:
 
 ```bash
 npx wrangler@4 login
 npx wrangler@4 pages project create
 ```
 
-Выберите нужный аккаунт, задайте имя проекта (например, `uv-go`) и production branch
-**`main`**. Сохраните фактическое имя и адрес проекта: Cloudflare может добавить
-суффикс к адресу `*.pages.dev`, если желаемый адрес занят.
+Select the account, set a project name (for example, `uv-go`) and production branch
+**`main`**. Save the actual project name and address: Cloudflare may append a suffix
+to the `*.pages.dev` address if the requested address is taken.
 
-Создавайте именно проект **Pages**, не Worker. Не подключайте к нему автоматическую
-Git-сборку Cloudflare: публикацией управляет GitHub Actions, иначе появится второй
-независимый путь деплоя без ожидания проверок CI. Для существующего проекта с Git
-integration сначала отключите автоматические production/preview deployments.
-Direct Upload нельзя впоследствии переключить на Git integration без нового проекта.
+Create a **Pages** project, not a Worker. Do not enable Cloudflare's automatic Git
+builds: GitHub Actions manages deployment, and enabling them would create a second,
+independent deployment path that does not wait for CI checks. For an existing project
+with Git integration, disable automatic production/preview deployments first.
+Switching Direct Upload to Git integration later requires a new project.
 
-## 2. Создать токен
+## 2. Create a token
 
-В Cloudflare откройте **API Tokens → Create Token → Custom Token**:
+In Cloudflare, open **API Tokens → Create Token → Custom Token**:
 
-- Имя: например, `GitHub Actions — UV GO Pages`.
+- Name: for example, `GitHub Actions — UV GO Pages`.
 - Permission: **Account → Cloudflare Pages → Edit**.
-- Account Resources: **Include → Specific account → ваш аккаунт**.
+- Account Resources: **Include → Specific account → your account**.
 
-Скопируйте токен сразу после создания. Account ID возьмите в панели Cloudflare
-для того же аккаунта (это не Zone ID). Токен не записывайте в репозиторий.
+Copy the token immediately after creating it. Find the Account ID in the Cloudflare
+dashboard for the same account (this is not the Zone ID). Do not store the token in the repository.
 
-## 3. Настроить GitHub Actions
+## 3. Configure GitHub Actions
 
-В репозитории откройте **Settings → Secrets and variables → Actions**.
+In the repository, open **Settings → Secrets and variables → Actions**.
 
-Во вкладке **Secrets** добавьте repository secrets:
+Under **Secrets**, add these repository secrets:
 
-| Имя | Значение |
+| Name | Value |
 | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Созданный API token |
-| `CLOUDFLARE_ACCOUNT_ID` | Account ID аккаунта с проектом Pages |
+| `CLOUDFLARE_API_TOKEN` | The API token you created |
+| `CLOUDFLARE_ACCOUNT_ID` | Account ID of the account containing the Pages project |
 
-Во вкладке **Variables** добавьте repository variable:
+Under **Variables**, add these repository variables:
 
-| Имя | Значение |
+| Name | Value |
 | --- | --- |
-| `PUBLIC_GA_MEASUREMENT_ID` | Необязательно: GA4 Measurement ID вида `G-XXXXXXXXXX`; пустое значение отключает аналитику |
-| `CLOUDFLARE_PAGES_PROJECT_NAME` | Точное имя проекта из шага 1, например `uv-go`; без URL и `.pages.dev` |
+| `PUBLIC_GA_MEASUREMENT_ID` | Optional: GA4 Measurement ID such as `G-XXXXXXXXXX`; an empty value disables analytics |
+| `CLOUDFLARE_PAGES_PROJECT_NAME` | Exact project name from step 1, such as `uv-go`; without a URL or `.pages.dev` |
 
-В **Settings → Actions → General** разрешите выполнение GitHub Actions и actions
-`actions/*`, `cloudflare/wrangler-action`. Workflow использует только
-`contents: read` для GitHub; запись в репозиторий ему не нужна.
+In **Settings → Actions → General**, allow GitHub Actions and the actions
+`actions/*`, `cloudflare/wrangler-action`. The workflow uses only `contents: read`
+for GitHub; it does not need write access to the repository.
 
-## 4. Задать публичный URL
+## 4. Set the public URL
 
-Основной production URL уже задан в `src/site.config.ts`:
+The primary production URL is already set in `src/site.config.ts`:
 
 ```ts
 site: 'https://uv-go.dekky.dev',
 ```
 
-Этот адрес используется в canonical, Open Graph, JSON-LD, sitemap и `robots.txt`.
-Перед публикацией подключите `uv-go.dekky.dev` в **Pages → ваш проект → Custom domains**
-и дождитесь активации домена и HTTPS. Затем опубликуйте новую сборку.
-Настройки окружения в панели Pages не меняют сайт: сборка выполняется в GitHub.
+This address is used in canonical links, Open Graph, JSON-LD, the sitemap and `robots.txt`.
+Before publishing, connect `uv-go.dekky.dev` under **Pages → your project → Custom domains**
+and wait for the domain and HTTPS to become active. Then publish a new build.
+Environment settings in the Pages dashboard do not change the site: builds run in GitHub.
 
-Если старый домен Vercel или адрес `*.pages.dev` доступны публично, настройте на стороне
-хостинга постоянный редирект на `https://uv-go.dekky.dev` с сохранением пути и query string.
-Не добавляйте безусловный редирект на тот же домен в общие правила сайта: это создаст цикл.
-После публикации проверьте canonical и отправьте
-`https://uv-go.dekky.dev/sitemap-index.xml` в Google Search Console и Bing Webmaster Tools.
+If the old Vercel domain or a `*.pages.dev` address is publicly accessible, configure
+a permanent redirect at the hosting layer to `https://uv-go.dekky.dev`, preserving the
+path and query string. Do not add an unconditional redirect to the same domain in
+shared site rules: it would create a loop. After publishing, check the canonical URL
+and submit `https://uv-go.dekky.dev/sitemap-index.xml` to Google Search Console and Bing Webmaster Tools.
 
-## 5. Первый деплой и проверка
+## 5. First deployment and verification
 
-1. Отправьте изменения workflow и конфигурации сайта в `main`.
-2. В GitHub откройте **Actions → CI** для этого коммита. Дождитесь успешных jobs
-   `build` и `Deploy to Cloudflare Pages`.
-3. В логе шага `Deploy static site` найдите URL публикации. В Cloudflare откройте
-   **Workers & Pages → ваш проект → Deployments** и проверьте production deployment
-   ветки `main` с нужным коммитом.
-4. Откройте production URL, статью `/uv-index/`, `/robots.txt` и
-   `/sitemap-index.xml`. Проверьте выбор города и получение прогноза.
-5. Сделайте следующий commit в `main` и убедитесь, что production обновился.
+1. Push the workflow and site configuration changes to `main`.
+2. In GitHub, open **Actions → CI** for that commit. Wait for the `build` and
+   `Deploy to Cloudflare Pages` jobs to succeed.
+3. Find the deployment URL in the `Deploy static site` step log. In Cloudflare, open
+   **Workers & Pages → your project → Deployments** and verify the production deployment
+   for the `main` branch with the expected commit.
+4. Open the production URL, the `/uv-index/` article, `/robots.txt` and
+   `/sitemap-index.xml`. Check city selection and forecast loading.
+5. Make another commit on `main` and verify that production updates.
 
-Для повторной попытки используйте **Re-run failed jobs** у актуального запуска CI;
-если artifact уже удалён (срок хранения — 7 дней), выберите **Re-run all jobs**.
-Повторный запуск старого коммита может опубликовать старую версию — выбирайте
-последний коммит `main`. При новых запусках CI предыдущий запуск той же ветки
-отменяется; если его публикация уже успела завершиться, новая заменит её после проверок.
+To retry, use **Re-run failed jobs** on the current CI run; if the artifact has already
+been deleted (retention is seven days), choose **Re-run all jobs**.
+Re-running an old commit can publish an old version, so choose the latest commit on
+`main`. New CI runs cancel the previous run for the same branch; if its deployment
+has already completed, the new run replaces it after passing the checks.
 
-## Если публикация не прошла
+## If deployment fails
 
-- `Set ... repository secret/variable`: заполните настройки из шага 3.
-- Ошибка авторизации: проверьте срок действия токена, право Pages Edit и Account ID.
-- Проект не найден: проверьте имя проекта и выбранный аккаунт.
-- Вместо production появился preview: production branch проекта должна быть `main`.
-- `deploy` пропущен: это ожидаемо для PR, тегов и веток кроме `main`; также проверьте
-  результат `build`. При провале проверок текущая production-версия остаётся доступной.
-- Ошибка в `build`: исправьте упавшую проверку; деплой до её успеха не запускается.
+- `Set ... repository secret/variable`: fill in the settings from step 3.
+- Authorization error: check token expiration, the Pages Edit permission and Account ID.
+- Project not found: check the project name and selected account.
+- A preview appeared instead of production: the project's production branch must be `main`.
+- `deploy` was skipped: this is expected for PRs, tags and branches other than `main`;
+  also check the `build` result. If checks fail, the current production version remains available.
+- Error in `build`: fix the failing check; deployment will not start until it passes.
 
-Для отката откройте успешную предыдущую production-публикацию в Cloudflare Pages
-и выберите **Rollback to this deployment**. Затем исправьте или отмените проблемный
-коммит в `main`, иначе следующий успешный CI снова опубликует содержимое этой ветки.
+To roll back, open a previous successful production deployment in Cloudflare Pages
+and select **Rollback to this deployment**. Then fix or revert the problematic commit
+on `main`; otherwise the next successful CI run will publish that branch's contents again.
 
-## Документация
+## Documentation
 
-- [Cloudflare: Direct Upload с CI](https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/)
-- [Cloudflare: создание Direct Upload проекта](https://developers.cloudflare.com/pages/get-started/direct-upload/)
+- [Cloudflare: Direct Upload with CI](https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/)
+- [Cloudflare: creating a Direct Upload project](https://developers.cloudflare.com/pages/get-started/direct-upload/)
 - [Wrangler GitHub Action](https://github.com/cloudflare/wrangler-action)
-- [Откат публикации](https://developers.cloudflare.com/pages/configuration/rollbacks/)
+- [Deployment rollbacks](https://developers.cloudflare.com/pages/configuration/rollbacks/)

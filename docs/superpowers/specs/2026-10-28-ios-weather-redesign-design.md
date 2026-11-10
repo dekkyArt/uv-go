@@ -1,50 +1,50 @@
-# UV GO — редизайн в стиле iOS Weather
+# UV GO — iOS Weather-style redesign
 
-**Статус:** на ревью автора
-**Дата:** 2026-10-28
-**Основа:** `docs/superpowers/specs/2026-10-27-uv-go-design.md` (исходное ТЗ, остаётся в силе во всём, что здесь не изменено), скриншоты `docs/samples/ios1–5.jpeg`
+**Status:** awaiting author review
+**Date:** 2026-10-28
+**Basis:** `docs/superpowers/specs/2026-10-27-uv-go-design.md` (original specification, still applies wherever this document does not change it), screenshots `docs/samples/ios1–5.jpeg`
 
 ---
 
-## 1. Цель
+## 1. Goal
 
-Полностью переделать визуальный язык и анимации сайта UV GO так, чтобы он с первого взгляда читался как приложение Погода в iOS: живое небо на весь экран, крупный центральный ответ, полупрозрачные «стеклянные» карточки, плавающий тулбар со шторками.
+Completely redesign the visual language and animations of the UV GO site so that it immediately reads as the iOS Weather app: a full-screen living sky, a large central answer, translucent glass cards, and a floating toolbar with sheets.
 
-**Не меняется:** функционал из `IDEA.md`, доменная логика (`src/domain/`), данные (`src/data/`), reducer (`src/app/state.ts`), правила в `rules.config.ts`, тексты статей и FAQ, JSON-LD, SEO-структура страниц.
+**Unchanged:** functionality from `IDEA.md`, domain logic (`src/domain/`), data (`src/data/`), reducer (`src/app/state.ts`), rules in `rules.config.ts`, article and FAQ copy, JSON-LD, and page SEO structure.
 
-**Главное правило motion остаётся:** анимация помогает прочитать ответ. Лучшее время читается ≤ 1.0 с после прихода данных, вся первая хореография ≤ 1.8 с.
+**The main motion rule remains:** animation helps people read the answer. The best time is readable ≤ 1.0 s after data arrives; the entire initial choreography takes ≤ 1.8 s.
 
-**Критерии успеха:**
-- главная на 390×844 визуально соответствует структуре `ios1–3.jpeg`, на 1280×800 — структуре `ios4–5.jpeg`;
-- ответ «когда выходить» виден в первом экране без скролла и без открытия шторок;
-- axe: 0 serious/critical на всех страницах; контраст текста AA подтверждён тестом;
-- JS на `/` ≤ 130 KB gzip начальной загрузки; статьи ≤ 2 KB; CLS ≈ 0;
-- CI зелёный после каждого этапа (раздел 11).
+**Success criteria:**
+- the homepage at 390×844 visually matches the structure of `ios1–3.jpeg`, and at 1280×800 the structure of `ios4–5.jpeg`;
+- the answer to “when to go outside” is visible above the fold without scrolling or opening sheets;
+- axe: 0 serious/critical issues on all pages; AA text contrast verified by a test;
+- initial JS on `/` ≤ 130 KB gzip; articles ≤ 2 KB; CLS ≈ 0;
+- green CI after every stage (section 11).
 
-## 2. Решения, принятые на брейнсторме
+## 2. Decisions made during brainstorming
 
-| Вопрос | Решение |
+| Question | Decision |
 |---|---|
-| Охват | Весь сайт: приложение, хедер, футер, How it works, FAQ, статьи, 404 |
-| Главное число героя | Лучшее время (`15:00–16:00`) |
-| Темы | Светлая/тёмная тема и переключатель удаляются. Цвет задаёт небо, текст всегда белый |
-| Небо | Процедурный WebGL fragment shader без библиотек, ленивый чанк, CSS-подложка как фолбэк |
-| Настройки | Плавающий нижний тулбар: Plan (шторка), точки Today/Tomorrow, Cities (шторка). На десктопе Plan — карточка в сетке |
-| Подход | Замена слоя представления на месте (domain/data/state не трогаем) |
+| Scope | Entire site: app, header, footer, How it works, FAQ, articles, 404 |
+| Main hero number | Best time (`15:00–16:00`) |
+| Themes | Remove light/dark themes and toggle. The sky determines color; text is always white |
+| Sky | Procedural WebGL fragment shader without libraries, lazy chunk, CSS backdrop as fallback |
+| Settings | Floating bottom toolbar: Plan (sheet), Today/Tomorrow dots, Cities (sheet). On desktop, Plan is a card in the grid |
+| Approach | Replace the presentation layer in place (leave domain/data/state untouched) |
 
-## 3. Визуальная система
+## 3. Visual system
 
-### 3.1 Цвет и текст
+### 3.1 Color and text
 
-- Текст: основной `#ffffff`; вторичный `rgba(255,255,255,0.72)`; третичный (подписи, единицы) `rgba(255,255,255,0.55)` — только для крупного текста или не несущего смысла.
-- Цвета вердикта (на тёмном стекле, в духе системных цветов iOS): green `#4cd964`, yellow `#ffd60a`, red `#ff6961`; ночь `#8e9cc9`. Вердикт никогда не передаётся только цветом: рядом всегда текст.
-- Градиент шкалы скора (бары в «Your free time»): `#4cd964 → #ffd60a → #ff9f0a → #ff6961` слева направо.
-- Акцент для процента дождя: `#64d2ff` (как голубые проценты в iOS).
-- Фокус: `outline: 2px solid #ffffff; outline-offset: 2px` плюс тень `0 0 0 4px rgba(0,0,0,0.35)`, чтобы кольцо было видно на любом небе.
+- Text: primary `#ffffff`; secondary `rgba(255,255,255,0.72)`; tertiary (labels, units) `rgba(255,255,255,0.55)` — only for large or nonessential text.
+- Verdict colors (on dark glass, inspired by iOS system colors): green `#4cd964`, yellow `#ffd60a`, red `#ff6961`; night `#8e9cc9`. Never convey the verdict through color alone: always include text alongside it.
+- Score scale gradient (bars in “Your free time”): `#4cd964 → #ffd60a → #ff9f0a → #ff6961` from left to right.
+- Rain percentage accent: `#64d2ff` (like the blue percentages in iOS).
+- Focus: `outline: 2px solid #ffffff; outline-offset: 2px` plus shadow `0 0 0 4px rgba(0,0,0,0.35)` so the ring is visible against any sky.
 
-### 3.2 Стекло
+### 3.2 Glass
 
-Одна утилита `.glass` (в `global.css`):
+One `.glass` utility (in `global.css`):
 
 ```css
 .glass {
@@ -55,108 +55,108 @@
 }
 ```
 
-- `--glass-rgb` и `--glass-alpha` выставляет на `<html>` слой неба (раздел 6.6) по текущей фазе и погоде: голубой днём, графитовый в дождь, тёмно-синий ночью. Стартовые значения задаёт `SkyScript` до первой отрисовки.
-- Разделители внутри карточек: `1px rgb(255 255 255 / 0.15)`.
-- Без `backdrop-filter` (старые браузеры): `--glass-alpha` увеличивается до значения, при котором контраст выполняется без размытия (тот же тест, раздел 10).
-- Кнопки тулбара и «таблетки» переключателей — тот же материал, радиус 999px.
+- The sky layer sets `--glass-rgb` and `--glass-alpha` on `<html>` (section 6.6) based on the current phase and weather: blue by day, graphite in rain, dark blue at night. `SkyScript` sets initial values before first paint.
+- Dividers inside cards: `1px rgb(255 255 255 / 0.15)`.
+- Without `backdrop-filter` (older browsers): increase `--glass-alpha` to the value that meets contrast without blur (same test, section 10).
+- Toolbar buttons and switch pills use the same material, radius 999px.
 
-### 3.3 Типографика
+### 3.3 Typography
 
-- Стек: `-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Inter Variable', sans-serif`. Inter уже подгружается и остаётся фолбэком для не-Apple устройств. Все числа — `font-variant-numeric: tabular-nums`.
-- Шкала:
+- Stack: `-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Inter Variable', sans-serif`. Inter is already loaded and remains the fallback for non-Apple devices. All numbers use `font-variant-numeric: tabular-nums`.
+- Scale:
 
-| Роль | Размер / вес |
+| Role | Size / weight |
 |---|---|
-| Лучшее время в герое | `min(16vw, 104px)`, weight 200, line-height 1, letter-spacing −0.02em |
-| Город | 32px / 400 (мобильный), 40px на десктопе |
-| Строка вердикта | 20px / 500 |
-| Вторичные строки героя | 17px / 500 |
-| Eyebrow (H1, «➤ MY LOCATION») | 12px / 600, uppercase, letter-spacing 0.06em |
-| Заголовок карточки | 15px / 600 |
-| Подзаголовок карточки | 13px / 400, вторичный цвет |
-| Тело карточек, строки | 17px / 500 |
-| Значения в ленте часов | 17px / 500; метка часа 15px / 600 |
+| Best time in hero | `min(16vw, 104px)`, weight 200, line-height 1, letter-spacing −0.02em |
+| City | 32px / 400 (mobile), 40px on desktop |
+| Verdict line | 20px / 500 |
+| Secondary hero lines | 17px / 500 |
+| Eyebrow (H1, “➤ MY LOCATION”) | 12px / 600, uppercase, letter-spacing 0.06em |
+| Card title | 15px / 600 |
+| Card subtitle | 13px / 400, secondary color |
+| Card body, rows | 17px / 500 |
+| Hourly strip values | 17px / 500; hour label 15px / 600 |
 
-### 3.4 Сетка и отступы
+### 3.4 Grid and spacing
 
-- Мобильный: боковой отступ 16px, промежуток между карточками 12px, внутренний отступ карточки 16px.
-- Десктоп (≥ 1024px): контейнер до 1200px; две колонки `minmax(320px, 4fr) | 8fr`, промежуток 24px.
-- Нижний отступ контента: высота тулбара + 24px + `env(safe-area-inset-bottom)`.
+- Mobile: side margin 16px, card gap 12px, card padding 16px.
+- Desktop (≥ 1024px): container up to 1200px; two columns `minmax(320px, 4fr) | 8fr`, gap 24px.
+- Bottom content padding: toolbar height + 24px + `env(safe-area-inset-bottom)`.
 
-## 4. Раскладка
+## 4. Layout
 
-### 4.1 Главная, мобильный (< 1024px), сверху вниз
+### 4.1 Homepage, mobile (< 1024px), top to bottom
 
-1. **Верхний бар** (Astro `Header`): поверх неба, без фона. Слева «UV GO», справа ссылки UV Index / Risks / Protection. И логотип, и ссылки лежат на маленьких стеклянных «таблетках», чтобы их контраст не зависел от неба (в верхней зоне может быть яркое солнце, раздел 6.4). Переключателя темы нет.
-2. **Герой** (центрирован, ~300px высотой):
-   - eyebrow-H1: «Know the best time to go outside»;
-   - «➤ MY LOCATION» (только если место получено геолокацией);
-   - город;
-   - лучшее время `15:00–16:00` (метка окна из домена, в том числе `17:00–17:30`);
-   - строка вердикта: точка цвета вердикта + текст (`Good to go`, `OK with protection`, `Not recommended` — из `rules.verdictLabels`) + «· 1 h»;
-   - причина (`evaluation.reason`);
-   - строка «сейчас», аналог H:L: «Now UV 6 · Feels 24°» (для Tomorrow: «Peak UV 7 · Feels 18–24°»).
-   - Под героем, если сработал авто-переход на завтра, — стеклянная «таблетка» «Your free time today has passed — showing tomorrow».
-3. **Карточка Hourly** (раздел 4.3).
-4. **Карточка Your free time** (раздел 4.4).
-5. **What to take** (раздел 4.5).
-6. **How it works** — стеклянная карточка; таблицы правил по-прежнему рендерятся из `rules.config.ts`.
-7. **FAQ** — стеклянная карточка, вопросы как аккордеон на `<details>`/`<summary>` (без JS).
-8. **Футер** — мелкий вторичный текст прямо на небе на стеклянной подложке; содержание прежнее (атрибуция Open-Meteo обязательна).
-9. **Тулбар** — фиксирован снизу, раздел 4.6.
+1. **Top bar** (Astro `Header`): over the sky, no background. “UV GO” on the left, UV Index / Risks / Protection links on the right. Both logo and links sit on small glass pills so their contrast does not depend on the sky (the upper area may contain bright sun, section 6.4). No theme toggle.
+2. **Hero** (centered, ~300px tall):
+   - eyebrow-H1: “Know the best time to go outside”;
+   - “➤ MY LOCATION” (only for a place obtained through geolocation);
+   - city;
+   - best time `15:00–16:00` (window label from the domain, including `17:00–17:30`);
+   - verdict line: verdict-colored dot + text (`Good to go`, `OK with protection`, `Not recommended` — from `rules.verdictLabels`) + “· 1 h”;
+   - reason (`evaluation.reason`);
+   - “now” line, analogous to H:L: “Now UV 6 · Feels 24°” (for Tomorrow: “Peak UV 7 · Feels 18–24°”).
+   - Below the hero, if the automatic switch to tomorrow occurred, a glass pill: “Your free time today has passed — showing tomorrow”.
+3. **Hourly card** (section 4.3).
+4. **Your free time card** (section 4.4).
+5. **What to take** (section 4.5).
+6. **How it works** — glass card; rule tables still render from `rules.config.ts`.
+7. **FAQ** — glass card, questions as an accordion using `<details>`/`<summary>` (no JS).
+8. **Footer** — small secondary text directly over the sky on a glass backdrop; same content (Open-Meteo attribution is mandatory).
+9. **Toolbar** — fixed at the bottom, section 4.6.
 
-### 4.2 Главная, десктоп (≥ 1024px)
+### 4.2 Homepage, desktop (≥ 1024px)
 
-Как `ios4.jpeg`: герой в левой колонке, выровнен влево, `position: sticky; top: 96px`. Правая колонка: Hourly на всю ширину; ниже сетка из двух колонок: Your free time слева, справа столбик из What to take и карточки Plan (те же `PlanControls`, что в шторке). How it works и FAQ — под сеткой во всю ширину контейнера. В тулбаре нет кнопки Plan.
+Like `ios4.jpeg`: hero in the left column, left-aligned, `position: sticky; top: 96px`. Right column: full-width Hourly; below it a two-column grid: Your free time on the left, a stack of What to take and the Plan card on the right (same `PlanControls` as in the sheet). How it works and FAQ sit below the grid, spanning the container width. No Plan button in the toolbar.
 
-### 4.3 Карточка Hourly
+### 4.3 Hourly card
 
-- Шапка: заголовок «Hourly», подзаголовок с текущей метрикой («UV index», «Chance of rain (%)», «Feels like (°C)»). Справа переключатель метрики UV / Rain / Feels: три иконки на стеклянной «таблетке», как облако/капля/ветер в iOS; `role="radiogroup"`, у каждой иконки текстовое имя.
-- Тело: горизонтальная лента на все 24 часа дня, `overflow-x: auto`, scroll-snap по ячейкам, скроллбар скрыт.
-- Ячейка (ширина 56px): метка часа («Now» для текущего часа Today, иначе `14`), иконка погоды 28px (раздел 4.7), значение метрики, под ним точка вердикта 6px.
-- Ночные часы: иконка луны, точка цвета «ночь». Прошедшие часы Today: `opacity: 0.45`.
-- Восход и закат вставляются отдельными ячейками между часами по точному времени: «06:42» + иконка + «Sunrise» вместо значения (как «Sunset» в `ios2.jpeg`). Это не кнопки.
-- Свободное время: под ячейками этого диапазона — более светлая подложка `rgb(255 255 255 / 0.08)` со скруглением, общая для диапазона.
-- Лучшее окно: белая рамка 1.5px со скруглением 14px вокруг его ячеек.
-- Начальная прокрутка: к «Now» для Today, к началу свободного времени для Tomorrow.
-- Тап (или Enter/Space) по часу раскрывает внутри карточки панель деталей (существующее содержимое `HourDetails`: очки по факторам, причина, значения). Повторный тап или кнопка «Close» сворачивает её.
+- Header: “Hourly” title, subtitle with the current metric (“UV index”, “Chance of rain (%)”, “Feels like (°C)”). On the right, UV / Rain / Feels metric switch: three icons on a glass pill, like cloud/drop/wind in iOS; `role="radiogroup"`, each icon has a text name.
+- Body: horizontal strip covering all 24 hours, `overflow-x: auto`, scroll-snap by cell, hidden scrollbar.
+- Cell (56px wide): hour label (“Now” for the current hour Today, otherwise `14`), 28px weather icon (section 4.7), metric value, 6px verdict dot beneath it.
+- Night hours: moon icon, night-colored dot. Past hours Today: `opacity: 0.45`.
+- Sunrise and sunset appear as separate cells between hours at their exact times: “06:42” + icon + “Sunrise” instead of a value (like “Sunset” in `ios2.jpeg`). These are not buttons.
+- Free time: lighter backdrop `rgb(255 255 255 / 0.08)` with rounded corners beneath the cells in this range, shared across the range.
+- Best window: 1.5px white outline with 14px corner radius around its cells.
+- Initial scroll: to “Now” for Today, to the start of free time for Tomorrow.
+- Tap (or Enter/Space) on an hour expands a details panel inside the card (existing `HourDetails` content: factor points, reason, values). Another tap or the “Close” button collapses it.
 
-### 4.4 Карточка Your free time
+### 4.4 Your free time card
 
-- Шапка: «Your free time», подзаголовок «13:00–19:00 · Active · 1 h».
-- Семантически `<table>`: по строке на каждый час свободного времени. Заголовки колонок визуально скрыты, для скринридера видимы.
-- Колонки:
-  1. время (`14:00`; строки лучшего окна — weight 600 и маленькая метка «Best»);
-  2. иконка погоды и под ней процент дождя голубым, если ≥ 30%;
-  3. `UV 5` вторичным цветом;
-  4. бар скора — трек `rgb(255 255 255 / 0.12)` во всю ширину колонки, заливка от 0 до `min(score, 8) / 8` ширины, градиент шкалы фиксирован на всю длину трека, поэтому цвет конца заливки показывает тяжесть. Строке текущего часа добавляется белая точка в конце заливки, как маркер текущей температуры в iOS;
-  5. короткий вердикт: `Good` / `OK` / `Avoid` (новые короткие метки в `src/app/ui.ts`; полный текст вердикта — в визуально скрытой части ячейки).
-- Тёмные часы: иконка луны, вместо бара текст «Dark».
-- Строки с прошедшими часами (Today): `opacity: 0.45`.
+- Header: “Your free time”, subtitle “13:00–19:00 · Active · 1 h”.
+- Semantically a `<table>`: one row per free-time hour. Column headers are visually hidden, available to screen readers.
+- Columns:
+  1. time (`14:00`; best-window rows use weight 600 and a small “Best” label);
+  2. weather icon with blue rain percentage beneath it if ≥ 30%;
+  3. `UV 5` in the secondary color;
+  4. score bar — track `rgb(255 255 255 / 0.12)` spanning the column width, filled from 0 to `min(score, 8) / 8` of its width; the scale gradient is fixed across the full track, so the fill's endpoint color indicates severity. The current-hour row adds a white dot at the fill endpoint, like the current-temperature marker in iOS;
+  5. short verdict: `Good` / `OK` / `Avoid` (new short labels in `src/app/ui.ts`; full verdict text in a visually hidden part of the cell).
+- Dark hours: moon icon, “Dark” text instead of a bar.
+- Past-hour rows (Today): `opacity: 0.45`.
 
 ### 4.5 What to take
 
-- Сетка стеклянных плиток 2 колонки на мобильном, квадратные (`aspect-ratio: 1`), как «Averages» в `ios4.jpeg`.
-- Плитка: eyebrow с иконкой (существующие SVG из `icons/checklist/`, перекрашенные в белый) и названием, крупная строка-обоснование, мелкая строка-пояснение.
-- Обоснование считает чистая функция `tileReason(item, window, activity)` в `src/app/`, по часам лучшего окна:
-  - sunscreen — «UV up to 5»;
-  - hat-sunglasses — «UV up to 7»;
-  - rain-jacket — «Rain up to 60%»;
-  - water — «Active plan» для Active, иначе «Feels up to 27°»;
-  - warm-layer — «Feels down to 3°».
-- Пустой чек-лист: одна плитка на всю ширину «Nothing extra needed».
+- Grid of glass tiles, 2 columns on mobile, square (`aspect-ratio: 1`), like “Averages” in `ios4.jpeg`.
+- Tile: eyebrow with icon (existing SVGs from `icons/checklist/`, recolored white) and name, large justification line, small explanation line.
+- The pure function `tileReason(item, window, activity)` in `src/app/` calculates the justification from the best window's hours:
+  - sunscreen — “UV up to 5”;
+  - hat-sunglasses — “UV up to 7”;
+  - rain-jacket — “Rain up to 60%”;
+  - water — “Active plan” for Active, otherwise “Feels up to 27°”;
+  - warm-layer — “Feels down to 3°”.
+- Empty checklist: one full-width tile, “Nothing extra needed”.
 
-### 4.6 Тулбар, шторки, пейджер
+### 4.6 Toolbar, sheets, pager
 
-- **Тулбар:** фиксирован снизу по центру с отступом 12px + safe-area. Слева круглая стеклянная кнопка 48px «Plan» (иконка слайдеров). В центре стеклянная «таблетка» с двумя точками Today/Tomorrow (`role="tablist"`, у вкладок имена «Today» и «Tomorrow»). Справа кнопка 48px «Cities» (иконка списка). На десктопе кнопки Plan нет.
-- **Шторка Plan** (только < 1024px): автоматическая высота. Внутри `PlanControls`: Free time (существующий `FreeTimePicker`, перестилизованный), Duration и Activity (сегментированные контролы со скользящей «таблеткой»). Изменения применяются сразу, и герой за шторкой обновляется на глазах.
-- **Шторка Cities:** высота 92dvh. Внутри: поле поиска (существующая логика `CitySearch`, ARIA combobox), кнопка «Use my location», список результатов, сверху текущее место. Выбор места закрывает шторку.
-- **Общее поведение шторок** (`Sheet`): `role="dialog"`, `aria-modal="true"`, заголовок связан через `aria-labelledby`, на остальной странице `inert`, фокус ловится внутри, Esc и тап по фону закрывают, после закрытия фокус возвращается на кнопку-источник. Закрытие свайпом вниз за «ручку» (порог: 30% высоты или скорость > 500 px/s). Фон затемняется до `rgb(0 0 0 / 0.35)`.
-- **Пейджер Today/Tomorrow:** на устройствах с `pointer: coarse` контент героя и карточек можно свайпнуть по горизонтали. Направление фиксируется по первым 10px: если угол к горизонтали > 30°, жест отдаётся вертикальному скроллу. Переключение — при сдвиге ≥ 25% ширины или скорости > 500 px/s; на краях резиновое сопротивление (коэффициент 0.3). Жесты, начатые внутри ленты часов, пейджер не перехватывает. На десктопе — только точки и стрелки ←/→ на `tablist`.
+- **Toolbar:** fixed at bottom center, offset 12px + safe-area. Left: round 48px glass “Plan” button (sliders icon). Center: glass pill with two Today/Tomorrow dots (`role="tablist"`, tabs named “Today” and “Tomorrow”). Right: 48px “Cities” button (list icon). No Plan button on desktop.
+- **Plan sheet** (only < 1024px): automatic height. Contains `PlanControls`: Free time (existing `FreeTimePicker`, restyled), Duration and Activity (segmented controls with a sliding pill). Changes apply immediately, visibly updating the hero behind the sheet.
+- **Cities sheet:** 92dvh high. Contains a search field (existing `CitySearch` logic, ARIA combobox), “Use my location” button, results list, and current place at the top. Selecting a place closes the sheet.
+- **Shared sheet behavior** (`Sheet`): `role="dialog"`, `aria-modal="true"`, heading linked through `aria-labelledby`, rest of page `inert`, focus trapped inside, Esc and backdrop tap close it; closing restores focus to the trigger button. Swipe down on the handle to dismiss (threshold: 30% of height or velocity > 500 px/s). Backdrop dims to `rgb(0 0 0 / 0.35)`.
+- **Today/Tomorrow pager:** on `pointer: coarse` devices, hero and card content can be swiped horizontally. Lock direction within the first 10px: if the angle to horizontal is > 30°, pass the gesture to vertical scrolling. Switch at displacement ≥ 25% of width or velocity > 500 px/s; rubber-band resistance at edges (coefficient 0.3). The pager does not intercept gestures starting inside the hourly strip. On desktop, only dots and ←/→ arrows on the `tablist`.
 
-### 4.7 Иконки погоды
+### 4.7 Weather icons
 
-Набор SVG в `src/app/icons/weather/` в цветном стиле iOS: жёлтое солнце `#ffd60a`, белые облака, голубые капли `#64d2ff`, белые снежинки. Варианты:
+SVG set in `src/app/icons/weather/`, in the colorful iOS style: yellow sun `#ffd60a`, white clouds, blue drops `#64d2ff`, white snowflakes. Variants:
 - sun, moon;
 - partly-sun, partly-moon;
 - cloud, fog;
@@ -164,121 +164,121 @@
 - snow, thunder;
 - sunrise, sunset.
 
-Код погоды WMO сопоставляется с иконкой чистой функцией `weatherIcon(code, cloudCover, isDay)`. Она опирается на `skyConfig.weatherGroups` и дополнительно различает морось и ливень по коду.
+The pure function `weatherIcon(code, cloudCover, isDay)` maps WMO weather codes to icons. It uses `skyConfig.weatherGroups` and also distinguishes drizzle from heavy rain by code.
 
-### 4.8 Состояния героя
+### 4.8 Hero states
 
-| Состояние | Город | Большая строка | Ниже |
+| State | City | Large line | Below |
 |---|---|---|---|
-| Нет места (первый визит) | «Choose a place» | `--:--` | Кнопки «Use my location» и «Find a city» (открывает Cities) |
-| Загрузка | город | `--:--` с пульсацией opacity | строка «Loading forecast…» (`role="status"`); карточки — скелетоны |
-| Ошибка | город | `--:--` | «Couldn't load the forecast» + кнопка «Try again» |
-| Пустой результат (too-short / dark / past) | город | `—` | текст причины из нынешнего `EmptyState` + «Show tomorrow», где применимо |
-| Результат | город | метка окна | раздел 4.1 |
+| No place (first visit) | “Choose a place” | `--:--` | “Use my location” and “Find a city” buttons (opens Cities) |
+| Loading | city | `--:--` with pulsing opacity | “Loading forecast…” line (`role="status"`); skeleton cards |
+| Error | city | `--:--` | “Couldn't load the forecast” + “Try again” button |
+| Empty result (too-short / dark / past) | city | `—` | reason text from the current `EmptyState` + “Show tomorrow” where applicable |
+| Result | city | window label | section 4.1 |
 
-Карточки при состояниях без результата: Hourly и Your free time показывают скелетоны (загрузка) или скрываются (нет места, ошибка); What to take скрыта.
+Cards in states without a result: Hourly and Your free time show skeletons (loading) or hide (no place, error); What to take is hidden.
 
-### 4.9 Статьи и 404
+### 4.9 Articles and 404
 
-Стеклянная карточка с текстом статьи на статическом CSS-небе: градиент фазы по времени устройства из `SkyScript` плюс мягкое CSS-свечение солнца. WebGL на этих страницах не грузится. Таблица шкалы UV (`UvScaleTable`) оформлена как ряды в стиле «Your free time». Скролл-ревил на CSS (`animation-timeline: view()` под `@supports`) остаётся.
+Glass card containing article text over a static CSS sky: device-time phase gradient from `SkyScript` plus a soft CSS sun glow. WebGL does not load on these pages. The UV scale table (`UvScaleTable`) uses rows styled like “Your free time”. CSS scroll reveal (`animation-timeline: view()` inside `@supports`) remains.
 
-## 5. Анимации
+## 5. Animations
 
-### 5.1 Токены (`src/motion/tokens.ts`, заменяют текущие)
+### 5.1 Tokens (`src/motion/tokens.ts`, replacing current ones)
 
 ```ts
 export const springs = {
-  smooth: { type: 'spring', duration: 0.5, bounce: 0 },    // большинство переходов
-  snappy: { type: 'spring', duration: 0.3, bounce: 0.15 }, // нажатия, «таблетки»
-  sheet:  { type: 'spring', duration: 0.45, bounce: 0.08 },// шторки, пейджер
+  smooth: { type: 'spring', duration: 0.5, bounce: 0 },    // most transitions
+  snappy: { type: 'spring', duration: 0.3, bounce: 0.15 }, // presses, pills
+  sheet:  { type: 'spring', duration: 0.45, bounce: 0.08 },// sheets, pager
 } as const;
 export const durations = { fast: 0.15, base: 0.3, slow: 0.6 } as const;
 export const ease = [0.22, 1, 0.36, 1] as const;
 ```
 
-### 5.2 Первая хореография (данные пришли)
+### 5.2 Initial choreography (data arrives)
 
-Играет один раз на пару «место + день» (логика `useFirstResult` сохраняется). Константы — в `src/motion/choreography.ts`:
+Plays once per “place + day” pair (`useFirstResult` logic remains). Constants in `src/motion/choreography.ts`:
 
-| Шаг | Старт, с | Длительность | Что происходит |
+| Step | Start, s | Duration | What happens |
 |---|---|---|---|
-| `heroIn` | 0.05 | 0.30 | Время в герое: `blur(8px) → 0`, `y: 12 → 0`, `opacity 0 → 1`; затем строка вердикта (+0.06) |
-| `cardsIn` | 0.25 | 0.30, шаг 0.07 | Карточки по очереди: `y: 16 → 0`, `opacity 0 → 1` |
-| `hourScroll` | 0.45 | ~0.4 | Лента сама прокручивается к «Now» или к началу свободного времени |
-| `bestOutline` | 0.45 | 0.35 | Рамка лучшего окна прорисовывается по контуру (`pathLength`) |
-| `barsGrow` | 0.60 | 0.40, шаг 0.03 (суммарный шаг ≤ 0.2) | Бары в «Your free time» растут слева направо (`scaleX`, origin left) |
-| `tilesIn` | 0.70 | 0.30, шаг 0.05 | Плитки What to take: `scale 0.94 → 1`, `opacity 0 → 1` |
+| `heroIn` | 0.05 | 0.30 | Hero time: `blur(8px) → 0`, `y: 12 → 0`, `opacity 0 → 1`; then verdict line (+0.06) |
+| `cardsIn` | 0.25 | 0.30, stagger 0.07 | Cards sequentially: `y: 16 → 0`, `opacity 0 → 1` |
+| `hourScroll` | 0.45 | ~0.4 | Strip automatically scrolls to “Now” or the start of free time |
+| `bestOutline` | 0.45 | 0.35 | Best-window outline draws around its perimeter (`pathLength`) |
+| `barsGrow` | 0.60 | 0.40, stagger 0.03 (total stagger ≤ 0.2) | Bars in “Your free time” grow left to right (`scaleX`, origin left) |
+| `tilesIn` | 0.70 | 0.30, stagger 0.05 | What to take tiles: `scale 0.94 → 1`, `opacity 0 → 1` |
 
-`labelVisibleAt() = 0.35` (≤ 1.0), `totalDuration() ≈ 1.2` (≤ 1.8). Тест `choreography.test.ts` проверяет оба лимита.
+`labelVisibleAt() = 0.35` (≤ 1.0), `totalDuration() ≈ 1.2` (≤ 1.8). `choreography.test.ts` checks both limits.
 
-Нынешняя поисковая рамка и `layoutId`-перелёт метки (`best-window-label`) удаляются.
+Remove the current searching outline and `layoutId` label flight (`best-window-label`).
 
-### 5.3 Сворачивание героя
+### 5.3 Hero collapse
 
-- `useHeroCollapse` на `useScroll` и `useTransform`. Значения привязаны к скроллу напрямую, без пружин.
-- На участке 0–140px скролла:
-  - большое время уменьшается до 0.38 и поднимается;
-  - строки причины и «Now…» уходят в `opacity 0` за первые 60px;
-  - eyebrow и строка вердикта исчезают к 100px.
-- На участке 100–140px проявляется закреплённая строка `CollapsedBar` высотой 56px: «Lisbon · 15:00–16:00 | Good». Это заменяет `MiniResult`. Тап по строке плавно прокручивает к началу страницы (только указатель/касание: строка `aria-hidden` и не фокусируется, с клавиатуры есть skip-link и Home).
-- На десктопе сворачивания нет: герой закреплён в левой колонке.
+- `useHeroCollapse` uses `useScroll` and `useTransform`. Values map directly to scroll, without springs.
+- Over 0–140px of scrolling:
+  - large time scales down to 0.38 and moves up;
+  - reason and “Now…” lines reach `opacity 0` within the first 60px;
+  - eyebrow and verdict line disappear by 100px.
+- Over 100–140px, a fixed 56px-high `CollapsedBar` fades in: “Lisbon · 15:00–16:00 | Good”. This replaces `MiniResult`. Tapping smoothly scrolls to the page top (pointer/touch only: the bar is `aria-hidden` and not focusable; keyboard users have the skip-link and Home).
+- No collapse on desktop: the hero stays sticky in the left column.
 
-### 5.4 «Заезд» карточек под героя
+### 5.4 Cards tucking under the hero
 
-- Шапка каждой `GlassCard` имеет `position: sticky; top: <высота свёрнутого героя>`.
-- Тело обрезается сверху через `clip-path: inset(<overlap>px 0 0 0 round 22px)`. `overlap` считается от скролла в одном rAF-обработчике на все карточки (через `useScroll`, без React-ре-рендеров — только `MotionValue`).
-- Когда тело карточки уходит целиком, шапка уезжает вместе с карточкой.
-- **Запасной вариант:** если замер на устройстве (раздел 10) покажет < 50 fps при скролле, обрезку отключаем флагом `CARD_TUCK_CLIP = false` в `src/app/ui.ts`. Остаётся только прилипание шапки.
+- Each `GlassCard` header has `position: sticky; top: <collapsed hero height>`.
+- Clip the body from the top with `clip-path: inset(<overlap>px 0 0 0 round 22px)`. Calculate `overlap` from scroll in a single rAF handler for all cards (through `useScroll`, no React rerenders — only `MotionValue`).
+- Once the card body is fully gone, the header moves away with the card.
+- **Fallback:** if device measurements (section 10) show < 50 fps while scrolling, disable clipping with `CARD_TUCK_CLIP = false` in `src/app/ui.ts`. Only header stickiness remains.
 
-### 5.5 Перекат цифр (`NumericRoll`)
+### 5.5 Rolling digits (`NumericRoll`)
 
-- Строка делится на символы. Изменившиеся цифры анимируются: старая уезжает вверх на 0.6em с `blur(4px)` и `opacity 0`, новая въезжает снизу. Неизменные символы стоят на месте.
-- Пружина `smooth` за 0.35 с, сдвиг соседних изменившихся символов 0.03 с. Направление: вверх, если новое значение больше, иначе вниз.
-- Применяется к:
-  - лучшему времени в герое;
-  - значениям в ленте при смене метрики;
-  - строке «Now UV…».
-- Для скринридера `NumericRoll` отдаёт обычный текст (`aria-label` с итоговым значением, анимируемые символы `aria-hidden`).
+- Split the string into characters. Animate changed digits: the old one moves up by 0.6em with `blur(4px)` and `opacity 0`, the new one enters from below. Unchanged characters stay still.
+- `smooth` spring over 0.35 s, stagger 0.03 s between neighboring changed characters. Direction: up if the new value is larger, otherwise down.
+- Applies to:
+  - best time in the hero;
+  - values in the strip when changing metrics;
+  - the “Now UV…” line.
+- For screen readers, `NumericRoll` exposes plain text (`aria-label` with final value, animated characters `aria-hidden`).
 
-### 5.6 Остальное
+### 5.6 Other interactions
 
-- Смена дня: контент уезжает за палец или пружиной `sheet`, небо смешивается по прогрессу (раздел 6.5), активная точка в тулбаре расширяется в «пилюлю» 16×6px через `layoutId`.
-- Шторки: выезд пружиной `sheet`. Основная страница под шторкой: `scale 0.94`, `border-radius 16px`, затемнение.
-- Переключатель метрики и сегментированные контролы: «таблетка» через `layoutId` (механизм нынешнего `SegmentedControl`), пружина `snappy`.
-- Детали часа: раскрытие через `layout` на карточке, пружина `smooth`.
-- Нажатие (карточка-кнопка, плитка, кнопки тулбара, ячейки часов): `whileTap={{ scale: 0.97 }}`, пружина `snappy`.
+- Day change: content follows the finger or moves with the `sheet` spring; sky blends by progress (section 6.5); active toolbar dot expands into a 16×6px pill through `layoutId`.
+- Sheets: enter with the `sheet` spring. Main page beneath the sheet: `scale 0.94`, `border-radius 16px`, dimming.
+- Metric switch and segmented controls: pill through `layoutId` (current `SegmentedControl` mechanism), `snappy` spring.
+- Hour details: expansion through `layout` on the card, `smooth` spring.
+- Press (button card, tile, toolbar buttons, hour cells): `whileTap={{ scale: 0.97 }}`, `snappy` spring.
 
 ### 5.7 Reduced motion
 
-`MotionConfig reducedMotion="user"` + `useReducedMotion` в собственной логике.
+`MotionConfig reducedMotion="user"` + `useReducedMotion` in custom logic.
 
-- Перекат цифр, подъёмы, pop, рост баров, прорисовка рамки → кроссфейд ≤ 150 мс; значения сразу финальные.
-- Шторки и смена дня → фейд ≤ 150 мс без сдвига; свайп пейджера выключен, работают точки.
-- Масштаб фона под шторкой выключен.
-- Сворачивание героя по скроллу остаётся (им управляет скролл, это функция), но без размытия; обрезка карточек остаётся.
-- Небо: один статичный кадр (раздел 6.7).
+- Rolling digits, lifts, pop, bar growth, outline drawing → crossfade ≤ 150 ms; values immediately final.
+- Sheets and day changes → fade ≤ 150 ms without displacement; pager swipe disabled, dots work.
+- Background scaling beneath sheets disabled.
+- Scroll-driven hero collapse remains (scroll controls it; it is functionality), but without blur; card clipping remains.
+- Sky: one static frame (section 6.7).
 
-## 6. WebGL-небо
+## 6. WebGL sky
 
-### 6.1 Модули
+### 6.1 Modules
 
-| Файл | Ответственность |
+| File | Responsibility |
 |---|---|
-| `src/domain/skyUniforms.ts` | Чистая функция `skyUniforms(state: SkyState): SkyUniforms` и `glassTint(u: SkyUniforms)` |
-| `src/domain/skyUniforms.config.ts` | Палитры фаз, таблица погоды, пределы яркости, параметры стекла |
-| `src/app/sky/shader.ts` | Исходники вершинного и фрагментного шейдеров (строки) |
-| `src/app/sky/renderer.ts` | Создание контекста, компиляция, цикл rAF, сглаживание uniforms, адаптивное качество, пауза, обработка потери контекста. Без React |
-| `src/app/sky/SkyCanvas.tsx` | React-обёртка: монтирует canvas, передаёт целевые uniforms, ставит `--glass-rgb` / `--glass-alpha` на `<html>`, снимает `data-sky-live` при откате |
+| `src/domain/skyUniforms.ts` | Pure function `skyUniforms(state: SkyState): SkyUniforms` and `glassTint(u: SkyUniforms)` |
+| `src/domain/skyUniforms.config.ts` | Phase palettes, weather table, luminance limits, glass parameters |
+| `src/app/sky/shader.ts` | Vertex and fragment shader source (strings) |
+| `src/app/sky/renderer.ts` | Context creation, compilation, rAF loop, uniform smoothing, adaptive quality, pausing, context-loss handling. No React |
+| `src/app/sky/SkyCanvas.tsx` | React wrapper: mounts canvas, supplies target uniforms, sets `--glass-rgb` / `--glass-alpha` on `<html>`, removes `data-sky-live` on fallback |
 
-`SkyCanvas` подгружается через `React.lazy`, как нынешний `SkyLayer`. `useSky` (`useSkyRef.ts`) сохраняется как источник `SkyState`.
+`SkyCanvas` loads via `React.lazy`, like the current `SkyLayer`. `useSky` (`useSkyRef.ts`) remains the source of `SkyState`.
 
 ### 6.2 Uniforms
 
-`uTime`, `uResolution`; `uSkyTop`, `uSkyBottom` (vec3, градиент фазы); `uSunPos` (vec2, в долях экрана), `uSunIntensity` (0–1, от `uvGlow`); `uMoon` (0–1); `uStars` (0–1); `uCloudCover` (0–1), `uCloudDark` (0–1), `uCloudSpeed`; `uFog` (0–1); `uRain` (0–1), `uSnow` (0–1); `uGlassDrops` (0–1); `uFlash` (0–1, вспышка грозы); `uHeat` (0–1); `uMaxLuma` (предел яркости вне зоны солнца); `uSunZone` (нижняя граница зоны солнца, доля высоты).
+`uTime`, `uResolution`; `uSkyTop`, `uSkyBottom` (vec3, phase gradient); `uSunPos` (vec2, screen fractions), `uSunIntensity` (0–1, from `uvGlow`); `uMoon` (0–1); `uStars` (0–1); `uCloudCover` (0–1), `uCloudDark` (0–1), `uCloudSpeed`; `uFog` (0–1); `uRain` (0–1), `uSnow` (0–1); `uGlassDrops` (0–1); `uFlash` (0–1, lightning flash); `uHeat` (0–1); `uMaxLuma` (luminance limit outside the sun zone); `uSunZone` (lower edge of the sun zone, fraction of height).
 
-### 6.3 Таблица погоды (стартовые значения, в конфиге)
+### 6.3 Weather table (initial values, in config)
 
-| Погода | cloudCover | cloudDark | fog | rain | snow | glassDrops |
+| Weather | cloudCover | cloudDark | fog | rain | snow | glassDrops |
 |---|---|---|---|---|---|---|
 | clear | 0.08 | 0 | 0 | 0 | 0 | 0 |
 | partly | 0.45 | 0.05 | 0 | 0 | 0 | 0 |
@@ -288,54 +288,54 @@ export const ease = [0.22, 1, 0.36, 1] as const;
 | snow | 0.8 | 0.25 | 0.1 | 0 | 0.7 | 0 |
 | thunder | 1.0 | 0.75 | 0.1 | 1.0 | 0 | 0.8 |
 
-`wind` из `SkyState` удваивает `uCloudSpeed` и наклон дождя; `heat` даёт `uHeat = 1`; ночь (`phase === 'night'`) даёт `uStars = 1 − cloudCover`, `uMoon = 1`, `uSunIntensity = 0`.
+`wind` from `SkyState` doubles `uCloudSpeed` and rain slant; `heat` gives `uHeat = 1`; night (`phase === 'night'`) gives `uStars = 1 − cloudCover`, `uMoon = 1`, `uSunIntensity = 0`.
 
-### 6.4 Слои шейдера (по порядку)
+### 6.4 Shader layers (in order)
 
-1. Вертикальный градиент `uSkyTop → uSkyBottom`.
-2. Звёзды: хэш-шум по сетке, мерцание по `uTime`, маска `uStars`.
-3. Солнце: диск, широкое свечение, кольцо гало ~22° (тонкий радужный ободок низкой интенсивности), как на `ios1/ios3`. Луна — мягкий диск со свечением.
-4. Облака: fbm (4 октавы, на низком качестве 2) с доменным искажением, дрейф по `uTime * uCloudSpeed`. Подсветка со стороны `uSunPos`, затемнение `uCloudDark`.
-5. Туман: равномерная пелена, плотнее к низу.
-6. Дождь: косые штрихи в экранных координатах, 3 слоя глубины с разной скоростью. Снег: 3 слоя хлопьев с покачиванием.
-7. Капли на стекле: сетка ячеек с редкими размытыми линзами (смещение и подсветка фона), часть медленно сползает.
-8. Вспышка: `uFlash` осветляет облака; JS запускает её случайно раз в 6–14 с при грозе.
-9. Марево: лёгкое синусоидальное искажение координат в нижних 25% при `uHeat`.
-10. **Ограничение яркости:** вне зоны солнца (`y > uSunZone`) итоговый цвет масштабируется так, чтобы относительная яркость ≤ `uMaxLuma`. Солнце по `uSunPos.y` всегда помещается в верхнюю зону (`uSunZone`, по умолчанию верхние 18% экрана), где из текста только ссылки хедера на собственной стеклянной подложке.
+1. Vertical gradient `uSkyTop → uSkyBottom`.
+2. Stars: grid hash noise, twinkling with `uTime`, `uStars` mask.
+3. Sun: disk, broad glow, ~22° halo ring (thin low-intensity rainbow rim), like `ios1/ios3`. Moon: soft glowing disk.
+4. Clouds: fbm (4 octaves, 2 at low quality) with domain warping, drift by `uTime * uCloudSpeed`. Lighting from `uSunPos`, darkening by `uCloudDark`.
+5. Fog: uniform veil, denser toward the bottom.
+6. Rain: slanted strokes in screen coordinates, 3 depth layers at different speeds. Snow: 3 layers of swaying flakes.
+7. Glass drops: cell grid with sparse blurred lenses (background displacement and highlights), some slowly sliding down.
+8. Flash: `uFlash` brightens clouds; JS triggers it randomly every 6–14 s during thunderstorms.
+9. Heat haze: slight sinusoidal coordinate distortion in the bottom 25% with `uHeat`.
+10. **Luminance limit:** outside the sun zone (`y > uSunZone`), scale the final color so relative luminance ≤ `uMaxLuma`. Sun position `uSunPos.y` always lies in the upper zone (`uSunZone`, default top 18% of the screen), where the only text is header links on their own glass backdrop.
 
-### 6.5 Переходы
+### 6.5 Transitions
 
-- `renderer.ts` хранит текущие и целевые uniforms. Каждый кадр текущие подтягиваются к целевым: `cur += (target − cur) * (1 − exp(−dt / 0.4))`, то есть ~1.2 с до практически полного совпадения. Без Motion.
-- При свайпе пейджера `SkyCanvas` получает два набора (Today, Tomorrow) и прогресс 0–1. Цели — линейная смесь, поэтому небо идёт за пальцем.
+- `renderer.ts` stores current and target uniforms. Each frame, move current values toward targets: `cur += (target − cur) * (1 − exp(−dt / 0.4))`, i.e. ~1.2 s until nearly matched. No Motion.
+- During pager swipe, `SkyCanvas` receives two sets (Today, Tomorrow) and progress 0–1. Targets are a linear blend, so the sky follows the finger.
 
-### 6.6 Стекло из неба
+### 6.6 Glass derived from the sky
 
-- `glassTint(u)` берёт средний цвет неба (смесь `uSkyTop`/`uSkyBottom` с поправкой на облачность и затемнение), приглушает его к тёмному (яркость ×0.35) и возвращает `{ rgb, alpha }`.
-- `alpha` — максимум из базового `0.38` и минимального значения, при котором белый текст на этом стекле поверх фона яркостью `uMaxLuma` даёт ≥ 4.5:1.
-- `SkyCanvas` пишет результат в `--glass-rgb` / `--glass-alpha` при смене целей (не каждый кадр). CSS-переход 600 мс на `background-color` у `.glass`.
-- `SkyScript` (inline, до отрисовки) пишет стартовое стекло для фазы по времени устройства. Для этого таблицу `phase → glass` при сборке генерирует тот же модуль (как сейчас `skyRanges.ts`).
+- `glassTint(u)` takes the average sky color (blend of `uSkyTop`/`uSkyBottom` adjusted for cloud cover and darkening), dims it toward dark (luminance ×0.35), and returns `{ rgb, alpha }`.
+- `alpha` is the maximum of baseline `0.38` and the minimum value at which white text on this glass over a background of luminance `uMaxLuma` achieves ≥ 4.5:1.
+- `SkyCanvas` writes the result to `--glass-rgb` / `--glass-alpha` when targets change (not every frame). 600 ms CSS transition on `.glass` `background-color`.
+- `SkyScript` (inline, before paint) writes initial glass for the device-time phase. The same module generates the `phase → glass` table at build time (like current `skyRanges.ts`).
 
-### 6.7 Производительность и откат
+### 6.7 Performance and fallback
 
-- Canvas рендерится в разрешении `0.5 × CSS px` (не `devicePixelRatio`) и растягивается CSS.
-- Адаптивное качество: скользящее среднее времени кадра за 60 кадров. Если оно > 20 мс, разрешение падает до 0.35. Если всё ещё > 20 мс, облака уходят на 2 октавы, а цикл — на 30 fps. Назад качество не повышается до перезагрузки.
-- Пауза на `visibilitychange: hidden`. Старт цикла — через `requestIdleCallback` (фолбэк `setTimeout(…, 200)`) после гидратации, чтобы не попасть в LCP и TBT.
-- Reduced motion: один кадр при каждой смене целей (с завершёнными переходами), цикл не крутится. Частицы (дождь, снег, капли, вспышка, марево) в статичном кадре не рисуются.
-- Нет WebGL, ошибка компиляции или линковки, `webglcontextlost` — canvas удаляется, остаётся CSS-подложка `SkyScript`, стекло сохраняет значения по фазе. Без ошибок в консоли, кроме одного `console.warn`.
-- Появление: canvas проявляется поверх подложки за 400 мс после первого отрисованного кадра.
-- Ожидаемый вес чанка — 5–7 KB gzip. Он ленивый и в бюджет первичного JS не входит, но указывается в README рядом с остальными ленивыми чанками.
+- Canvas renders at `0.5 × CSS px` resolution (not `devicePixelRatio`) and is stretched with CSS.
+- Adaptive quality: rolling average frame time over 60 frames. If > 20 ms, resolution drops to 0.35. If still > 20 ms, clouds drop to 2 octaves and the loop to 30 fps. Quality does not rise again until reload.
+- Pause on `visibilitychange: hidden`. Start the loop via `requestIdleCallback` (fallback `setTimeout(…, 200)`) after hydration to avoid affecting LCP and TBT.
+- Reduced motion: one frame per target change (with transitions completed), no running loop. Particles (rain, snow, drops, flash, heat haze) are not drawn in the static frame.
+- No WebGL, compile/link failure, or `webglcontextlost`: remove canvas, retain the `SkyScript` CSS backdrop; glass retains phase-based values. No console errors apart from one `console.warn`.
+- Entrance: canvas fades in over the backdrop for 400 ms after its first rendered frame.
+- Expected chunk size: 5–7 KB gzip. It is lazy and excluded from the initial JS budget, but listed in README beside other lazy chunks.
 
-### 6.8 CSS-подложка
+### 6.8 CSS backdrop
 
-Шесть градиентов фаз (`--sky-*` в `global.css`) перекрашиваются в палитру iOS: насыщенный голубой день (`#2f6fd0 → #6aa6e8`), тёмно-синяя ночь (`#0b1530 → #1d2c55`), тёплые рассвет и сумерки, графитовые варианты для пасмурной погоды не нужны (у подложки погоды нет). Каждый градиент обязан укладываться в `uMaxLuma` (проверяется тестом). Палитры фаз шейдера и подложки берутся из одного конфига.
+Recolor the six phase gradients (`--sky-*` in `global.css`) to the iOS palette: saturated blue day (`#2f6fd0 → #6aa6e8`), dark blue night (`#0b1530 → #1d2c55`), warm dawn and dusk; graphite overcast variants are unnecessary (the backdrop has no weather). Every gradient must stay within `uMaxLuma` (verified by test). Shader and backdrop phase palettes come from one config.
 
-## 7. Структура кода
+## 7. Code structure
 
-### 7.1 Остаётся
+### 7.1 Retained
 
-`src/domain/**`, `src/data/**`, `src/app/state.ts`, хуки `useForecastLoader`, `useNow`, `useCitySearch`, `useFirstResult`, `useSkyRef`, `src/motion/MotionProvider.tsx`, `src/motion/features.ts`, `src/seo/**`, контент (`src/content/**`), страницы (`src/pages/**`) с правками разметки. Логика `LocationPicker`, `CitySearch`, `FreeTimePicker`, `SegmentedControl`, `HourDetails` переиспользуется с новым оформлением.
+`src/domain/**`, `src/data/**`, `src/app/state.ts`, hooks `useForecastLoader`, `useNow`, `useCitySearch`, `useFirstResult`, `useSkyRef`, `src/motion/MotionProvider.tsx`, `src/motion/features.ts`, `src/seo/**`, content (`src/content/**`), pages (`src/pages/**`) with markup changes. Reuse `LocationPicker`, `CitySearch`, `FreeTimePicker`, `SegmentedControl`, `HourDetails` logic with new styling.
 
-### 7.2 Новое
+### 7.2 New
 
 ```
 src/app/
@@ -354,95 +354,95 @@ src/app/
 src/domain/skyUniforms.ts, src/domain/skyUniforms.config.ts
 ```
 
-### 7.3 Удаляется
+### 7.3 Removed
 
-`ResultCard`, `MiniResult`, `DayArcTimeline`, `HourStrip`, `LoadingSun`, `TimelineSkeleton`, `EmptyState` и `ErrorState` (их тексты уходят в `Hero`), `SkyLayer`, `VerdictIcon`, хуки `useCardOffscreen` и `useCountUp`, `src/app/theme.ts`, `src/components/ThemeToggle.astro`, `src/components/ThemeScript.astro`, `src/components/Hero.astro`, светлая и тёмная палитры и `@custom-variant dark` в `global.css`, CSS частиц и вуалей неба. Вместе с ними удаляются их тесты (`theme.test.ts`, `timeline.test.tsx` и др.), а покрытие переносится в тесты новых компонентов.
+`ResultCard`, `MiniResult`, `DayArcTimeline`, `HourStrip`, `LoadingSun`, `TimelineSkeleton`, `EmptyState` and `ErrorState` (their text moves to `Hero`), `SkyLayer`, `VerdictIcon`, hooks `useCardOffscreen` and `useCountUp`, `src/app/theme.ts`, `src/components/ThemeToggle.astro`, `src/components/ThemeScript.astro`, `src/components/Hero.astro`, light and dark palettes and `@custom-variant dark` in `global.css`, sky particle and veil CSS. Their tests (`theme.test.ts`, `timeline.test.tsx`, etc.) are also removed, with coverage transferred to tests for new components.
 
-### 7.4 Состояние UI
+### 7.4 UI state
 
-Открытость шторок, выбранная метрика ленты и прогресс свайпа — локальное состояние компонентов (`useState`/`MotionValue`), в reducer не добавляются. `selectedHour` и `day` остаются в reducer.
+Sheet openness, selected strip metric, and swipe progress are local component state (`useState`/`MotionValue`), not added to the reducer. `selectedHour` and `day` remain in the reducer.
 
-## 8. Доступность
+## 8. Accessibility
 
-- **Лента часов:** контейнер `role="group"` с `aria-label="Hourly forecast"`. Ячейки часов — `<button>` с именем вида «14:00, UV 5, rain 30%, OK with protection» и `aria-pressed` для выбранного. Навигация roving tabindex: ←/→ по часам, Home/End.
-- **Переключатель метрики** — `radiogroup`. Сегментированные контролы остаются `radiogroup` (как сейчас, e2e опирается на `role="radio"`).
-- **«Your free time»** — `<table>` с `<caption>` и `<th scope="col">`.
-- **Точки дней** — `tablist`, вкладки «Today»/«Tomorrow», панель контента — `tabpanel`.
-- **Шторки** — раздел 4.6.
-- **Объявления:** `aria-live="polite"` с текстом результата остаётся. Свёрнутая строка героя `aria-hidden` (дублирует героя).
-- **Прочее:**
-  - цели нажатия ≥ 44×44px;
-  - вердикт всегда с текстом;
-  - декоративное небо и иконки погоды `aria-hidden` (смысл есть в именах ячеек);
-  - skip-link остаётся;
-  - всё доступно с клавиатуры, видимый фокус на любом небе (3.1).
+- **Hourly strip:** `role="group"` container with `aria-label="Hourly forecast"`. Hour cells are `<button>` elements named like “14:00, UV 5, rain 30%, OK with protection” and `aria-pressed` for the selected one. Roving tabindex navigation: ←/→ through hours, Home/End.
+- **Metric switch** is a `radiogroup`. Segmented controls remain `radiogroup` (as now; e2e relies on `role="radio"`).
+- **“Your free time”** is a `<table>` with `<caption>` and `<th scope="col">`.
+- **Day dots** are a `tablist`, “Today”/“Tomorrow” tabs, content panel is `tabpanel`.
+- **Sheets** — section 4.6.
+- **Announcements:** retain `aria-live="polite"` with result text. Collapsed hero line is `aria-hidden` (duplicates hero).
+- **Other:**
+  - touch targets ≥ 44×44px;
+  - verdict always includes text;
+  - decorative sky and weather icons are `aria-hidden` (meaning conveyed by cell names);
+  - skip-link remains;
+  - everything keyboard-accessible, visible focus against any sky (3.1).
 
-## 9. SEO и стабильность раскладки
+## 9. SEO and layout stability
 
-- H1 «Know the best time to go outside» — eyebrow героя. Рендерится и в серверном `Placeholder`, и в приложении одинаково, поэтому остаётся текстовым LCP-элементом без JS.
-- Title, description, JSON-LD (WebApplication, FAQPage), sitemap, robots, OG — без изменений. OG-картинки перегенерировать под новый стиль (`scripts/make-og.mjs`) — отдельной задачей в этапе 7.
-- **`Placeholder`** резервирует:
-  - высоту героя (фиксированная, 300px мобильный);
-  - высоту Hourly (фиксированная);
-  - высоту «Your free time» = `(end − start) × 44px + шапка`.
-- **Inline-скрипт** (развитие `reservePlaceLayout`) до первой отрисовки читает сохранённые место и входные данные из localStorage и выставляет `data-has-place` и CSS-переменную `--free-rows`. При ошибке чтения — значения по умолчанию.
-- How it works и FAQ рендерятся сервером, как сейчас.
+- H1 “Know the best time to go outside” is the hero eyebrow. Rendered identically in server `Placeholder` and app, so remains a text LCP element without JS.
+- Title, description, JSON-LD (WebApplication, FAQPage), sitemap, robots, OG — unchanged. Regenerate OG images in the new style (`scripts/make-og.mjs`) as a separate task in stage 7.
+- **`Placeholder`** reserves:
+  - hero height (fixed, 300px mobile);
+  - Hourly height (fixed);
+  - “Your free time” height = `(end − start) × 44px + header`.
+- **Inline script** (extension of `reservePlaceLayout`) reads saved place and inputs from localStorage before first paint and sets `data-has-place` and CSS variable `--free-rows`. On read failure, use defaults.
+- How it works and FAQ render on the server, as now.
 
-## 10. Тестирование
+## 10. Testing
 
-**Без изменений:** доменные тесты `src/domain/__tests__/**`, тесты данных, `state.test.ts`, SEO-тесты.
+**Unchanged:** domain tests `src/domain/__tests__/**`, data tests, `state.test.ts`, SEO tests.
 
-**Новые и переписанные юнит- и компонентные тесты (Vitest + RTL):**
-- `skyUniforms`: каждая погода и фаза дают значения из таблицы; ночь гасит солнце; `wind` и `heat` применяются.
-- Контраст (наследник `skyContrast.test.ts`): для каждой комбинации «фаза × погода» белый `#fff` и вторичный текст на стекле `glassTint(...)` поверх фона яркостью `uMaxLuma` ≥ 4.5:1; крупный текст героя поверх скрима героя ≥ 3:1, мелкие строки героя ≥ 4.5:1; каждый CSS-градиент подложки ≤ `uMaxLuma`; стекло без `backdrop-filter` тоже проходит.
+**New and rewritten unit and component tests (Vitest + RTL):**
+- `skyUniforms`: each weather and phase yields table values; night extinguishes the sun; `wind` and `heat` apply.
+- Contrast (successor to `skyContrast.test.ts`): for each “phase × weather” combination, white `#fff` and secondary text on `glassTint(...)` glass over a background of luminance `uMaxLuma` ≥ 4.5:1; large hero text over the hero scrim ≥ 3:1, small hero lines ≥ 4.5:1; each CSS backdrop gradient ≤ `uMaxLuma`; glass without `backdrop-filter` also passes.
 - `choreography.test.ts`: `labelVisibleAt() ≤ 1.0`, `totalDuration() ≤ 1.8`.
-- `NumericRoll`: разбиение на символы, неизменные символы не анимируются, доступное имя = итоговый текст.
-- `weatherIcon`: покрытие всех групп кодов WMO, день и ночь.
-- `tileReason`: каждый пункт чек-листа и пустой список.
-- `HourlyCard`: имена ячеек, клавиатура (←/→/Home/End), выбор часа открывает детали, смена метрики меняет значения, ячейки восхода и заката.
-- `FreeTimeCard`: число строк = длина свободного времени, отметка «Best», «Dark» для ночных часов.
-- `Sheet`: фокус внутри, Esc закрывает, фокус возвращается, фон `inert`.
-- `DayDots`/`DayPager`: клавиатура на `tablist`, переключение дня диспатчит `setDay`.
-- `Hero`: все состояния из 4.8.
-- `UvGoApp.test.tsx`: интеграция по новым ролям.
-- `SkyCanvas` в jsdom (нет WebGL): откат на подложку, стекло выставлено по фазе, нет исключений.
-- Reduced motion: финальные значения сразу, нет свайпа пейджера.
+- `NumericRoll`: character splitting, unchanged characters do not animate, accessible name = final text.
+- `weatherIcon`: coverage of all WMO code groups, day and night.
+- `tileReason`: every checklist item and empty list.
+- `HourlyCard`: cell names, keyboard (←/→/Home/End), selecting an hour opens details, changing metrics changes values, sunrise and sunset cells.
+- `FreeTimeCard`: row count = free-time length, “Best” label, “Dark” for night hours.
+- `Sheet`: focus trapped, Esc closes, focus restored, background `inert`.
+- `DayDots`/`DayPager`: keyboard on `tablist`, changing day dispatches `setDay`.
+- `Hero`: all states from 4.8.
+- `UvGoApp.test.tsx`: integration using new roles.
+- `SkyCanvas` in jsdom (no WebGL): backdrop fallback, glass set by phase, no exceptions.
+- Reduced motion: final values immediately, no pager swipe.
 
-**e2e (Playwright, API замоканы, 390×844 и 1280×800):**
-- happy path: поиск города в шторке Cities → результат в герое → открыть Plan → «3 h» → метка окна меняется и длина окна = 3 ч;
-- геолокация отклонена: кнопка «Use my location» в герое → сообщение-фолбэк;
-- Esc закрывает шторку, фокус на кнопке тулбара;
-- свайп по контенту на touch-вьюпорте переключает на Tomorrow;
-- 1280×800: карточка Plan видна без шторки;
-- `a11y.spec.ts`: axe на всех страницах (одна тема).
+**e2e (Playwright, mocked APIs, 390×844 and 1280×800):**
+- happy path: city search in Cities sheet → hero result → open Plan → “3 h” → window label changes and window length = 3 h;
+- geolocation denied: “Use my location” button in hero → fallback message;
+- Esc closes sheet, focus on toolbar button;
+- swiping content on a touch viewport switches to Tomorrow;
+- 1280×800: Plan card visible without a sheet;
+- `a11y.spec.ts`: axe on all pages (one theme).
 
-**CI без изменений:** lint, `astro check`, unit, e2e, build, бюджет бандла, Lighthouse CI.
+**CI unchanged:** lint, `astro check`, unit, e2e, build, bundle budget, Lighthouse CI.
 
-**Ручные проверки автора (не блокируют CI, фиксируются в README):** FPS при скролле и на небе в Chrome DevTools с CPU ×4 и на реальном Android среднего уровня; решение по флагу `CARD_TUCK_CLIP` (5.4).
+**Author's manual checks (do not block CI, recorded in README):** scroll and sky FPS in Chrome DevTools with CPU ×4 and on a real midrange Android device; decision on `CARD_TUCK_CLIP` flag (5.4).
 
-## 11. Этапы
+## 11. Stages
 
-Каждый этап заканчивается зелёным CI и отдельным коммитом (или серией).
+Every stage ends with green CI and a separate commit (or series).
 
-1. **Основа:**
-   - удалить темы (`ThemeToggle`, `ThemeScript`, `theme.ts`, палитры);
-   - новые токены, `.glass`, типографика;
-   - перекрасить CSS-подложку;
-   - хедер и футер в новом стиле.
-2. **Статическая раскладка приложения:** `Hero` со всеми состояниями, `GlassCard`, `HourlyCard`, `FreeTimeCard`, `TakeTiles`, иконки погоды, десктопная сетка с карточкой Plan. Удаление старых компонентов. How it works и FAQ в стекле.
-3. **Навигация:** `Toolbar`, `Sheet`, `PlanSheet`, `CitiesSheet`, `DayDots`, `DayPager`. Обновление e2e.
-4. **Анимации:** токены, хореография, `NumericRoll`, сворачивание героя, «заезд» карточек, шторки, пейджер, микровзаимодействия, reduced motion.
-5. **WebGL-небо:** `skyUniforms`, шейдер, renderer, `SkyCanvas`, стекло из неба, тест контраста.
-6. **Статьи и 404** в новом стиле.
-7. **Документация:** README (Stack, Motion decisions, Performance, Lottie — без изменений по сути), перегенерация OG-картинок.
+1. **Foundation:**
+   - remove themes (`ThemeToggle`, `ThemeScript`, `theme.ts`, palettes);
+   - new tokens, `.glass`, typography;
+   - recolor CSS backdrop;
+   - header and footer in the new style.
+2. **Static app layout:** `Hero` with all states, `GlassCard`, `HourlyCard`, `FreeTimeCard`, `TakeTiles`, weather icons, desktop grid with Plan card. Remove old components. How it works and FAQ in glass.
+3. **Navigation:** `Toolbar`, `Sheet`, `PlanSheet`, `CitiesSheet`, `DayDots`, `DayPager`. Update e2e.
+4. **Animations:** tokens, choreography, `NumericRoll`, hero collapse, card tucking, sheets, pager, microinteractions, reduced motion.
+5. **WebGL sky:** `skyUniforms`, shader, renderer, `SkyCanvas`, sky-derived glass, contrast test.
+6. **Articles and 404** in the new style.
+7. **Documentation:** README (Stack, Motion decisions, Performance, Lottie — substantively unchanged), regenerate OG images.
 
-## 12. Риски
+## 12. Risks
 
-| Риск | Мера |
+| Risk | Mitigation |
 |---|---|
-| Обрезка карточек при скролле тормозит на слабых Android | Флаг `CARD_TUCK_CLIP`, замер на устройстве (5.4) |
-| Шейдер тяжёл для слабых GPU | Пониженное разрешение, адаптивное качество, 30 fps, пауза вне вкладки (6.7) |
-| AA-контраст белого текста против яркого неба | Предел `uMaxLuma`, солнце в верхней зоне, плотность стекла из теста (6.4, 6.6). Небо будет чуть глубже, чем в iOS: iOS сама AA не выдерживает, мы выдерживаем |
-| `backdrop-filter` дорогой при многих карточках | Не больше ~6 стеклянных поверхностей в первом экране; `will-change` не ставим постоянно |
-| Свайп пейджера конфликтует с вертикальным скроллом и горизонтальной лентой часов | Фиксация направления по первым 10px; жесты внутри ленты часов пейджер не перехватывает |
-| CLS от строк «Your free time» | Резерв высоты по сохранённым данным до отрисовки (раздел 9) |
+| Card clipping during scroll slows down low-end Android devices | `CARD_TUCK_CLIP` flag, on-device measurement (5.4) |
+| Shader too heavy for low-end GPUs | Lower resolution, adaptive quality, 30 fps, pause outside the tab (6.7) |
+| AA contrast of white text against bright sky | `uMaxLuma` limit, sun in upper zone, glass opacity determined by test (6.4, 6.6). Sky will be slightly deeper than iOS: iOS itself does not meet AA; we do |
+| `backdrop-filter` costly with many cards | No more than ~6 glass surfaces above the fold; do not keep `will-change` permanently |
+| Pager swipe conflicts with vertical scroll and horizontal hourly strip | Direction lock within first 10px; pager does not intercept gestures inside hourly strip |
+| CLS from “Your free time” rows | Reserve height from saved data before paint (section 9) |

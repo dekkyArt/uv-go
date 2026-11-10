@@ -51,7 +51,7 @@ npm run dev
 
 CI (`.github/workflows/ci.yml`) runs lint, type check, unit tests, e2e, build, the bundle budget and Lighthouse CI on every push and pull request. After all checks pass, pushes to `main` deploy the verified `dist/` artifact to Cloudflare Pages.
 
-See [Cloudflare Pages setup and deployment instructions (RU)](docs/cloudflare-pages.md) for project creation, GitHub secrets and variables, the production URL, and rollback.
+See [Cloudflare Pages setup and deployment instructions](docs/cloudflare-pages.md) for project creation, GitHub secrets and variables, the production URL, and rollback.
 
 ## Optional Google Analytics
 

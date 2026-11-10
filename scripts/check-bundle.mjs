@@ -1,4 +1,4 @@
-// Performance budget check (ТЗ 12.1, controller ruling R17 as revised).
+// Performance budget check (spec 12.1, controller ruling R17 as revised).
 //
 // For every dist/**/index.html it sums the gzip size of all JavaScript the page
 // can load in normal use:
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
 
-/** Budgets in bytes (1 KB = 1000 B, ТЗ 12.1). */
+/** Budgets in bytes (1 KB = 1000 B, spec 12.1). */
 const HOME_BUDGET = 130 * 1000;
 const PAGE_BUDGET = 2 * 1000;
 

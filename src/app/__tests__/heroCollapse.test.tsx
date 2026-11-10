@@ -175,6 +175,8 @@ describe('Hero collapse', () => {
 
   it('shrinks the time and fades the lines with the scroll position', async () => {
     const { container } = render(<Harness enabled />);
+    // Let LazyMotion mount its renderer before driving the scroll values.
+    await act(() => vi.dynamicImportSettled());
     scrollTo(COLLAPSE_DISTANCE);
     await vi.waitFor(() => expect(wrapper(container).style.transform).toContain('scale(0.38'));
     expect(screen.getByText('UV is low')).toHaveStyle({ opacity: '0' });
@@ -184,6 +186,8 @@ describe('Hero collapse', () => {
   it('keeps folding with reduced motion', async () => {
     prefs.reduced = true;
     const { container } = render(<Harness enabled />);
+    // Let LazyMotion mount its renderer before driving the scroll values.
+    await act(() => vi.dynamicImportSettled());
     scrollTo(COLLAPSE_DISTANCE);
     await vi.waitFor(() => expect(wrapper(container).style.transform).toContain('scale(0.38'));
   });

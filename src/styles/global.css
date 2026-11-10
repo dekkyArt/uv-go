@@ -356,6 +356,33 @@ html[data-sheet-open] [data-page] {
   overflow: clip;
 }
 
+@media (width < 1024px) {
+  /* Safari samples the document outside the viewport behind its browser controls.
+   * Use the same opaque tint for that canvas and the mobile sheet. */
+  html[data-sheet-open],
+  [data-sheet-panel] {
+    background-color: rgb(var(--glass-rgb));
+  }
+
+  [data-sheet-panel] {
+    backdrop-filter: none;
+  }
+
+  /* The keyboard can lift the panel above the layout viewport's bottom. Continue
+   * its surface below that edge so Safari cannot expose the page or app toolbar.
+   * This follows the panel during its enter/exit and drag animations. */
+  [data-sheet-panel]::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: -1px;
+    right: -1px;
+    height: 100lvh;
+    background: inherit;
+    pointer-events: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-page],
   html[data-sheet-open] [data-page] {

@@ -26,6 +26,30 @@ test('Cities fits above the keyboard after the visual viewport shrinks and pans'
   const input = await dialog.getByRole('combobox').boundingBox();
   expect(input!.y).toBeGreaterThanOrEqual(80);
   expect(input!.y + input!.height).toBeLessThanOrEqual(440);
+
+  // Safari's translucent controls expose the area below the visual viewport.
+  // It must continue the sheet's solid surface rather than reveal the page/toolbar.
+  const surface = await dialog.evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(surface).toMatch(/^rgb\(/);
+  await expect(page.locator('html')).toHaveCSS('background-color', surface);
+  const shot = await page.screenshot();
+  const colors = await page.evaluate(async (base64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${base64}`;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, 0, 0);
+    return [430, 500, 800].map((y) => [...ctx.getImageData(180, y, 1, 1).data]);
+  }, shot.toString('base64'));
+  expect(colors[1]).toEqual(colors[0]);
+  expect(colors[2]).toEqual(colors[0]);
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('html')).not.toHaveCSS('background-color', surface);
 });
 
 test('Cities keeps scroll reveal timelines attached to the document while locking scroll', async ({

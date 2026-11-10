@@ -146,6 +146,7 @@ export function Sheet({
             <m.div
               key="panel"
               ref={panelRef}
+              data-sheet-panel
               role="dialog"
               aria-modal="true"
               aria-labelledby={titleId}

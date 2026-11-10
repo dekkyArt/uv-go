@@ -1,20 +1,28 @@
 ---
+import logo from '../../public/logo.svg?raw';
+
 const links = [
   { href: '/uv-index/', label: 'UV Index' },
   { href: '/uv-risks/', label: 'Risks' },
   { href: '/sun-protection/', label: 'Protection' },
 ];
 
-// Each pill is its own glass, so the link text keeps its contrast whatever the sky is doing
-// behind it (the sun can sit in the top zone, spec 6.4).
+// The navigation glass keeps link text readable over the sun zone (spec 6.4).
 const pill =
   'glass inline-flex min-h-11 items-center rounded-full text-[15px] font-semibold text-text';
 ---
 
 <header>
   <div class="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-2 px-4 pt-3">
-    <a href="/" class={`${pill} px-3`}>
-      UV GO
+    <a
+      href="/"
+      data-logo-link
+      class="sky-text inline-flex min-h-11 shrink-0 items-center gap-2 text-lg font-bold text-text sm:gap-3 sm:px-3 sm:text-xl"
+    >
+      <span class="brand-symbol block aspect-[324/361] h-9 shrink-0 sm:h-11" set:html={logo} />
+      <span data-logo-wordmark class="inline-block origin-left">
+        UV GO
+      </span>
     </a>
     <nav aria-label="Main" class={`${pill} px-1`}>
       {links.map((link) => (
@@ -28,3 +36,55 @@ const pill =
     </nav>
   </div>
 </header>
+
+<style>
+  .brand-symbol :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    /* The centre of the letter, in the original SVG viewBox. */
+    transform-origin: 62.35% 50.69%;
+  }
+</style>
+
+<script>
+  for (const link of document.querySelectorAll<HTMLElement>('[data-logo-link]')) {
+    const symbol = link.querySelector<SVGSVGElement>('[data-logo-symbol]')!;
+    const wordmark = link.querySelector<HTMLElement>('[data-logo-wordmark]')!;
+    const allowed = matchMedia(
+      '(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)',
+    );
+    let hovered = false;
+    let motion: ReturnType<typeof import('../motion/logo').createLogoMotion> | undefined;
+    let loading: Promise<void> | undefined;
+
+    link.addEventListener('pointerenter', (event) => {
+      if (event.pointerType === 'touch' || !allowed.matches) return;
+      hovered = true;
+      if (motion) {
+        motion.setHovered(true);
+        return;
+      }
+      // Keep article pages light: load the spring engine only on the first mouse hover.
+      loading ??= import('../motion/logo')
+        .then(({ createLogoMotion }) => {
+          motion = createLogoMotion(symbol, wordmark);
+          if (hovered && allowed.matches) motion.setHovered(true);
+        })
+        .catch(() => {
+          loading = undefined;
+        });
+    });
+    link.addEventListener('pointerleave', () => {
+      hovered = false;
+      motion?.setHovered(false);
+    });
+    const reset = () => {
+      hovered = false;
+      motion?.reset();
+    };
+    allowed.addEventListener('change', reset);
+    window.addEventListener('pagehide', reset);
+  }
+</script>

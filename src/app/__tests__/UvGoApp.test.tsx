@@ -230,7 +230,7 @@ describe('UvGoApp', () => {
     await findHeroTime('13:00–14:00');
     expect(dayRadio('Tomorrow')).toHaveAttribute('aria-checked', 'true');
     expect(dayRadio('Today')).toHaveAttribute('aria-checked', 'false');
-    expect(screen.getByText('Peak UV 5 · Feels 20°')).toBeInTheDocument();
+    expect(screen.getByText('Tomorrow’s peak UV 5 · Feels 20°')).toBeInTheDocument();
     expect(window.localStorage.getItem('uvgo:inputs') ?? '').not.toContain('tomorrow');
   });
 

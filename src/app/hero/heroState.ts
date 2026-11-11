@@ -9,6 +9,7 @@ export function heroState(
   evaluation: EvaluationResult | null,
   now: NowLocal | null,
 ): HeroState {
+  void now; // Retain the call signature for callers supplying the local clock.
   const { place, inputs } = state;
   if (place === null) return { kind: 'no-place' };
   if (state.forecast.status === 'error') return { kind: 'error', place };
@@ -28,6 +29,6 @@ export function heroState(
     best: evaluation.best,
     reason: evaluation.reason,
     duration: inputs.duration,
-    nowLine: nowLine(evaluation.scoredHours, inputs.day, now),
+    nowLine: nowLine(evaluation.scoredHours, inputs.day),
   };
 }

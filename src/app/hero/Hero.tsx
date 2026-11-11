@@ -1,3 +1,4 @@
+import { windowUvLine, windowVerdictLabel } from './heroText';
 import { m, useReducedMotion, type TargetAndTransition } from 'motion/react';
 import type { ReactNode, Ref } from 'react';
 import type { Place } from '../../data/types';
@@ -11,7 +12,6 @@ import {
   durationLabel,
   GEO_ERROR,
   VERDICT_FILL_CLASS,
-  verdictLabel,
 } from '../ui';
 import { NumericRoll } from '../components/NumericRoll';
 import { PinEditIcon } from '../icons/PinEditIcon';
@@ -211,9 +211,14 @@ export function Hero({
               data-verdict={state.best.verdict}
               className={`size-2.5 shrink-0 rounded-full ${VERDICT_FILL_CLASS[state.best.verdict]}`}
             />
-            <span>{`${verdictLabel(state.best.verdict)} · ${durationLabel(state.duration)}`}</span>
+            <span>{`${windowVerdictLabel(state.best)} · ${durationLabel(state.duration)}`}</span>
           </m.p>
         </m.div>
+        {windowUvLine(state.best) ? (
+          <m.p style={{ opacity: fold?.detailsOpacity }} className={SECONDARY_LINE}>
+            {windowUvLine(state.best)}
+          </m.p>
+        ) : null}
         {state.reason ? (
           <m.p style={{ opacity: fold?.detailsOpacity }} className={SECONDARY_LINE}>
             {state.reason}

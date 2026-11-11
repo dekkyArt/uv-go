@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { YOUR_LOCATION_ID, yourLocationPlace } from '../../data/geolocation';
 import type { Place } from '../../data/types';
-import type { NowLocal, ScoredHour } from '../../domain/types';
-import { nowLine, placeTitle } from '../hero/heroText';
+import type { ScoredHour } from '../../domain/types';
+import { makeWindow } from '../../domain/__tests__/factories';
+import { windowVerdictLabel, windowUvLine, nowLine, placeTitle } from '../hero/heroText';
 
 function hour(h: number, over: Partial<ScoredHour> = {}): ScoredHour {
   return {
@@ -25,23 +26,10 @@ function hour(h: number, over: Partial<ScoredHour> = {}): ScoredHour {
   };
 }
 
-const NOW_10: NowLocal = { date: '2026-10-27', hour: 10, minute: 20 };
-
 describe('nowLine', () => {
-  it('today shows the current hour: rounded UV and feels-like', () => {
+  it('today labels the daylight peak even without a clock', () => {
     const hours = [hour(9), hour(10, { uv: 5.6, feelsLike: 23.6 }), hour(11, { uv: 8 })];
-    expect(nowLine(hours, 'today', NOW_10)).toBe('Now UV 6 · Feels 24°');
-  });
-
-  it('today without a UV value for the current hour shows only the feels-like', () => {
-    const hours = [hour(10, { uv: null, feelsLike: 23.6 })];
-    expect(nowLine(hours, 'today', NOW_10)).toBe('Now Feels 24°');
-  });
-
-  it('today is empty without a clock or without data for the current hour', () => {
-    expect(nowLine([hour(10)], 'today', null)).toBe('');
-    expect(nowLine([hour(9)], 'today', NOW_10)).toBe('');
-    expect(nowLine([hour(10, { uv: null, feelsLike: null })], 'today', NOW_10)).toBe('');
+    expect(nowLine(hours, 'today')).toBe('Today’s peak UV 8 · Feels 20–24°');
   });
 
   it('tomorrow shows the peak UV and the feels-like range over daylight hours only', () => {
@@ -52,19 +40,19 @@ describe('nowLine', () => {
       hour(15, { uv: 5, feelsLike: 21 }),
       hour(22, { isDay: false, uv: 9, feelsLike: 30 }),
     ];
-    expect(nowLine(hours, 'tomorrow', NOW_10)).toBe('Peak UV 7 · Feels 18–24°');
+    expect(nowLine(hours, 'tomorrow')).toBe('Tomorrow’s peak UV 7 · Feels 18–24°');
   });
 
   it('tomorrow without UV shows only the range, and nothing without any value', () => {
     const noUv = [hour(9, { uv: null, feelsLike: 18 }), hour(13, { uv: null, feelsLike: 24 })];
-    expect(nowLine(noUv, 'tomorrow', NOW_10)).toBe('Feels 18–24°');
+    expect(nowLine(noUv, 'tomorrow')).toBe('Feels 18–24°');
     const nothing = [hour(9, { uv: null, feelsLike: null })];
-    expect(nowLine(nothing, 'tomorrow', NOW_10)).toBe('');
+    expect(nowLine(nothing, 'tomorrow')).toBe('');
   });
 
   it('tomorrow with a single feels-like value does not print a range', () => {
     const hours = [hour(9, { uv: 2, feelsLike: 20 }), hour(13, { uv: 2, feelsLike: 20.2 })];
-    expect(nowLine(hours, 'tomorrow', null)).toBe('Peak UV 2 · Feels 20°');
+    expect(nowLine(hours, 'tomorrow')).toBe('Tomorrow’s peak UV 2 · Feels 20°');
   });
 });
 
@@ -84,5 +72,27 @@ describe('placeTitle', () => {
       lon: -9.14,
     };
     expect(placeTitle(lisbon)).toEqual({ name: 'Lisbon', mine: false });
+  });
+});
+
+describe('outing context', () => {
+  it('names heat alone without implying UV protection', () => {
+    const w = makeWindow({ 9: { uv: 2, feelsLike: 32 } });
+    w.verdict = 'yellow';
+    expect(windowVerdictLabel(w)).toBe('Hot — take precautions');
+    expect(windowUvLine(w)).toBe('UV 2 during your outing');
+  });
+  it('preserves mixed-risk and red verdicts', () => {
+    const w = makeWindow({ 9: { uv: 3, feelsLike: 32 } });
+    w.verdict = 'yellow';
+    expect(windowVerdictLabel(w)).toBe('OK with protection');
+    w.verdict = 'red';
+    expect(windowVerdictLabel(w)).toBe('Not recommended');
+  });
+  it('uses the window maximum and omits unavailable UV', () => {
+    expect(windowUvLine(makeWindow({ 9: { uv: 2 }, 10: { uv: 3.6 } }))).toBe(
+      'UV 4 during your outing',
+    );
+    expect(windowUvLine(makeWindow({ 9: { uv: null } }))).toBe('');
   });
 });

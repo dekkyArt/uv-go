@@ -91,7 +91,7 @@ describe('heroState', () => {
       best: BEST,
       reason: 'No points from available forecast data',
       duration: 60,
-      nowLine: 'Now UV 6 · Feels 24°',
+      nowLine: 'Today’s peak UV 6 · Feels 20–24°',
     });
   });
 });

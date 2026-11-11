@@ -1,3 +1,4 @@
+import { windowVerdictLabel } from './hero/heroText';
 import {
   useEffect,
   useMemo,
@@ -50,7 +51,6 @@ import {
   SHEET_BUTTON_CLASS,
   STUCK_HEADER_H,
   TOOLBAR_H,
-  verdictLabel,
 } from './ui';
 
 type StoredInputs = Pick<Inputs, 'freeTime' | 'duration' | 'activity'>;
@@ -305,7 +305,7 @@ function App() {
 
   const announcement =
     best !== null && evaluation?.reason
-      ? `Best time ${best.label}, ${verdictLabel(best.verdict)}. ${evaluation.reason}.`
+      ? `Best time ${best.label}, ${windowVerdictLabel(best)}. ${evaluation.reason}.`
       : '';
 
   const planControls = (
